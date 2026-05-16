@@ -1,0 +1,281 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
+
+@theme {
+	--font-sans:
+		'Geist Variable', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+		'Segoe UI Variable', 'Segoe UI', Roboto, sans-serif;
+	--font-mono:
+		'Geist Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, 'Cascadia Code',
+		Menlo, Consolas, monospace;
+
+	--color-bg: #0a0a0b;
+	--color-bg-soft: #111114;
+	--color-surface: #111114;
+	--color-surface-2: #17171a;
+	--color-surface-3: #1f1f23;
+	--color-border: #242428;
+	--color-border-strong: #2f2f35;
+	/* gap between hairline-grid children shows through as 1px dividers */
+	--color-hairline: #242428;
+
+	--color-fg: #ededf0;
+	--color-fg-muted: #c4c4c8;
+	--color-fg-subtle: #8c8c94;
+	--color-fg-faint: #55555c;
+
+	/* per-server overrides update --color-accent at runtime */
+	--color-accent: #c2410c;
+	--color-accent-strong: #9a3412;
+	--color-accent-hover: #ea580c;
+	--color-accent-fg: #ffffff;
+	--color-accent-bg: rgba(194, 65, 12, 0.12);
+	--color-accent-glow: rgba(194, 65, 12, 0.45);
+
+	--color-cyan: #67e8f9;
+	--color-cyan-bg: rgba(103, 232, 249, 0.1);
+
+	--color-success: #34d399;
+	--color-success-bg: rgba(52, 211, 153, 0.1);
+	--color-warning: #fbbf24;
+	--color-warning-bg: rgba(251, 191, 36, 0.1);
+	--color-danger: #f87171;
+	--color-danger-bg: rgba(248, 113, 113, 0.1);
+	--color-info: #67e8f9;
+
+	--color-ring: rgba(167, 139, 250, 0.6);
+
+	--radius-card: 10px;
+	--radius-input: 6px;
+	--radius-pill: 999px;
+
+	/* 1px outline instead of a real border — swap on hover without layout shift */
+	--shadow-flat: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 0 0 1px var(--color-border);
+	--shadow-flat-hover: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 0 0 1px var(--color-border-strong);
+
+	--ease-snap: cubic-bezier(0.32, 0.72, 0, 1);
+	--ease-out-fast: cubic-bezier(0.22, 1, 0.36, 1);
+	--dur-fast: 120ms;
+	--dur-mid: 200ms;
+	--dur-slow: 320ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation: none !important;
+		transition: none !important;
+	}
+}
+
+/* view transitions wired up in routes/+layout.svelte via onNavigate */
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation-duration: var(--dur-mid);
+	animation-timing-function: var(--ease-snap);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	::view-transition-group(*),
+	::view-transition-old(*),
+	::view-transition-new(*) {
+		animation: none !important;
+	}
+}
+
+:root[data-theme='light'] {
+	--color-bg: #fafafa;
+	--color-bg-soft: #f4f4f5;
+	--color-surface: #ffffff;
+	--color-surface-2: #f4f4f5;
+	--color-surface-3: #e4e4e7;
+	--color-border: #e4e4e7;
+	--color-border-strong: #d4d4d8;
+	--color-hairline: #e4e4e7;
+
+	--color-fg: #18181b;
+	--color-fg-muted: #3f3f46;
+	--color-fg-subtle: #71717a;
+	--color-fg-faint: #a1a1aa;
+
+	--color-success: #059669;
+	--color-success-bg: rgba(5, 150, 105, 0.1);
+	--color-warning: #b45309;
+	--color-warning-bg: rgba(180, 83, 9, 0.1);
+	--color-danger: #dc2626;
+	--color-danger-bg: rgba(220, 38, 38, 0.1);
+	--color-info: #0891b2;
+	--color-cyan: #0891b2;
+	--color-cyan-bg: rgba(8, 145, 178, 0.1);
+
+	/* inset highlight is dark in light mode — no white-on-white sheen */
+	--shadow-flat: inset 0 1px 0 rgba(0, 0, 0, 0.02), 0 0 0 1px var(--color-border);
+	--shadow-flat-hover: inset 0 1px 0 rgba(0, 0, 0, 0.03), 0 0 0 1px var(--color-border-strong);
+}
+
+@layer base {
+	html,
+	body {
+		background: var(--color-bg);
+		color: var(--color-fg);
+		font-family: var(--font-sans);
+		font-feature-settings:
+			'cv11' 1,
+			'ss03' 1,
+			'cv05' 1;
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+		font-synthesis: none;
+	}
+
+	body {
+		min-height: 100vh;
+		font-size: 14px;
+		line-height: 1.5;
+		overflow-x: hidden;
+	}
+
+	::selection {
+		background: var(--color-accent-bg);
+		color: var(--color-fg);
+	}
+
+	*:focus-visible {
+		outline: 2px solid var(--color-ring);
+		outline-offset: 2px;
+		border-radius: 4px;
+	}
+
+	::-webkit-scrollbar {
+		width: 10px;
+		height: 10px;
+	}
+	::-webkit-scrollbar-track {
+		background: transparent;
+	}
+	::-webkit-scrollbar-thumb {
+		background: var(--color-border);
+		border-radius: 999px;
+		border: 2px solid var(--color-bg);
+	}
+	::-webkit-scrollbar-thumb:hover {
+		background: var(--color-border-strong);
+	}
+
+	.tabular-nums {
+		font-variant-numeric: tabular-nums;
+		font-feature-settings: 'tnum' 1;
+	}
+
+	h1,
+	h2,
+	h3 {
+		letter-spacing: -0.015em;
+	}
+}
+
+@keyframes remon-pulse {
+	0% {
+		transform: scale(1);
+		opacity: 0.65;
+	}
+	75%,
+	100% {
+		transform: scale(2.6);
+		opacity: 0;
+	}
+}
+
+@keyframes remon-pulse-core {
+	0%,
+	100% {
+		box-shadow: 0 0 0 0 var(--pulse-color, currentColor);
+	}
+	50% {
+		box-shadow: 0 0 4px 1px var(--pulse-color, currentColor);
+	}
+}
+
+@keyframes remon-tick {
+	0% {
+		color: var(--color-accent);
+	}
+	100% {
+		color: inherit;
+	}
+}
+
+@keyframes remon-skeleton {
+	0% {
+		background-position: -200px 0;
+	}
+	100% {
+		background-position: calc(200px + 100%) 0;
+	}
+}
+
+@keyframes remon-enter {
+	from {
+		opacity: 0;
+		transform: translateY(4px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@layer utilities {
+	/* --pulse-color set inline by LiveBadge; ring color matches dot tone */
+	.live-pulse {
+		animation: remon-pulse-core 2400ms var(--ease-out-fast) infinite;
+	}
+	.live-pulse::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		border-radius: 9999px;
+		background: var(--pulse-color, currentColor);
+		animation: remon-pulse 2400ms var(--ease-out-fast) infinite;
+		pointer-events: none;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.live-pulse,
+		.live-pulse::after {
+			animation: none;
+		}
+	}
+
+	.tick {
+		animation: remon-tick var(--dur-fast) ease-out;
+	}
+
+	.skeleton {
+		background: linear-gradient(
+			90deg,
+			var(--color-surface-2) 0%,
+			var(--color-surface-3) 40%,
+			var(--color-surface-2) 80%
+		);
+		background-size: 200px 100%;
+		animation: remon-skeleton 1400ms ease-in-out infinite;
+		border-radius: 6px;
+	}
+
+	.enter {
+		animation: remon-enter 200ms var(--ease-out-fast);
+	}
+
+	.hairline-grid {
+		display: grid;
+		gap: 1px;
+		background: var(--color-hairline);
+	}
+
+	.app-content {
+		position: relative;
+		z-index: 1;
+	}
+}
