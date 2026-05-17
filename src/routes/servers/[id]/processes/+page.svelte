@@ -6,6 +6,9 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
+	import AutoRefreshSelect from '$lib/components/ui/AutoRefreshSelect.svelte';
+	import RefreshButton from '$lib/components/ui/RefreshButton.svelte';
+	import SegmentedControl from '$lib/components/ui/SegmentedControl.svelte';
 	import { profiles } from '$lib/stores/profiles.svelte';
 	import { connections } from '$lib/stores/connections.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
@@ -360,51 +363,25 @@
 				{/if}
 			</div>
 			<div class="flex flex-wrap items-center gap-2">
-				<div
-					role="tablist"
-					aria-label={m.processes_aria_view_mode()}
-					class="inline-flex rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5 text-xs"
-				>
-					<button
-						type="button"
-						role="tab"
-						aria-selected={viewMode === 'flat'}
-						onclick={() => (viewMode = 'flat')}
-						class={cn(
-							'rounded px-2.5 py-1 transition',
-							viewMode === 'flat'
-								? 'bg-[var(--color-surface-2)] text-[var(--color-fg)]'
-								: 'text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]'
-						)}
-					>
-						{m.processes_view_flat()}
-					</button>
-					<button
-						type="button"
-						role="tab"
-						aria-selected={viewMode === 'tree'}
-						onclick={() => (viewMode = 'tree')}
-						class={cn(
-							'rounded px-2.5 py-1 transition',
-							viewMode === 'tree'
-								? 'bg-[var(--color-surface-2)] text-[var(--color-fg)]'
-								: 'text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]'
-						)}
-					>
-						{m.processes_view_tree()}
-					</button>
-				</div>
-				<label class="flex items-center gap-1.5 text-xs text-[var(--color-fg-muted)]">
-					<input
-						type="checkbox"
-						bind:checked={autoRefresh}
-						class="accent-[var(--color-accent)]"
-					/>
-					{m.processes_auto_refresh({ secs: refreshIntervalSecs })}
-				</label>
-				<Button variant="secondary" size="sm" onclick={fetchProcesses} loading={loading}>
-					{m.processes_action_refresh()}
-				</Button>
+				<SegmentedControl
+					value={viewMode}
+					options={[
+						{ value: 'flat', label: m.processes_view_flat() },
+						{ value: 'tree', label: m.processes_view_tree() }
+					]}
+					onSelect={(next) => (viewMode = next)}
+					ariaLabel={m.processes_aria_view_mode()}
+				/>
+				<AutoRefreshSelect
+					value={autoRefresh ? `${refreshIntervalSecs}s` : 'off'}
+					options={[
+						{ value: 'off', label: m.chart_autorefresh_off() },
+						{ value: `${refreshIntervalSecs}s`, label: `${refreshIntervalSecs}s` }
+					]}
+					onChange={(next) => (autoRefresh = next !== 'off')}
+					class="w-[8.5rem]"
+				/>
+				<RefreshButton onclick={() => fetchProcesses()} loading={loading} label={m.processes_action_refresh()} />
 			</div>
 		</header>
 

@@ -4,6 +4,8 @@
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Banner from '$lib/components/ui/Banner.svelte';
+	import AutoRefreshSelect from '$lib/components/ui/AutoRefreshSelect.svelte';
+	import RefreshButton from '$lib/components/ui/RefreshButton.svelte';
 	import ProbeStatusBadge from '$lib/components/probes/ProbeStatusBadge.svelte';
 	import HistoryChart, { type Series } from '$lib/components/charts/HistoryChart.svelte';
 	import { profiles } from '$lib/stores/profiles.svelte';
@@ -200,17 +202,16 @@
 				</p>
 			</div>
 			<div class="flex flex-wrap items-center gap-2">
-				<label class="flex items-center gap-1.5 text-[12px] text-[var(--color-fg-muted)]">
-					<input
-						type="checkbox"
-						bind:checked={autoRefresh}
-						class="accent-[var(--color-accent)]"
-					/>
-					{m.probes_auto_refresh()}
-				</label>
-				<Button variant="secondary" size="sm" onclick={fetchList} loading={loading}>
-					{m.probes_refresh()}
-				</Button>
+				<AutoRefreshSelect
+					value={autoRefresh ? '10s' : 'off'}
+					options={[
+						{ value: 'off', label: m.chart_autorefresh_off() },
+						{ value: '10s', label: '10s' }
+					]}
+					onChange={(next) => (autoRefresh = next !== 'off')}
+					class="w-[8.5rem]"
+				/>
+				<RefreshButton onclick={fetchList} loading={loading} label={m.probes_refresh()} />
 				<Button variant="primary" size="sm" onclick={reload} loading={reloading}>
 					{m.probes_reload_manifests()}
 				</Button>

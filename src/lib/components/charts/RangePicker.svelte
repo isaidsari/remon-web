@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { cn } from '$lib/utils/cn';
+	import AutoRefreshSelect, { type AutoRefreshOption } from '$lib/components/ui/AutoRefreshSelect.svelte';
+	import RefreshButton from '$lib/components/ui/RefreshButton.svelte';
+	import SegmentedControl from '$lib/components/ui/SegmentedControl.svelte';
 	import type { RangeKey } from './range';
-	import IconRefresh from '~icons/lucide/refresh-cw';
 	import IconChevronLeft from '~icons/lucide/chevron-left';
 	import IconChevronRight from '~icons/lucide/chevron-right';
 	import { m } from '$lib/paraglide/messages';
@@ -55,11 +57,11 @@
 		{ key: '30d', label: '30d' }
 	];
 
-	let refreshOpts = $derived<{ key: RefreshInterval; label: string }[]>([
-		{ key: 'off', label: m.chart_autorefresh_off() },
-		{ key: '15s', label: '15s' },
-		{ key: '30s', label: '30s' },
-		{ key: '60s', label: '60s' }
+	let refreshOpts = $derived<AutoRefreshOption[]>([
+		{ value: 'off', label: m.chart_autorefresh_off() },
+		{ value: '15s', label: '15s' },
+		{ value: '30s', label: '30s' },
+		{ value: '60s', label: '60s' }
 	]);
 
 	import { RANGE_SECONDS } from './range';
@@ -80,109 +82,66 @@
 	}
 </script>
 
-<div class={cn('flex flex-wrap items-center gap-2', klass)}>
-	<div
-		class="inline-flex items-center rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5"
-		role="tablist"
-		aria-label={m.chart_range_aria_time()}
-	>
-		{#each presets as p (p.key)}
-			<button
-				type="button"
-				role="tab"
-				aria-selected={value === p.key}
-				onclick={() => onSelect(p.key)}
-				class={cn(
-					'rounded-md px-3 py-1.5 text-xs font-medium tabular-nums transition',
-					value === p.key
-						? 'bg-[var(--color-surface-3)] text-[var(--color-fg)]'
-						: 'text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]'
-				)}
-			>
-				{p.label}
-			</button>
-		{/each}
-	</div>
+<div class={cn('flex w-full flex-col gap-2 sm:w-auto lg:flex-row lg:items-center', klass)}>
+	<SegmentedControl
+		{value}
+		options={presets.map((p) => ({ value: p.key, label: p.label }))}
+		{onSelect}
+		ariaLabel={m.chart_range_aria_time()}
+		class="flex w-full overflow-x-auto sm:w-auto"
+		buttonClass="min-w-12 flex-1 tabular-nums sm:flex-none"
+	/>
 
-	{#if onShift}
-		<div class="inline-flex items-center gap-1 rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5">
-			<button
-				type="button"
-				onclick={() => onShift?.(-span)}
-				class="grid h-8 w-8 place-items-center rounded-md text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)]"
-				aria-label={m.chart_range_earlier_aria()}
-				title={m.chart_range_earlier_title({ value })}
+	<div class="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
+		{#if onShift}
+			<div
+				class="inline-flex min-w-[8.75rem] flex-1 items-center rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5 sm:flex-none"
 			>
-				<IconChevronLeft class="size-3.5" stroke-width="2" />
-			</button>
-			<button
-				type="button"
-				onclick={() => onResetNow?.()}
-				class={cn(
-					'h-8 px-2 font-mono text-[10px] tracking-wide tabular-nums transition',
-					offsetSecs === 0
-						? 'cursor-default text-[var(--color-fg-subtle)]'
-						: 'rounded-md text-[var(--color-warning)] hover:bg-[var(--color-surface-2)]'
-				)}
-				disabled={offsetSecs === 0}
-				title={offsetSecs === 0 ? m.chart_range_live_title() : m.chart_range_jump_now_title()}
-			>
-				{fmtOffset(offsetSecs)}
-			</button>
-			<button
-				type="button"
-				onclick={() => onShift?.(span)}
-				disabled={offsetSecs === 0}
-				class="grid h-8 w-8 place-items-center rounded-md text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)] disabled:cursor-not-allowed disabled:opacity-30"
-				aria-label={m.chart_range_later_aria()}
-				title={m.chart_range_later_title({ value })}
-			>
-				<IconChevronRight class="size-3.5" stroke-width="2" />
-			</button>
-		</div>
-	{/if}
-
-	{#if onAutoRefreshChange}
-		<div
-			class="inline-flex items-center rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5"
-			role="tablist"
-			aria-label={m.chart_autorefresh_aria()}
-			title={m.chart_autorefresh_title()}
-		>
-			<span
-				class="px-2 text-[11px] tracking-[0.06em] text-[var(--color-fg-muted)]"
-			>
-				auto
-			</span>
-			{#each refreshOpts as o (o.key)}
 				<button
 					type="button"
-					role="tab"
-					aria-selected={autoRefresh === o.key}
-					onclick={() => onAutoRefreshChange?.(o.key)}
-					class={cn(
-						'rounded-md px-2 py-1.5 text-xs font-medium tabular-nums transition',
-						autoRefresh === o.key
-							? 'bg-[var(--color-surface-3)] text-[var(--color-fg)]'
-							: 'text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]'
-					)}
+					onclick={() => onShift?.(-span)}
+					class="grid h-7 w-8 shrink-0 place-items-center rounded-md text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)]"
+					aria-label={m.chart_range_earlier_aria()}
+					title={m.chart_range_earlier_title({ value })}
 				>
-					{o.label}
+					<IconChevronLeft class="size-3.5" stroke-width="2" />
 				</button>
-			{/each}
-		</div>
-	{/if}
+				<button
+					type="button"
+					onclick={() => onResetNow?.()}
+					class={cn(
+						'h-7 min-w-[4.75rem] flex-1 px-2 font-mono text-[10px] tracking-wide tabular-nums transition sm:flex-none',
+						offsetSecs === 0 ? 'cursor-default text-[var(--color-fg-subtle)]' : 'rounded-md text-[var(--color-warning)] hover:bg-[var(--color-surface-2)]'
+					)}
+					disabled={offsetSecs === 0}
+					title={offsetSecs === 0 ? m.chart_range_live_title() : m.chart_range_jump_now_title()}
+				>
+					<span class="block truncate">{fmtOffset(offsetSecs)}</span>
+				</button>
+				<button
+					type="button"
+					onclick={() => onShift?.(span)}
+					disabled={offsetSecs === 0}
+					class="grid h-7 w-8 shrink-0 place-items-center rounded-md text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)] disabled:cursor-not-allowed disabled:opacity-30"
+					aria-label={m.chart_range_later_aria()}
+					title={m.chart_range_later_title({ value })}
+				>
+					<IconChevronRight class="size-3.5" stroke-width="2" />
+				</button>
+			</div>
+		{/if}
 
-	{#if onRefresh}
-		<button
-			type="button"
-			onclick={onRefresh}
-			disabled={busy}
-			class="grid h-8 w-8 place-items-center rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-fg-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-fg)] disabled:cursor-not-allowed disabled:opacity-50"
-			aria-label={m.chart_refresh_aria()}
-			title={m.chart_refresh_aria()}
-		>
-			<IconRefresh class={cn('size-[14px]', busy && 'animate-spin')} stroke-width="2" />
-		</button>
-	{/if}
+		{#if onAutoRefreshChange}
+			<AutoRefreshSelect
+				value={autoRefresh}
+				options={refreshOpts}
+				onChange={(next) => onAutoRefreshChange?.(next as RefreshInterval)}
+				class="flex-[1_1_8.5rem] sm:flex-none"
+			/>
+		{/if}
+
+		{#if onRefresh}
+			<RefreshButton onclick={onRefresh} loading={busy} />
+		{/if}
+	</div>
 </div>

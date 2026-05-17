@@ -7,6 +7,8 @@
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
+	import AutoRefreshSelect from '$lib/components/ui/AutoRefreshSelect.svelte';
+	import RefreshButton from '$lib/components/ui/RefreshButton.svelte';
 	import Tabs from '$lib/components/layout/Tabs.svelte';
 	import StateBadge from '$lib/components/docker/StateBadge.svelte';
 	import { profiles } from '$lib/stores/profiles.svelte';
@@ -294,11 +296,16 @@
 				</p>
 			</div>
 			<div class="flex items-center gap-2">
-				<label class="flex items-center gap-2 text-xs text-[var(--color-fg-muted)]">
-					<input type="checkbox" bind:checked={autoRefresh} class="accent-[var(--color-accent)]" />
-					{m.docker_auto_refresh()}
-				</label>
-				<Button variant="secondary" size="sm" onclick={fetchAll} loading={busy}>{m.docker_action_refresh()}</Button>
+				<AutoRefreshSelect
+					value={autoRefresh ? '5s' : 'off'}
+					options={[
+						{ value: 'off', label: m.chart_autorefresh_off() },
+						{ value: '5s', label: '5s' }
+					]}
+					onChange={(next) => (autoRefresh = next !== 'off')}
+					class="w-[8.5rem]"
+				/>
+				<RefreshButton onclick={fetchAll} loading={busy} label={m.docker_action_refresh()} />
 			</div>
 		</header>
 
