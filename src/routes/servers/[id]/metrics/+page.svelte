@@ -16,12 +16,7 @@
 	import { fmtBps, fmtNumber, fmtPercent } from '$lib/utils/format';
 	import { cn } from '$lib/utils/cn';
 	import { m } from '$lib/paraglide/messages';
-	import {
-		classifyInterface,
-		isPhysicalInterface,
-		isContainerMount,
-		type IfaceClass
-	} from '$lib/utils/netClassify';
+	import { classifyInterface, isPhysicalInterface, isContainerMount, type IfaceClass } from '$lib/utils/netClassify';
 	import type {
 		ComponentsHistoryResponse,
 		CpuHistoryResponse,
@@ -40,7 +35,9 @@
 		untrack(() => {
 			conn.ensureSignedIn().catch((e) => {
 				if (e instanceof ApiError) {
-					toast.error(m.overview_toast_signin_failed(), { description: e.userMessage });
+					toast.error(m.overview_toast_signin_failed(), {
+						description: e.userMessage
+					});
 				}
 			});
 		});
@@ -93,30 +90,35 @@
 		busy = true;
 		try {
 			const [batch, pc, pm, pi] = await Promise.all([
-				conn.client.metricsBatch({ resources: 'cpu,memory,disk,network,components', ...q }),
+				conn.client.metricsBatch({
+					resources: 'cpu,memory,disk,network,components',
+					...q
+				}),
 				conn.client.pressureHistory('cpu', q).catch(() => null),
 				conn.client.pressureHistory('memory', q).catch(() => null),
 				conn.client.pressureHistory('io', q).catch(() => null)
 			]);
 			const res = batch.resolution;
-			const cpuBatch   = batch.series.find(s => s.resource === 'cpu');
-			const memBatch   = batch.series.find(s => s.resource === 'memory');
-			const diskBatch  = batch.series.find(s => s.resource === 'disk');
-			const netBatch   = batch.series.find(s => s.resource === 'network');
-			const compBatch  = batch.series.find(s => s.resource === 'components');
-			cpu        = cpuBatch  && cpuBatch.resource  === 'cpu'        ? { resolution: res, points: cpuBatch.points  } : null;
-			memory     = memBatch  && memBatch.resource  === 'memory'     ? { resolution: res, points: memBatch.points  } : null;
-			disk       = diskBatch && diskBatch.resource === 'disk'       ? { resolution: res, points: diskBatch.points } : null;
-			network    = netBatch  && netBatch.resource  === 'network'    ? { resolution: res, points: netBatch.points  } : null;
+			const cpuBatch = batch.series.find((s) => s.resource === 'cpu');
+			const memBatch = batch.series.find((s) => s.resource === 'memory');
+			const diskBatch = batch.series.find((s) => s.resource === 'disk');
+			const netBatch = batch.series.find((s) => s.resource === 'network');
+			const compBatch = batch.series.find((s) => s.resource === 'components');
+			cpu = cpuBatch && cpuBatch.resource === 'cpu' ? { resolution: res, points: cpuBatch.points } : null;
+			memory = memBatch && memBatch.resource === 'memory' ? { resolution: res, points: memBatch.points } : null;
+			disk = diskBatch && diskBatch.resource === 'disk' ? { resolution: res, points: diskBatch.points } : null;
+			network = netBatch && netBatch.resource === 'network' ? { resolution: res, points: netBatch.points } : null;
 			components = compBatch && compBatch.resource === 'components' ? { resolution: res, points: compBatch.points } : null;
 			pressureCpu = pc;
 			pressureMem = pm;
-			pressureIo  = pi;
-			resolution  = res;
+			pressureIo = pi;
+			resolution = res;
 			lastFetched = Date.now();
 		} catch (e) {
 			if (e instanceof ApiError) {
-				toast.error(m.metrics_toast_fetch_failed(), { description: e.userMessage });
+				toast.error(m.metrics_toast_fetch_failed(), {
+					description: e.userMessage
+				});
 			}
 		} finally {
 			busy = false;
@@ -132,10 +134,7 @@
 		}
 	});
 
-	function latestByKey<T extends { timestamp: number }>(
-		points: T[] | undefined,
-		key: (p: T) => string
-	): Map<string, T> {
+	function latestByKey<T extends { timestamp: number }>(points: T[] | undefined, key: (p: T) => string): Map<string, T> {
 		const out = new Map<string, T>();
 		if (!points) return out;
 		for (const p of points) {
@@ -167,6 +166,20 @@
 				color: 'rgb(96, 165, 250)'
 			}
 		];
+		if (hasAny(cpu.points, (p) => p.user_percent)) {
+			series.push({
+				name: m.metrics_series_user(),
+				data: { xs, ys: cpu.points.map((p) => p.user_percent ?? 0) },
+				color: 'rgb(52, 211, 153)'
+			});
+		}
+		if (hasAny(cpu.points, (p) => p.system_percent)) {
+			series.push({
+				name: m.metrics_series_system(),
+				data: { xs, ys: cpu.points.map((p) => p.system_percent ?? 0) },
+				color: 'rgb(192, 132, 252)'
+			});
+		}
 		if (hasAny(cpu.points, (p) => p.steal_percent)) {
 			series.push({
 				name: m.metrics_series_steal(),
@@ -191,7 +204,13 @@
 			const total = p.used_bytes + p.available_bytes;
 			return total > 0 ? (p.used_bytes / total) * 100 : 0;
 		});
-		return [{ name: m.overview_card_memory_title(), data: { xs, ys }, color: 'rgb(167, 139, 250)' }];
+		return [
+			{
+				name: m.overview_card_memory_title(),
+				data: { xs, ys },
+				color: 'rgb(167, 139, 250)'
+			}
+		];
 	});
 
 	let memoryPressureSeries = $derived.by((): Series[] => {
@@ -201,7 +220,10 @@
 		if (hasAny(memory.points, (p) => p.page_faults_major_per_sec)) {
 			series.push({
 				name: m.metrics_series_major_faults(),
-				data: { xs, ys: memory.points.map((p) => p.page_faults_major_per_sec ?? 0) },
+				data: {
+					xs,
+					ys: memory.points.map((p) => p.page_faults_major_per_sec ?? 0)
+				},
 				color: 'rgb(248, 113, 113)',
 				fill: true
 			});
@@ -209,27 +231,27 @@
 		if (hasAny(memory.points, (p) => p.swap_in_pages_per_sec)) {
 			series.push({
 				name: m.metrics_series_swap_in(),
-				data: { xs, ys: memory.points.map((p) => p.swap_in_pages_per_sec ?? 0) },
+				data: {
+					xs,
+					ys: memory.points.map((p) => p.swap_in_pages_per_sec ?? 0)
+				},
 				color: 'rgb(251, 113, 133)'
 			});
 		}
 		if (hasAny(memory.points, (p) => p.swap_out_pages_per_sec)) {
 			series.push({
 				name: m.metrics_series_swap_out(),
-				data: { xs, ys: memory.points.map((p) => p.swap_out_pages_per_sec ?? 0) },
+				data: {
+					xs,
+					ys: memory.points.map((p) => p.swap_out_pages_per_sec ?? 0)
+				},
 				color: 'rgb(244, 114, 182)'
 			});
 		}
 		return series;
 	});
 
-	const DISK_PALETTE = [
-		'rgb(251, 191, 36)',
-		'rgb(244, 114, 182)',
-		'rgb(16, 185, 129)',
-		'rgb(56, 189, 248)',
-		'rgb(217, 70, 239)'
-	];
+	const DISK_PALETTE = ['rgb(251, 191, 36)', 'rgb(244, 114, 182)', 'rgb(16, 185, 129)', 'rgb(56, 189, 248)', 'rgb(217, 70, 239)'];
 
 	let diskSeries = $derived.by((): Series[] => {
 		if (!disk) return [];
@@ -252,6 +274,31 @@
 		}));
 	});
 
+	let diskIopsSeries = $derived.by((): Series[] => {
+		if (!disk) return [];
+		const readByTs = new Map<number, number>();
+		const writeByTs = new Map<number, number>();
+		for (const p of disk.points) {
+			if (isDockerMount(p.mount_point)) continue;
+			if (p.read_iops != null) readByTs.set(p.timestamp, (readByTs.get(p.timestamp) ?? 0) + p.read_iops);
+			if (p.write_iops != null) writeByTs.set(p.timestamp, (writeByTs.get(p.timestamp) ?? 0) + p.write_iops);
+		}
+		if (readByTs.size === 0) return [];
+		const xs = [...readByTs.keys()].sort((a, b) => a - b);
+		return [
+			{
+				name: m.metrics_series_read_iops(),
+				data: { xs, ys: xs.map((x) => readByTs.get(x) ?? 0) },
+				color: 'rgb(251, 191, 36)'
+			},
+			{
+				name: m.metrics_series_write_iops(),
+				data: { xs, ys: xs.map((x) => writeByTs.get(x) ?? 0) },
+				color: 'rgb(244, 114, 182)'
+			}
+		];
+	});
+
 	let networkSeries = $derived.by((): Series[] => {
 		if (!network) return [];
 		// Physical interfaces only — veth pairs double-count bytes.
@@ -270,8 +317,18 @@
 		const rx = xs.map((x) => sums.get(x)!.rx);
 		const tx = xs.map((x) => sums.get(x)!.tx);
 		return [
-			{ name: 'RX', data: { xs, ys: rx }, color: 'rgb(96, 165, 250)', fill: true },
-			{ name: 'TX', data: { xs, ys: tx }, color: 'rgb(52, 211, 153)', fill: true }
+			{
+				name: 'RX',
+				data: { xs, ys: rx },
+				color: 'rgb(96, 165, 250)',
+				fill: true
+			},
+			{
+				name: 'TX',
+				data: { xs, ys: tx },
+				color: 'rgb(52, 211, 153)',
+				fill: true
+			}
 		];
 	});
 
@@ -281,15 +338,12 @@
 	let memoryKey = $derived(memorySeries.map((s) => s.name).join('|'));
 	let memoryPressureKey = $derived(memoryPressureSeries.map((s) => s.name).join('|'));
 	let diskKey = $derived(diskSeries.map((s) => s.name).join('|'));
+	let diskIopsKey = $derived(diskIopsSeries.map((s) => s.name).join('|'));
 	let networkKey = $derived(networkSeries.map((s) => s.name).join('|'));
 
-	let lastCpu = $derived(
-		cpu && cpu.points.length > 0 ? cpu.points[cpu.points.length - 1] : null
-	);
+	let lastCpu = $derived(cpu && cpu.points.length > 0 ? cpu.points[cpu.points.length - 1] : null);
 
-	let hasKernelRateData = $derived(
-		!!lastCpu && (lastCpu.context_switches_per_sec != null || lastCpu.process_forks_per_sec != null)
-	);
+	let hasKernelRateData = $derived(!!lastCpu && (lastCpu.context_switches_per_sec != null || lastCpu.process_forks_per_sec != null));
 
 	type InodeRow = { mount: string; pct: number; isDocker: boolean };
 	let inodeRows = $derived.by((): InodeRow[] => {
@@ -297,12 +351,33 @@
 		const out: InodeRow[] = [];
 		for (const [mount, p] of latest) {
 			if (p.inode_used_percent != null)
-				out.push({ mount, pct: p.inode_used_percent, isDocker: isDockerMount(mount) });
+				out.push({
+					mount,
+					pct: p.inode_used_percent,
+					isDocker: isDockerMount(mount)
+				});
 		}
 		return out.sort((a, b) => b.pct - a.pct);
 	});
 	let mainInodeRows = $derived(inodeRows.filter((r) => !r.isDocker));
 	let dockerInodeRows = $derived(inodeRows.filter((r) => r.isDocker));
+
+	type IoUtilRow = { mount: string; readIops: number; writeIops: number; util: number; isDocker: boolean };
+	let ioUtilRows = $derived.by((): IoUtilRow[] => {
+		const latest = latestByKey(disk?.points, (p) => p.mount_point);
+		const out: IoUtilRow[] = [];
+		for (const [mount, p] of latest) {
+			if (p.io_util_percent != null)
+				out.push({
+					mount,
+					readIops: p.read_iops ?? 0,
+					writeIops: p.write_iops ?? 0,
+					util: p.io_util_percent,
+					isDocker: isDockerMount(mount)
+				});
+		}
+		return out.filter((r) => !r.isDocker).sort((a, b) => b.util - a.util);
+	});
 
 	function shortenMount(path: string): string {
 		const segs = path.split('/').filter(Boolean);
@@ -382,36 +457,43 @@
 
 {#if profile}
 	<div class="px-4 py-6 md:px-8 md:py-8">
-		<header class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-			<div>
-				<h1 class="text-[24px] font-semibold tracking-tight">{m.section_metrics()}</h1>
-				<p class="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[14px] text-[var(--color-fg-muted)]">
-					<span>{m.metrics_page_subtitle()}</span>
+		<header class="mb-6 flex flex-col gap-4 lg:mb-8 lg:flex-row lg:items-start lg:justify-between">
+			<div class="min-w-0">
+				<h1 class="text-[24px] font-semibold tracking-tight">
+					{m.section_metrics()}
+				</h1>
+				<p class="mt-1.5 max-w-2xl text-[14px] leading-6 text-[var(--color-fg-muted)]">
+					{m.metrics_page_subtitle()}
+				</p>
+			</div>
+			<div class="flex flex-col gap-2 lg:items-end">
+				<RangePicker
+					class="lg:w-auto lg:justify-end"
+					value={range}
+					onSelect={(k) => (range = k)}
+					onRefresh={fetchAll}
+					{busy}
+					{autoRefresh}
+					onAutoRefreshChange={(i) => (autoRefresh = i)}
+					{offsetSecs}
+					onShift={(d) => (offsetSecs = Math.max(0, offsetSecs - d))}
+					onResetNow={() => (offsetSecs = 0)}
+				/>
+				<div class="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] tabular-nums text-[var(--color-fg-subtle)] lg:justify-end">
 					{#if resolution}
-						<span
-							class="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-0.5 font-mono text-[11px] tracking-[0.06em] text-[var(--color-fg-muted)]"
-						>
+						<span>
 							{m.metrics_resolution_label({ value: resolution })}
 						</span>
 					{/if}
 					{#if lastFetched}
-						<span class="text-[12px] text-[var(--color-fg-subtle)]">
-							{m.metrics_updated_at({ time: new Date(lastFetched).toLocaleTimeString() })}
+						<span>
+							{m.metrics_updated_at({
+								time: new Date(lastFetched).toLocaleTimeString()
+							})}
 						</span>
 					{/if}
-				</p>
+				</div>
 			</div>
-			<RangePicker
-				value={range}
-				onSelect={(k) => (range = k)}
-				onRefresh={fetchAll}
-				{busy}
-				{autoRefresh}
-				onAutoRefreshChange={(i) => (autoRefresh = i)}
-				{offsetSecs}
-				onShift={(d) => (offsetSecs = Math.max(0, offsetSecs - d))}
-				onResetNow={() => (offsetSecs = 0)}
-			/>
 		</header>
 
 		{#if !conn?.isAuthenticated}
@@ -424,7 +506,9 @@
 			<div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
 				<Card>
 					<div class="mb-3 flex items-center justify-between gap-3">
-						<h2 class="text-sm font-medium text-[var(--color-fg)]">{m.metrics_card_cpu_title()}</h2>
+						<h2 class="text-sm font-medium text-[var(--color-fg)]">
+							{m.metrics_card_cpu_title()}
+						</h2>
 					</div>
 					{#if loading}
 						{@render chartSkeleton()}
@@ -436,7 +520,9 @@
 							<HistoryChart series={cpuSeries} valueFormatter={fmtPct} yMin={0} yMax={100} group="metrics" />
 						{/key}
 						{#if hasKernelRateData && lastCpu}
-							<div class="mt-3 flex items-center justify-end gap-4 border-t border-[var(--color-border)] pt-2.5 font-mono text-[11px] tabular-nums text-[var(--color-fg-muted)]">
+							<div
+								class="mt-3 flex items-center justify-end gap-4 border-t border-[var(--color-border)] pt-2.5 font-mono text-[11px] tabular-nums text-[var(--color-fg-muted)]"
+							>
 								{#if lastCpu.context_switches_per_sec != null}
 									<span>
 										<span class="text-[var(--color-fg-subtle)]">{m.metrics_kernel_ctx_label()}</span>
@@ -456,7 +542,9 @@
 
 				<Card>
 					<div class="mb-3 flex items-center justify-between gap-3">
-						<h2 class="text-sm font-medium text-[var(--color-fg)]">{m.metrics_card_memory_title()}</h2>
+						<h2 class="text-sm font-medium text-[var(--color-fg)]">
+							{m.metrics_card_memory_title()}
+						</h2>
 					</div>
 					{#if loading}
 						{@render chartSkeleton()}
@@ -472,7 +560,9 @@
 
 				<Card>
 					<div class="mb-3 flex items-center justify-between gap-3">
-						<h2 class="text-sm font-medium text-[var(--color-fg)]">{m.metrics_card_disk_title()}</h2>
+						<h2 class="text-sm font-medium text-[var(--color-fg)]">
+							{m.metrics_card_disk_title()}
+						</h2>
 					</div>
 					{#if loading}
 						{@render chartSkeleton()}
@@ -481,98 +571,150 @@
 							<HistoryChart series={diskSeries} valueFormatter={fmtPct} yMin={0} yMax={100} group="metrics" />
 						{/key}
 
-					{#if inodeRows.length > 0}
-						<div class="mt-4 border-t border-[var(--color-border)] pt-4">
-							<p class="mb-2 text-[10px] tracking-wide text-[var(--color-fg-muted)]">
-								{m.metrics_inode_usage_label()}
-							</p>
-							<ul class="flex flex-col gap-2">
-								{#each mainInodeRows as r (r.mount)}
-									{@render inodeRow(r)}
-								{/each}
-							</ul>
-							{#if dockerInodeRows.length > 0}
-								<details class="mt-3 border-t border-[var(--color-border)] pt-3">
-									<summary
-										class="cursor-pointer font-mono text-[10px] tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
-									>
-										{m.metrics_container_layers_label({ count: dockerInodeRows.length })}
-									</summary>
-									<ul class="mt-2 flex flex-col gap-2">
-										{#each dockerInodeRows as r (r.mount)}
-											{@render inodeRow(r)}
-										{/each}
-									</ul>
-								</details>
-							{/if}
-						</div>
-					{/if}
+						{#if diskIopsSeries.length > 0}
+							<div class="mt-4 border-t border-[var(--color-border)] pt-4">
+								<p class="mb-2 text-[10px] tracking-wide text-[var(--color-fg-muted)]">
+									{m.metrics_disk_iops_label()}
+								</p>
+								<div class="mb-3 grid grid-cols-1 gap-y-2 sm:grid-cols-2">
+									{#each diskIopsSeries as s (s.name)}
+										<div>
+											<p class="mb-0.5 text-[10px] tracking-[0.08em]" style="color: {s.color}">
+												{s.name}
+											</p>
+											<StatStrip data={s.data} format={(v) => (v == null ? '—' : `${fmtNumber(v, 0)}/s`)} />
+										</div>
+									{/each}
+								</div>
+								{#key diskIopsKey}
+									<HistoryChart series={diskIopsSeries} valueFormatter={(v) => (v == null ? '—' : `${fmtNumber(v, 0)}/s`)} group="metrics" />
+								{/key}
+								{#if ioUtilRows.length > 0}
+									<div class="mt-3 border-t border-[var(--color-border)] pt-3">
+										<p class="mb-2 text-[10px] tracking-wide text-[var(--color-fg-muted)]">
+											{m.metrics_disk_util_label()}
+										</p>
+										<ul class="flex flex-col gap-1.5">
+											{#each ioUtilRows as r (r.mount)}
+												<li class="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-xs">
+													<span class="truncate font-mono text-[var(--color-fg-muted)]" title={r.mount}>
+														{shortenMount(r.mount)}
+													</span>
+													<div class="flex items-center gap-3 tabular-nums text-[var(--color-fg-subtle)]">
+														<span class="text-[rgb(251,191,36)]">↓ {fmtRate(r.readIops)}</span>
+														<span class="text-[rgb(244,114,182)]">↑ {fmtRate(r.writeIops)}</span>
+														<span class={r.util >= 80 ? 'text-[var(--color-danger)]' : r.util >= 50 ? 'text-[var(--color-warning)]' : ''}>
+															{fmtPct(r.util)}
+														</span>
+													</div>
+												</li>
+											{/each}
+										</ul>
+									</div>
+								{/if}
+							</div>
+						{/if}
+
+						{#if inodeRows.length > 0}
+							<div class="mt-4 border-t border-[var(--color-border)] pt-4">
+								<p class="mb-2 text-[10px] tracking-wide text-[var(--color-fg-muted)]">
+									{m.metrics_inode_usage_label()}
+								</p>
+								<ul class="flex flex-col gap-2">
+									{#each mainInodeRows as r (r.mount)}
+										{@render inodeRow(r)}
+									{/each}
+								</ul>
+								{#if dockerInodeRows.length > 0}
+									<details class="mt-3 border-t border-[var(--color-border)] pt-3">
+										<summary
+											class="cursor-pointer font-mono text-[10px] tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
+										>
+											{m.metrics_container_layers_label({
+												count: dockerInodeRows.length
+											})}
+										</summary>
+										<ul class="mt-2 flex flex-col gap-2">
+											{#each dockerInodeRows as r (r.mount)}
+												{@render inodeRow(r)}
+											{/each}
+										</ul>
+									</details>
+								{/if}
+							</div>
+						{/if}
 					{/if}
 				</Card>
 
 				<Card>
 					<div class="mb-3 flex items-center justify-between gap-3">
-						<h2 class="text-sm font-medium text-[var(--color-fg)]">{m.metrics_card_network_title()}</h2>
+						<h2 class="text-sm font-medium text-[var(--color-fg)]">
+							{m.metrics_card_network_title()}
+						</h2>
 					</div>
 					{#if loading}
 						{@render chartSkeleton()}
 					{:else}
-					{#if networkSeries.length > 0}
-						<div class="mb-3 grid grid-cols-1 gap-y-2 sm:grid-cols-2">
-							{#each networkSeries as s (s.name)}
-								<div>
-									<p class="mb-0.5 text-[10px] tracking-[0.08em] text-[var(--color-fg-subtle)]" style="color: {s.color}">
-										{s.name}
-									</p>
-									<StatStrip data={s.data} format={fmtBpsCell} />
-								</div>
-							{/each}
-						</div>
-					{/if}
-					{#key networkKey}
-						<HistoryChart series={networkSeries} valueFormatter={fmtBpsCell} group="metrics" />
-					{/key}
-
-					{#if netErrorRows.length > 0}
-						<div class="mt-4 border-t border-[var(--color-border)] pt-4">
-							<p class="mb-2 text-[10px] tracking-wide text-[var(--color-fg-muted)]">
-								{m.metrics_per_interface_latest_label()}
-							</p>
-							<ul class="flex flex-col gap-1.5">
-								{#each physicalNetRows as r (r.iface)}
-									{@render ifaceRow(r)}
+						{#if networkSeries.length > 0}
+							<div class="mb-3 grid grid-cols-1 gap-y-2 sm:grid-cols-2">
+								{#each networkSeries as s (s.name)}
+									<div>
+										<p class="mb-0.5 text-[10px] tracking-[0.08em] text-[var(--color-fg-subtle)]" style="color: {s.color}">
+											{s.name}
+										</p>
+										<StatStrip data={s.data} format={fmtBpsCell} />
+									</div>
 								{/each}
-							</ul>
-							{#if containerNetRows.length > 0}
-								<details class="mt-3 border-t border-[var(--color-border)] pt-3">
-									<summary
-										class="cursor-pointer font-mono text-[10px] tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
-									>
-										{m.metrics_iface_group_container({ count: containerNetRows.length })}
-									</summary>
-									<ul class="mt-2 flex flex-col gap-1.5">
-										{#each containerNetRows as r (r.iface)}
-											{@render ifaceRow(r)}
-										{/each}
-									</ul>
-								</details>
-							{/if}
-							{#if virtualNetRows.length > 0}
-								<details class="mt-2">
-									<summary
-										class="cursor-pointer font-mono text-[10px] tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
-									>
-										{m.metrics_iface_group_virtual({ count: virtualNetRows.length })}
-									</summary>
-									<ul class="mt-2 flex flex-col gap-1.5">
-										{#each virtualNetRows as r (r.iface)}
-											{@render ifaceRow(r)}
-										{/each}
-									</ul>
-								</details>
-							{/if}
-						</div>
-					{/if}
+							</div>
+						{/if}
+						{#key networkKey}
+							<HistoryChart series={networkSeries} valueFormatter={fmtBpsCell} group="metrics" />
+						{/key}
+
+						{#if netErrorRows.length > 0}
+							<div class="mt-4 border-t border-[var(--color-border)] pt-4">
+								<p class="mb-2 text-[10px] tracking-wide text-[var(--color-fg-muted)]">
+									{m.metrics_per_interface_latest_label()}
+								</p>
+								<ul class="flex flex-col gap-1.5">
+									{#each physicalNetRows as r (r.iface)}
+										{@render ifaceRow(r)}
+									{/each}
+								</ul>
+								{#if containerNetRows.length > 0}
+									<details class="mt-3 border-t border-[var(--color-border)] pt-3">
+										<summary
+											class="cursor-pointer font-mono text-[10px] tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
+										>
+											{m.metrics_iface_group_container({
+												count: containerNetRows.length
+											})}
+										</summary>
+										<ul class="mt-2 flex flex-col gap-1.5">
+											{#each containerNetRows as r (r.iface)}
+												{@render ifaceRow(r)}
+											{/each}
+										</ul>
+									</details>
+								{/if}
+								{#if virtualNetRows.length > 0}
+									<details class="mt-2">
+										<summary
+											class="cursor-pointer font-mono text-[10px] tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
+										>
+											{m.metrics_iface_group_virtual({
+												count: virtualNetRows.length
+											})}
+										</summary>
+										<ul class="mt-2 flex flex-col gap-1.5">
+											{#each virtualNetRows as r (r.iface)}
+												{@render ifaceRow(r)}
+											{/each}
+										</ul>
+									</details>
+								{/if}
+							</div>
+						{/if}
 					{/if}
 				</Card>
 
@@ -586,23 +728,20 @@
 					<Card class="xl:col-span-2">
 						<div class="mb-3 flex items-center justify-between">
 							<div>
-								<h2 class="text-sm font-medium text-[var(--color-fg)]">{m.metrics_card_memory_pressure_title()}</h2>
+								<h2 class="text-sm font-medium text-[var(--color-fg)]">
+									{m.metrics_card_memory_pressure_title()}
+								</h2>
 								<p class="mt-0.5 text-xs text-[var(--color-fg-muted)]">
 									{m.metrics_card_memory_pressure_subtitle()}
 								</p>
 							</div>
 						</div>
 						{#key memoryPressureKey}
-							<HistoryChart
-								series={memoryPressureSeries}
-								valueFormatter={(v) => (v == null ? '—' : fmtNumber(v, 0))}
-								group="metrics"
-							/>
+							<HistoryChart series={memoryPressureSeries} valueFormatter={(v) => (v == null ? '—' : fmtNumber(v, 0))} group="metrics" />
 						{/key}
 					</Card>
 				{/if}
 			</div>
-
 		{/if}
 	</div>
 {/if}
@@ -628,22 +767,14 @@
 			<span class="font-mono text-xs tabular-nums">{fmtPct(r.pct)}</span>
 		</div>
 		<div class="mt-1 h-1 overflow-hidden rounded-full bg-[var(--color-surface-3)]">
-			<div
-				class={cn('h-full rounded-full transition-all', inodeColor(r.pct))}
-				style="width: {Math.min(100, r.pct)}%"
-			></div>
+			<div class={cn('h-full rounded-full transition-all', inodeColor(r.pct))} style="width: {Math.min(100, r.pct)}%"></div>
 		</div>
 	</li>
 {/snippet}
 
 {#snippet ifaceRow(r: NetErrRow)}
 	{@const hasErr = r.rxErr > 0 || r.txErr > 0}
-	<li
-		class={cn(
-			'flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-xs',
-			hasErr && 'bg-[var(--color-danger)]/10'
-		)}
-	>
+	<li class={cn('flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-xs', hasErr && 'bg-[var(--color-danger)]/10')}>
 		<span class="truncate font-mono text-[var(--color-fg-muted)]">{r.iface}</span>
 		<div class="flex items-center gap-3 tabular-nums">
 			<span class="text-[var(--color-info)]">↓ {fmtBpsCell(r.rx)}</span>

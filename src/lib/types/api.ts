@@ -125,6 +125,10 @@ export interface CpuPoint {
 	iowait_percent?: number | null;
 	/** Linux-only: time the kernel ran a guest VM. Non-zero only on hypervisors. */
 	guest_percent?: number | null;
+	/** Linux-only: user+nice CPU time as percent of total. */
+	user_percent?: number | null;
+	/** Linux-only: kernel CPU time (system+irq+softirq) as percent of total. */
+	system_percent?: number | null;
 	/** Linux-only: kernel-wide context switches per second. */
 	context_switches_per_sec?: number | null;
 	/** Linux-only: process forks (clone()) per second. Spikes flag restart loops / fork bombs. */
@@ -178,6 +182,12 @@ export interface DiskPoint {
 	write_bytes_per_sec: number;
 	/** Linux-only (statvfs): 0..=100. Inodes can run out before bytes do. */
 	inode_used_percent?: number | null;
+	/** Linux-only (/proc/diskstats): read I/O operations per second. */
+	read_iops?: number | null;
+	/** Linux-only (/proc/diskstats): write I/O operations per second. */
+	write_iops?: number | null;
+	/** Linux-only (/proc/diskstats): percent of wall-clock time device had I/O in flight (0..=100). */
+	io_util_percent?: number | null;
 }
 
 export interface DiskHistoryResponse {
@@ -493,6 +503,13 @@ export interface CpuStats {
 	per_core: CoreStats[];
 	load_avg: LoadAverage;
 	timestamp: number;
+	steal_percent?: number | null;
+	iowait_percent?: number | null;
+	guest_percent?: number | null;
+	user_percent?: number | null;
+	system_percent?: number | null;
+	context_switches_per_sec?: number | null;
+	process_forks_per_sec?: number | null;
 }
 
 export interface MemoryStats {
@@ -513,6 +530,10 @@ export interface DiskStats {
 	read_bytes_per_sec: number;
 	write_bytes_per_sec: number;
 	timestamp: number;
+	inode_used_percent?: number | null;
+	read_iops?: number | null;
+	write_iops?: number | null;
+	io_util_percent?: number | null;
 }
 
 export interface NetworkStats {
