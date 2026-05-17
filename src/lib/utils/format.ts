@@ -6,7 +6,7 @@ const BYTE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
 /** Bytes → human ("1.2 GB"). Decimal SI for size, IEC scale (1024). */
 export function fmtBytes(n: number, fractionDigits = 1): string {
 	if (!Number.isFinite(n) || n <= 0) return '0 B';
-	const i = Math.min(BYTE_UNITS.length - 1, Math.floor(Math.log(n) / Math.log(1024)));
+	const i = Math.max(0, Math.min(BYTE_UNITS.length - 1, Math.floor(Math.log(n) / Math.log(1024))));
 	const v = n / Math.pow(1024, i);
 	return `${v.toFixed(i === 0 ? 0 : fractionDigits)} ${BYTE_UNITS[i]}`;
 }
