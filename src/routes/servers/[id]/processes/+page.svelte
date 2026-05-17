@@ -60,12 +60,56 @@
 	let autoRefresh = $state(false);
 	let refreshIntervalSecs = 5;
 
-	async function fetchProcesses() {
+	let total = $state(0);
+	let filteredTotal = $state(0);
+	let loadingMore = $state(false);
+	let hasMore = $state(false);
+	let sentinel = $state<HTMLElement | null>(null);
+	let searchTimer: ReturnType<typeof setTimeout> | undefined;
+
+	const PAGE_SIZE = 100;
+
+	function toServerSort(k: SortKey): 'cpu' | 'memory' | 'pid' | 'name' | null {
+		switch (k) {
+			case 'cpu_percent': return 'cpu';
+			case 'memory_bytes': return 'memory';
+			case 'pid': return 'pid';
+			case 'name': return 'name';
+			default: return null;
+		}
+	}
+
+	async function fetchProcesses(reset = true) {
 		if (!conn?.isAuthenticated) return;
-		loading = true;
+
+		if (reset) {
+			loading = true;
+			processes = [];
+			hasMore = false;
+		} else {
+			loadingMore = true;
+		}
+
 		try {
-			const res = await conn.client.processes();
-			processes = res.processes;
+			const serverSort = toServerSort(sortKey);
+			const isServerPaginated = viewMode === 'flat' && serverSort !== null;
+
+			const query: Record<string, unknown> = {};
+			if (q.trim()) query.search = q.trim();
+
+			if (isServerPaginated) {
+				query.sort = serverSort;
+				query.limit = PAGE_SIZE;
+				query.offset = reset ? 0 : processes.length;
+			} else {
+				query.limit = 1000;
+			}
+
+			const res = await conn.client.processes(query);
+			processes = reset ? res.processes : [...processes, ...res.processes];
+			total = res.total;
+			filteredTotal = res.filtered_total;
+			hasMore = isServerPaginated && processes.length < res.filtered_total && res.processes.length > 0;
 			lastFetched = Date.now();
 		} catch (e) {
 			if (e instanceof ApiError) {
@@ -73,11 +117,19 @@
 			}
 		} finally {
 			loading = false;
+			loadingMore = false;
 		}
 	}
 
+	// Re-fetch when auth state, view mode, or sort key changes.
+	// sortKey is only tracked in flat mode (conditional read = conditional tracking).
 	$effect(() => {
-		if (conn?.isAuthenticated) fetchProcesses();
+		const auth = conn?.isAuthenticated;
+		const mode = viewMode;
+		const sort = mode === 'flat' ? sortKey : null;
+		void sort;
+		if (!auth) return;
+		untrack(() => fetchProcesses(true));
 	});
 
 	$effect(() => {
@@ -85,6 +137,24 @@
 		const t = setInterval(fetchProcesses, refreshIntervalSecs * 1000);
 		return () => clearInterval(t);
 	});
+
+	// IntersectionObserver: load more pages when sentinel scrolls into view.
+	$effect(() => {
+		const el = sentinel;
+		if (!el) return;
+		const observer = new IntersectionObserver(
+			([entry]) => { if (entry.isIntersecting && hasMore && !loadingMore) fetchProcesses(false); },
+			{ rootMargin: '200px' }
+		);
+		observer.observe(el);
+		return () => observer.disconnect();
+	});
+
+	function onSearchInput() {
+		if (viewMode !== 'flat') return;
+		clearTimeout(searchTimer);
+		searchTimer = setTimeout(() => untrack(() => fetchProcesses(true)), 300);
+	}
 
 	// One-shot seed: collapse non-root parents so the initial tree isn't a 500-row dump.
 	$effect(() => {
@@ -280,7 +350,7 @@
 					<span
 						class="ml-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-0.5 align-middle font-mono text-[12px] font-medium text-[var(--color-fg-muted)]"
 					>
-						{processes.length}
+						{total > 0 && filteredTotal < total ? `${filteredTotal} / ${total}` : (total || processes.length)}
 					</span>
 				</h1>
 				{#if lastFetched}
@@ -394,6 +464,7 @@
 				<Input
 					placeholder={m.processes_filter_placeholder()}
 					bind:value={q}
+					oninput={onSearchInput}
 					class="flex-1 font-mono text-sm"
 				/>
 				{#if viewMode === 'tree'}
@@ -567,6 +638,12 @@
 							{/if}
 						</tbody>
 					</table>
+					<div bind:this={sentinel} class="h-px"></div>
+					{#if loadingMore}
+						<div class="py-3 text-center text-xs text-[var(--color-fg-subtle)]">
+							{m.processes_load_more()}…
+						</div>
+					{/if}
 				</div>
 			</Card>
 		{/if}

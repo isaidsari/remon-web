@@ -373,8 +373,8 @@ export class ApiClient {
 		return this.request<ReloadProbesResponse>('/admin/probes/reload', { method: 'POST' });
 	}
 
-	processes(): Promise<GetProcessesResponse> {
-		return this.request<GetProcessesResponse>('/processes');
+	processes(query?: Record<string, unknown>): Promise<GetProcessesResponse> {
+		return this.request<GetProcessesResponse>('/processes', { query });
 	}
 
 	killProcess(pid: number, signal: 9 | 15 = 15): Promise<void> {

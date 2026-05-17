@@ -584,8 +584,19 @@ export interface ProcessInfo {
 	threads: number | null;
 }
 
+export interface ProcessQuery {
+	search?: string;
+	sort?: 'cpu' | 'memory' | 'pid' | 'name';
+	limit?: number;
+	offset?: number;
+}
+
 export interface GetProcessesResponse {
 	processes: ProcessInfo[];
+	/** Total processes on the system before any filtering. */
+	total: number;
+	/** Processes matching the current search/state filter. */
+	filtered_total: number;
 }
 
 export interface DockerStatusResponse {
