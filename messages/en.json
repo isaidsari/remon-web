@@ -253,6 +253,8 @@
 	"overview_cpu_load_15m": "load 15m",
 	"overview_cpu_steal": "steal",
 	"overview_cpu_iowait": "i/o wait",
+	"overview_cpu_user": "user",
+	"overview_cpu_kernel": "kernel",
 	"overview_mem_active": "active",
 	"overview_mem_cache": "cache",
 	"overview_mem_free": "free",

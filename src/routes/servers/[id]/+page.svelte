@@ -358,23 +358,86 @@
 		</div>
 
 		<Card class="mt-4" padding="md">
-			<div class="mb-3 flex items-baseline justify-between">
-				<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">{m.overview_per_core_cpu_title()}</p>
-				{#if cpu && cpu.per_core.length > 0}
-					<span class="font-mono text-[11px] text-[var(--color-fg-muted)]">
-						{m.overview_metric_cores_count({ count: cpu.per_core.length })}
-					</span>
+			<div class="mb-4 flex items-center justify-between">
+				<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">{m.overview_card_cpu_title()}</p>
+				<div class="flex items-center gap-3">
+					{#if latestPsi(pressureCpu) != null}
+						<span
+							class={cn('font-mono text-[10px] tabular-nums', pressureColor(latestPsi(pressureCpu)!))}
+							title={m.overview_psi_tooltip()}
+						>
+							{m.overview_psi_label()} {fmtPercent(latestPsi(pressureCpu)!, 1)}
+						</span>
+					{/if}
+					{#if cpu}
+						<span class="font-mono text-[11px] text-[var(--color-fg-muted)]">
+							{m.overview_metric_cores_count({ count: cpu.per_core.length })}
+						</span>
+					{/if}
+				</div>
+			</div>
+
+			<div class="mb-4 flex flex-wrap items-baseline gap-x-6 gap-y-2">
+				{#if cpu}
+					<div class="flex items-baseline gap-1.5">
+						<span class="text-[11px] text-[var(--color-fg-subtle)]">{m.overview_cpu_load_1m()}</span>
+						<span class="font-mono text-[13px] font-semibold tabular-nums">{fmtNumber(cpu.load_avg.one)}</span>
+					</div>
+					<div class="flex items-baseline gap-1.5">
+						<span class="text-[11px] text-[var(--color-fg-subtle)]">{m.overview_cpu_load_5m()}</span>
+						<span class="font-mono text-[13px] font-semibold tabular-nums">{fmtNumber(cpu.load_avg.five)}</span>
+					</div>
+					<div class="flex items-baseline gap-1.5">
+						<span class="text-[11px] text-[var(--color-fg-subtle)]">{m.overview_cpu_load_15m()}</span>
+						<span class="font-mono text-[13px] font-semibold tabular-nums">{fmtNumber(cpu.load_avg.fifteen)}</span>
+					</div>
+					{#if lastCpuMetric?.steal_percent != null}
+						<div class="flex items-baseline gap-1.5">
+							<span class="text-[11px] text-[var(--color-fg-subtle)]">{m.overview_cpu_steal()}</span>
+							<span class={cn('font-mono text-[13px] font-semibold tabular-nums', stealColor(lastCpuMetric.steal_percent))}>
+								{fmtPercent(lastCpuMetric.steal_percent, 1)}
+							</span>
+						</div>
+					{/if}
+					{#if lastCpuMetric?.iowait_percent != null}
+						<div class="flex items-baseline gap-1.5">
+							<span class="text-[11px] text-[var(--color-fg-subtle)]">{m.overview_cpu_iowait()}</span>
+							<span class={cn('font-mono text-[13px] font-semibold tabular-nums', iowaitColor(lastCpuMetric.iowait_percent))}>
+								{fmtPercent(lastCpuMetric.iowait_percent, 1)}
+							</span>
+						</div>
+					{/if}
+					{#if lastCpuMetric?.user_percent != null}
+						<div class="flex items-baseline gap-1.5">
+							<span class="text-[11px] text-[var(--color-fg-subtle)]">{m.overview_cpu_user()}</span>
+							<span class="font-mono text-[13px] font-semibold tabular-nums">
+								{fmtPercent(lastCpuMetric.user_percent, 1)}
+							</span>
+						</div>
+					{/if}
+					{#if lastCpuMetric?.kernel_percent != null}
+						<div class="flex items-baseline gap-1.5">
+							<span class="text-[11px] text-[var(--color-fg-subtle)]">{m.overview_cpu_kernel()}</span>
+							<span class="font-mono text-[13px] font-semibold tabular-nums">
+								{fmtPercent(lastCpuMetric.kernel_percent, 1)}
+							</span>
+						</div>
+					{/if}
+				{:else}
+					{#each Array(3) as _, i (i)}
+						<Skeleton class="h-5 w-16" />
+					{/each}
 				{/if}
 			</div>
+
 			{#if cpu && cpu.per_core.length > 0}
 				<div class="per-core-grid">
 					{#each cpu.per_core as core (core.core_index)}
 						{@const pct = Math.min(100, Math.max(0, core.usage_percent))}
-						{@const rgb = pct < 60 ? '79,182,194' : pct < 80 ? '217,119,6' : '220,38,38'}
-						{@const alpha = (Math.max(4, pct) / 100 * 0.55 + 0.05).toFixed(2)}
+						{@const hotAlpha = (0.06 + (pct / 100) * 0.56).toFixed(2)}
 						<div
-							class="flex flex-col items-center justify-center gap-0.5 rounded-md py-2 transition-colors duration-500"
-							style="background: rgba({rgb},{alpha})"
+							class="flex flex-col items-center justify-center gap-0.5 rounded-md py-2 transition-[background] duration-500"
+							style="background: color-mix(in hsl, hsl(4 80% 60% / {hotAlpha}) {Math.round(pct)}%, hsl(188 42% 54% / 0.10))"
 						>
 							<span class="font-mono text-[9px] text-[var(--color-fg-subtle)]">{core.core_index}</span>
 							<span class="tabular-nums text-[11px] font-semibold">{Math.round(pct)}%</span>
@@ -390,57 +453,7 @@
 			{/if}
 		</Card>
 
-		<div class="mt-4 grid grid-cols-1 gap-4 lg:auto-rows-fr lg:grid-cols-2">
-			<Card class="h-full">
-				{@render cardHeader(m.overview_card_cpu_title(), latestPsi(pressureCpu))}
-				<dl class="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
-					<div>
-						<dt class="text-xs text-[var(--color-fg-subtle)]">{m.overview_cpu_usage()}</dt>
-						<dd class="mt-1 text-lg font-semibold tabular-nums">
-							{cpu ? fmtPercent(cpuPct, 1) : '—'}
-						</dd>
-					</div>
-					<div>
-						<dt class="text-xs text-[var(--color-fg-subtle)]">{m.overview_cpu_load_1m()}</dt>
-						<dd class="mt-1 text-lg font-semibold tabular-nums">
-							{cpu ? fmtNumber(cpu.load_avg.one) : '—'}
-						</dd>
-					</div>
-					<div>
-						<dt class="text-xs text-[var(--color-fg-subtle)]">{m.overview_cpu_load_5m()}</dt>
-						<dd class="mt-1 text-lg font-semibold tabular-nums">
-							{cpu ? fmtNumber(cpu.load_avg.five) : '—'}
-						</dd>
-					</div>
-					<div>
-						<dt class="text-xs text-[var(--color-fg-subtle)]">{m.overview_cpu_load_15m()}</dt>
-						<dd class="mt-1 text-lg font-semibold tabular-nums">
-							{cpu ? fmtNumber(cpu.load_avg.fifteen) : '—'}
-						</dd>
-					</div>
-				</dl>
-				{#if lastCpuMetric && (lastCpuMetric.steal_percent != null || lastCpuMetric.iowait_percent != null)}
-					<dl class="mt-4 grid grid-cols-2 gap-4 border-t border-[var(--color-border)] pt-4 text-sm">
-						{#if lastCpuMetric.steal_percent != null}
-							<div>
-								<dt class="text-xs text-[var(--color-fg-subtle)]">{m.overview_cpu_steal()}</dt>
-								<dd class={cn('mt-1 font-semibold tabular-nums', stealColor(lastCpuMetric.steal_percent))}>
-									{fmtPercent(lastCpuMetric.steal_percent, 1)}
-								</dd>
-							</div>
-						{/if}
-						{#if lastCpuMetric.iowait_percent != null}
-							<div>
-								<dt class="text-xs text-[var(--color-fg-subtle)]">{m.overview_cpu_iowait()}</dt>
-								<dd class={cn('mt-1 font-semibold tabular-nums', iowaitColor(lastCpuMetric.iowait_percent))}>
-									{fmtPercent(lastCpuMetric.iowait_percent, 1)}
-								</dd>
-							</div>
-						{/if}
-					</dl>
-				{/if}
-			</Card>
-
+		<div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 lg:auto-rows-fr">
 			<Card class="h-full">
 				{@render cardHeader(m.overview_card_memory_title(), latestPsi(pressureMem))}
 				{#if memory && memTotal > 0}
@@ -464,7 +477,7 @@
 							title={m.overview_mem_free_tooltip({ value: fmtBytes(memFreeRest) })}
 						></div>
 					</div>
-					<dl class="mt-3 grid grid-cols-3 gap-2 font-mono text-[12px] tabular-nums">
+					<dl class="mt-3 grid grid-cols-2 gap-2 font-mono text-[12px] tabular-nums sm:grid-cols-4">
 						<div>
 							<dt class="text-[11px] text-[var(--color-fg-muted)]">{m.overview_mem_active()}</dt>
 							<dd class="text-[var(--color-fg)]">{fmtBytes(memActive)}</dd>
@@ -476,6 +489,10 @@
 						<div>
 							<dt class="text-[11px] text-[var(--color-fg-muted)]">{m.overview_mem_free()}</dt>
 							<dd class="text-[var(--color-fg-muted)]">{fmtBytes(memFreeRest)}</dd>
+						</div>
+						<div>
+							<dt class="text-[11px] text-[var(--color-fg-subtle)]">Total</dt>
+							<dd class="text-[var(--color-fg-muted)]">{fmtBytes(memTotal)}</dd>
 						</div>
 					</dl>
 					{#if memory.swap_total_bytes > 0}

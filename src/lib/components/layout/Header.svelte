@@ -100,7 +100,7 @@
 
 	<div class="ml-2 flex shrink-0 items-center gap-2">
 		{#if vault.isOpen}
-			<Button variant="ghost" size="sm" onclick={lock} aria-label={m.common_lock()}>
+			<Button variant="ghost" size="sm" onclick={lock} aria-label={m.common_lock()} class="max-sm:w-7 max-sm:px-0">
 				<IconLock class="size-[13px]" stroke-width="1.9" />
 				<span class="hidden sm:inline">{m.common_lock()}</span>
 			</Button>

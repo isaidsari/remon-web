@@ -254,6 +254,8 @@
 	"overview_cpu_load_15m": "yük 15d",
 	"overview_cpu_steal": "çalınan",
 	"overview_cpu_iowait": "g/ç bekleme",
+	"overview_cpu_user": "kullanıcı",
+	"overview_cpu_kernel": "çekirdek",
 	"overview_mem_active": "aktif",
 	"overview_mem_cache": "önbellek",
 	"overview_mem_free": "boş",
