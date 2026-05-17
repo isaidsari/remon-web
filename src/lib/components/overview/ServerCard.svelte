@@ -171,7 +171,6 @@
 					/>
 				{/if}
 				<span class="truncate">{profile.name}</span>
-				<LiveBadge {tone} live={isStreaming} class="ml-1 shrink-0" />
 			</h3>
 			<p class="mt-1 truncate font-mono text-[11px] text-[var(--color-fg-muted)]">
 				{profile.baseUrl}
@@ -232,6 +231,7 @@
 				<span class="shrink-0 font-mono">{cpuLabel}</span>
 			{/if}
 		{/if}
+		<LiveBadge {tone} live={isStreaming} showLabel={false} class="ml-auto shrink-0" />
 	</footer>
 </a>
 
@@ -245,7 +245,7 @@
 	min?: number,
 	max?: number
 )}
-	<div class="grid grid-cols-[40px_1fr_auto] items-center gap-4">
+	<div class="grid grid-cols-[40px_1fr_auto] items-center gap-3">
 		<span class="font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)]">{label}</span>
 		<div class="min-w-0">
 			<Sparkline data={series} {color} height={36} {min} {max} fill window={20} />
@@ -262,7 +262,7 @@
 {/snippet}
 
 {#snippet netRow()}
-	<div class="grid grid-cols-[40px_1fr_auto] items-center gap-4">
+	<div class="grid grid-cols-[40px_1fr_auto] items-center gap-3">
 		<span class="font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)]">NET</span>
 		<div class="min-w-0">
 			<Sparkline
@@ -294,7 +294,7 @@
 	color: string,
 	valueClass: string
 )}
-	<div class="grid grid-cols-[40px_1fr_auto] items-center gap-4">
+	<div class="grid grid-cols-[40px_1fr_auto] items-center gap-3">
 		<span class="font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)]">{label}</span>
 		<div class="flex h-9 min-w-0 items-center">
 			<div class="relative h-2 w-full overflow-hidden rounded-full bg-[var(--color-surface-2)]">

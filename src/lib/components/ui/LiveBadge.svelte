@@ -7,10 +7,11 @@
 		tone: LiveTone;
 		label?: string;
 		live?: boolean;
+		showLabel?: boolean;
 		class?: string;
 	}
 
-	let { tone, label, live = false, class: klass = '' }: Props = $props();
+	let { tone, label, live = false, showLabel = true, class: klass = '' }: Props = $props();
 
 	const dotBg: Record<LiveTone, string> = {
 		online: 'bg-[var(--color-success)]',
@@ -45,13 +46,16 @@
 		'inline-flex items-center gap-1.5 text-[11px] text-[var(--color-fg-muted)]',
 		klass
 	)}
+	title={!showLabel ? defaultLabel(tone) : undefined}
 >
 	<span
 		class={cn('relative inline-block h-1.5 w-1.5 shrink-0 rounded-full', dotBg[tone], live && 'live-pulse')}
 		style={live ? `--pulse-color: ${pulseColor[tone]}` : undefined}
 		aria-hidden="true"
 	></span>
-	<span class="leading-none">
-		{label ?? defaultLabel(tone)}
-	</span>
+	{#if showLabel}
+		<span class="leading-none">
+			{label ?? defaultLabel(tone)}
+		</span>
+	{/if}
 </span>
