@@ -12,7 +12,6 @@
 	import IconServer from '~icons/lucide/server';
 	import { ApiError } from '$lib/api/error';
 	import type { ServerProfile } from '$lib/types/profile';
-	import { connectionTone } from '$lib/utils/connTone';
 	import { m } from '$lib/paraglide/messages';
 
 	$effect(() => {
@@ -44,15 +43,13 @@
 	let showFilter = $derived(profiles.list.length >= 6);
 
 	// $effect not $derived.by: conn.live lazily creates the LiveStats instance; $derived's strict mode suppresses that side effect.
-	let toneCounts = $state({ live: 0, connecting: 0, offline: 0 });
+	let toneCounts = $state({ connecting: 0, offline: 0 });
 	$effect(() => {
-		const counts = { live: 0, connecting: 0, offline: 0 };
+		const counts = { connecting: 0, offline: 0 };
 		for (const p of profiles.list) {
 			const conn = connections.connect(p);
-			// Auth state only — SSE status fluctuates as cards mount/unmount.
-			if (conn.isAuthenticated) counts.live++;
-			else if (conn.status === 'authenticating') counts.connecting++;
-			else counts.offline++;
+			if (conn.status === 'authenticating') counts.connecting++;
+			else if (!conn.isAuthenticated) counts.offline++;
 		}
 		toneCounts = counts;
 	});
@@ -79,36 +76,26 @@
 <div class="app-content mx-auto max-w-6xl px-6 py-12">
 	<header class="mb-8 flex flex-wrap items-end justify-between gap-4">
 		<div>
-			<h1 class="flex items-baseline gap-2.5 text-[24px] font-semibold tracking-tight">
+			<h1 class="flex items-center gap-2.5 text-[24px] font-semibold tracking-tight">
 				{m.servers_title()}
 				<span
 					class="rounded-md bg-[var(--color-surface-2)] px-2 py-0.5 font-mono text-[12px] font-medium text-[var(--color-fg-subtle)] shadow-[inset_0_0_0_1px_var(--color-border)]"
 				>
 					{profiles.list.length}
 				</span>
-			</h1>
-			{#if profiles.list.length > 0}
-				<p class="mt-2 flex items-center gap-2 text-[12px] text-[var(--color-fg-muted)]">
-					<span class="inline-flex items-center gap-1.5">
-						<span class="h-1.5 w-1.5 rounded-full bg-[var(--color-success)]"></span>
-						{m.servers_live_count({ count: toneCounts.live })}
+				{#if toneCounts.connecting > 0}
+					<span class="inline-flex items-center gap-1 font-mono text-[11px] font-medium text-[var(--color-warning)]">
+						<span class="h-1.5 w-1.5 rounded-full bg-[var(--color-warning)]"></span>
+						{toneCounts.connecting}
 					</span>
-					{#if toneCounts.connecting > 0}
-						<span class="text-[var(--color-fg-faint)]" aria-hidden="true">·</span>
-						<span class="inline-flex items-center gap-1.5">
-							<span class="h-1.5 w-1.5 rounded-full bg-[var(--color-warning)]"></span>
-							{m.servers_connecting_count({ count: toneCounts.connecting })}
-						</span>
-					{/if}
-					{#if toneCounts.offline > 0}
-						<span class="text-[var(--color-fg-faint)]" aria-hidden="true">·</span>
-						<span class="inline-flex items-center gap-1.5">
-							<span class="h-1.5 w-1.5 rounded-full bg-[var(--color-fg-subtle)]"></span>
-							{m.servers_offline_count({ count: toneCounts.offline })}
-						</span>
-					{/if}
-				</p>
-			{/if}
+				{/if}
+				{#if toneCounts.offline > 0}
+					<span class="inline-flex items-center gap-1 font-mono text-[11px] font-medium text-[var(--color-danger)]">
+						<span class="h-1.5 w-1.5 rounded-full bg-[var(--color-danger)]"></span>
+						{toneCounts.offline}
+					</span>
+				{/if}
+			</h1>
 		</div>
 
 		{#if showFilter}
