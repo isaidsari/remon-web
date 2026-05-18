@@ -415,11 +415,11 @@
 							</span>
 						</div>
 					{/if}
-					{#if lastCpuMetric?.kernel_percent != null}
+					{#if lastCpuMetric?.system_percent != null}
 						<div class="flex items-baseline gap-1.5">
 							<span class="text-[11px] text-[var(--color-fg-subtle)]">{m.overview_cpu_kernel()}</span>
 							<span class="font-mono text-[13px] font-semibold tabular-nums">
-								{fmtPercent(lastCpuMetric.kernel_percent, 1)}
+								{fmtPercent(lastCpuMetric.system_percent, 1)}
 							</span>
 						</div>
 					{/if}
