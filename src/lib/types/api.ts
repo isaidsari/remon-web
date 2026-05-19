@@ -154,6 +154,7 @@ export interface CpuCoresHistoryResponse {
 
 export interface MemoryPoint {
 	timestamp: number;
+	total_bytes: number;
 	used_bytes: number;
 	available_bytes: number;
 	cached_bytes: number;
@@ -176,6 +177,7 @@ export interface MemoryHistoryResponse {
 export interface DiskPoint {
 	timestamp: number;
 	mount_point: string;
+	total_bytes: number;
 	used_bytes: number;
 	available_bytes: number;
 	read_bytes_per_sec: number;
