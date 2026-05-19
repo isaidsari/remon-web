@@ -138,7 +138,7 @@ export class LiveStats {
 			merge(this.cpuHistory, cpuPts);
 
 			const memPts = m.points.map((p) => {
-				const total = p.used_bytes + p.available_bytes;
+				const total = p.total_bytes;
 				const active = total - p.available_bytes;
 				return { ts: p.timestamp, v: total > 0 ? (active / total) * 100 : 0 };
 			});
@@ -149,7 +149,7 @@ export class LiveStats {
 			const diskWriteByTs = new Map<number, number>();
 			for (const p of d.points) {
 				if (p.mount_point.startsWith('/var/lib/docker/') || p.mount_point.startsWith('/var/lib/containers/')) continue;
-				const total = p.used_bytes + p.available_bytes;
+				const total = p.total_bytes;
 				if (total > 0) {
 					const pct = (p.used_bytes / total) * 100;
 					const cur = diskByTs.get(p.timestamp) ?? 0;
