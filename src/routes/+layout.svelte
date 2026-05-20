@@ -51,6 +51,9 @@
 		const state = vault.state;
 		const p = path;
 
+		// 'pending' = async auto-unlock in flight; don't bounce through /unlock.
+		if (state === 'pending') return;
+
 		if (state === 'none' && p !== '/setup') {
 			goto('/setup', { replaceState: true });
 		} else if (state === 'locked' && p !== '/unlock') {

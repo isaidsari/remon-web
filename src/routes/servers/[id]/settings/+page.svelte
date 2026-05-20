@@ -4,11 +4,14 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
+	import Field from '$lib/components/ui/Field.svelte';
+	import Modal from '$lib/components/ui/Modal.svelte';
 	import StatusDot from '$lib/components/layout/StatusDot.svelte';
 	import { profiles } from '$lib/stores/profiles.svelte';
 	import { connections } from '$lib/stores/connections.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { confirm } from '$lib/stores/confirm.svelte';
+	import { vault } from '$lib/vault/store.svelte';
 	import { ApiError } from '$lib/api/error';
 	import { ACCENT_PRESETS, DEFAULT_ACCENT, isValidHex, applyAccent, clearAccent } from '$lib/utils/accent';
 	import { applyTheme, getTheme, type ThemeMode } from '$lib/utils/theme';
@@ -248,6 +251,70 @@
 	async function togglePush() {
 		if (pushSubscribed) await disablePush();
 		else await enablePush();
+	}
+
+	// ─── Auto-unlock (global, mirrors theme/language scope) ──────────────────
+	let autoUnlockModalOpen = $state(false);
+	let autoUnlockPwd = $state('');
+	let autoUnlockBusy = $state(false);
+	let autoUnlockError = $state<string | null>(null);
+
+	function openAutoUnlockModal() {
+		autoUnlockPwd = '';
+		autoUnlockError = null;
+		autoUnlockModalOpen = true;
+	}
+
+	function closeAutoUnlockModal() {
+		if (autoUnlockBusy) return;
+		autoUnlockModalOpen = false;
+		autoUnlockPwd = '';
+		autoUnlockError = null;
+	}
+
+	async function confirmEnableAutoUnlock(e?: SubmitEvent) {
+		e?.preventDefault();
+		if (!autoUnlockPwd || autoUnlockBusy) return;
+		autoUnlockBusy = true;
+		autoUnlockError = null;
+		try {
+			// Verify the password by attempting a fresh unlock with it — the
+			// store ignores re-unlock when already open, so we delegate to
+			// trustDevice which derives an extractable key from the same
+			// password and will throw if the derivation produces a key that
+			// can't decrypt the vault. We sanity-check by trying to read the
+			// vault data after deriving — if password is wrong, encrypt/decrypt
+			// would mismatch. Simplest: derive extractable + wrap; on success,
+			// password was correct (otherwise wrap succeeds but auto-unlock
+			// would fail on next launch). To catch wrong passwords *now*, we
+			// also test-decrypt against the current vault blob.
+			//
+			// vault.trustDevice doesn't verify — so we do a quick unlock probe:
+			// if vault is open, calling unlock again with wrong password throws
+			// because decryptJson tag check fails.
+			await vault.unlock(autoUnlockPwd);
+			await vault.trustDevice(autoUnlockPwd);
+			autoUnlockModalOpen = false;
+			autoUnlockPwd = '';
+			toast.success(m.settings_autounlock_toast_enabled());
+		} catch {
+			autoUnlockError = m.settings_autounlock_wrong_password();
+			autoUnlockPwd = '';
+		} finally {
+			autoUnlockBusy = false;
+		}
+	}
+
+	async function disableAutoUnlock() {
+		const ok = await confirm({
+			title: m.settings_autounlock_disable_dialog_title(),
+			description: m.settings_autounlock_disable_dialog_description(),
+			confirmLabel: m.settings_autounlock_disable_dialog_confirm(),
+			variant: 'danger'
+		});
+		if (!ok) return;
+		await vault.untrustDevice();
+		toast.info(m.settings_autounlock_toast_disabled());
 	}
 
 	async function revokeSession(s: SessionInfo) {
@@ -495,6 +562,44 @@
 		</Card>
 
 		<Card padding="md" class="mb-5">
+			<div class="mb-3 flex items-baseline justify-between gap-3">
+				<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">
+					{m.settings_autounlock_eyebrow()}
+				</p>
+				<div class="flex items-center gap-2">
+					<span
+						class={cn(
+							'text-[11px]',
+							vault.isTrusted
+								? 'text-[var(--color-success)]'
+								: 'text-[var(--color-fg-subtle)]'
+						)}
+					>
+						{vault.isTrusted
+							? m.settings_autounlock_status_on()
+							: m.settings_autounlock_status_off()}
+					</span>
+					<span class="text-[11px] text-[var(--color-fg-faint)]" aria-hidden="true">·</span>
+					<span class="text-[11px] text-[var(--color-fg-subtle)]">
+						{m.settings_applies_to_all()}
+					</span>
+				</div>
+			</div>
+			<p class="mb-3 max-w-md text-[12px] text-[var(--color-fg-muted)]">
+				{m.settings_autounlock_description()}
+			</p>
+			{#if vault.isTrusted}
+				<Button variant="secondary" size="sm" onclick={disableAutoUnlock}>
+					{m.settings_autounlock_disable()}
+				</Button>
+			{:else}
+				<Button variant="primary" size="sm" onclick={openAutoUnlockModal}>
+					{m.settings_autounlock_enable()}
+				</Button>
+			{/if}
+		</Card>
+
+		<Card padding="md" class="mb-5">
 			<div class="mb-3 flex items-baseline justify-between">
 				<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">{m.settings_appearance_eyebrow()}</p>
 				<span class="text-[11px] text-[var(--color-fg-subtle)]">
@@ -655,6 +760,53 @@
 		{label}
 	</button>
 {/snippet}
+
+<Modal
+	open={autoUnlockModalOpen}
+	onClose={closeAutoUnlockModal}
+	title={m.settings_autounlock_enable_dialog_title()}
+	description={m.settings_autounlock_enable_dialog_description()}
+	width="sm"
+>
+	{#snippet children()}
+		<form class="flex flex-col gap-4" onsubmit={confirmEnableAutoUnlock}>
+			<Field
+				label={m.common_master_password()}
+				error={autoUnlockError}
+				for="autounlock-pwd"
+			>
+				<Input
+					id="autounlock-pwd"
+					type="password"
+					bind:value={autoUnlockPwd}
+					invalid={!!autoUnlockError}
+					autocomplete="current-password"
+					autofocus
+					required
+				/>
+			</Field>
+			<div class="flex items-center justify-end gap-2">
+				<Button
+					type="button"
+					variant="ghost"
+					size="sm"
+					onclick={closeAutoUnlockModal}
+					disabled={autoUnlockBusy}
+				>
+					{m.common_cancel()}
+				</Button>
+				<Button
+					type="submit"
+					size="sm"
+					disabled={!autoUnlockPwd || autoUnlockBusy}
+					loading={autoUnlockBusy}
+				>
+					{m.settings_autounlock_enable_dialog_button()}
+				</Button>
+			</div>
+		</form>
+	{/snippet}
+</Modal>
 
 {#snippet langBtn(code: Locale, label: string)}
 	{@const active = lang === code}

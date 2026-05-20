@@ -59,6 +59,29 @@ export async function deriveKey(
 	);
 }
 
+// Same derivation but extractable — needed only by trustDevice() so the master key
+// can be wrapped under the device key. Normal vault use keeps the non-extractable form.
+export async function deriveKeyExtractable(
+	password: string,
+	salt: Uint8Array,
+	iterations: number = KDF_ITERATIONS
+): Promise<CryptoKey> {
+	const passKey = await crypto.subtle.importKey(
+		'raw',
+		enc.encode(password),
+		{ name: 'PBKDF2' },
+		false,
+		['deriveKey']
+	);
+	return crypto.subtle.deriveKey(
+		{ name: 'PBKDF2', salt: salt as BufferSource, iterations, hash: 'SHA-256' },
+		passKey,
+		{ name: 'AES-GCM', length: 256 },
+		true,
+		['encrypt', 'decrypt']
+	);
+}
+
 export async function encryptJson<T>(
 	key: CryptoKey,
 	plaintext: T,
@@ -85,6 +108,124 @@ export async function decryptJson<T>(key: CryptoKey, blob: EncryptedBlob): Promi
 		ct as BufferSource
 	);
 	return JSON.parse(dec.decode(plaintextBytes)) as T;
+}
+
+// ─── Device-bound key (for optional auto-unlock) ─────────────────────────────
+// A non-extractable AES-GCM CryptoKey persisted in IndexedDB. Used to wrap the
+// master vault key when the user opts into "trust this device". The wrapped
+// blob lives in localStorage (compact + sync-readable), the key itself only
+// in IndexedDB because non-extractable CryptoKeys can't be serialised.
+
+const IDB_NAME = 'remon-web';
+const IDB_STORE = 'vault-keys';
+const DEVICE_KEY_ID = 'device-key';
+
+export interface WrappedKey {
+	v: 1;
+	iv: string; // base64
+	ct: string; // base64 (wrapped raw key bytes)
+}
+
+function openDb(): Promise<IDBDatabase> {
+	return new Promise((resolve, reject) => {
+		const req = indexedDB.open(IDB_NAME, 1);
+		req.onupgradeneeded = () => {
+			req.result.createObjectStore(IDB_STORE);
+		};
+		req.onsuccess = () => resolve(req.result);
+		req.onerror = () => reject(req.error);
+	});
+}
+
+function idbGet<T>(key: string): Promise<T | null> {
+	return openDb().then(
+		(db) =>
+			new Promise<T | null>((resolve, reject) => {
+				const tx = db.transaction(IDB_STORE, 'readonly');
+				const req = tx.objectStore(IDB_STORE).get(key);
+				req.onsuccess = () => resolve((req.result as T | undefined) ?? null);
+				req.onerror = () => reject(req.error);
+			})
+	);
+}
+
+function idbPut(key: string, value: unknown): Promise<void> {
+	return openDb().then(
+		(db) =>
+			new Promise<void>((resolve, reject) => {
+				const tx = db.transaction(IDB_STORE, 'readwrite');
+				tx.objectStore(IDB_STORE).put(value, key);
+				tx.oncomplete = () => resolve();
+				tx.onerror = () => reject(tx.error);
+			})
+	);
+}
+
+function idbDelete(key: string): Promise<void> {
+	return openDb().then(
+		(db) =>
+			new Promise<void>((resolve, reject) => {
+				const tx = db.transaction(IDB_STORE, 'readwrite');
+				tx.objectStore(IDB_STORE).delete(key);
+				tx.oncomplete = () => resolve();
+				tx.onerror = () => reject(tx.error);
+			})
+	);
+}
+
+export async function getDeviceKey(): Promise<CryptoKey | null> {
+	try {
+		return await idbGet<CryptoKey>(DEVICE_KEY_ID);
+	} catch {
+		return null;
+	}
+}
+
+export async function getOrCreateDeviceKey(): Promise<CryptoKey> {
+	const existing = await getDeviceKey();
+	if (existing) return existing;
+	const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, [
+		'wrapKey',
+		'unwrapKey'
+	]);
+	await idbPut(DEVICE_KEY_ID, key);
+	return key;
+}
+
+export async function deleteDeviceKey(): Promise<void> {
+	try {
+		await idbDelete(DEVICE_KEY_ID);
+	} catch {
+		/* best-effort */
+	}
+}
+
+/** Wrap an extractable master CryptoKey under the device key. */
+export async function wrapMasterKey(master: CryptoKey, device: CryptoKey): Promise<WrappedKey> {
+	const iv = randomBytes(IV_LENGTH);
+	const wrapped = await crypto.subtle.wrapKey('raw', master, device, {
+		name: 'AES-GCM',
+		iv: iv as BufferSource
+	});
+	return { v: 1, iv: toBase64(iv), ct: toBase64(wrapped) };
+}
+
+/** Unwrap a master key from a wrapped blob using the device key. */
+export async function unwrapMasterKey(
+	wrapped: WrappedKey,
+	device: CryptoKey
+): Promise<CryptoKey> {
+	const iv = fromBase64(wrapped.iv);
+	const ct = fromBase64(wrapped.ct);
+	return crypto.subtle.unwrapKey(
+		'raw',
+		ct as BufferSource,
+		device,
+		{ name: 'AES-GCM', iv: iv as BufferSource },
+		{ name: 'AES-GCM', length: 256 },
+		false,
+		['encrypt', 'decrypt']
+	);
 }
 
 export const _internal = { toBase64, fromBase64 };

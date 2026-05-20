@@ -12,6 +12,7 @@
 	let pwd = $state('');
 	let busy = $state(false);
 	let error = $state<string | null>(null);
+	let trust = $state(false);
 
 	async function submit(e: SubmitEvent) {
 		e.preventDefault();
@@ -20,6 +21,13 @@
 		error = null;
 		try {
 			await vault.unlock(pwd);
+			if (trust) {
+				try {
+					await vault.trustDevice(pwd);
+				} catch {
+					/* swallow; user can enable from settings */
+				}
+			}
 			pwd = '';
 			goto('/servers', { replaceState: true });
 		} catch {
@@ -70,6 +78,20 @@
 						required
 					/>
 				</Field>
+
+				<label class="flex cursor-pointer items-start gap-2.5 text-[13px] leading-snug text-[var(--color-fg)]">
+					<input
+						type="checkbox"
+						bind:checked={trust}
+						class="mt-[3px] size-[14px] shrink-0 cursor-pointer accent-[var(--color-accent)]"
+					/>
+					<span class="flex flex-col gap-1">
+						<span>{m.unlock_trust_label()}</span>
+						<span class="text-[11px] text-[var(--color-fg-muted)]">
+							{m.unlock_trust_hint()}
+						</span>
+					</span>
+				</label>
 
 				<Button type="submit" disabled={!pwd || busy} loading={busy} fullWidth size="lg">
 					{m.unlock_submit()}

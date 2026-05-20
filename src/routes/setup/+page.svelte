@@ -11,6 +11,7 @@
 	let pwd = $state('');
 	let confirm = $state('');
 	let busy = $state(false);
+	let trust = $state(false);
 
 	let strength = $derived.by(() => {
 		const len = pwd.length;
@@ -37,6 +38,15 @@
 		busy = true;
 		try {
 			await vault.create(pwd);
+			if (trust) {
+				// Best-effort: a failure here shouldn't block vault creation —
+				// user can still sign in normally and turn on trust later.
+				try {
+					await vault.trustDevice(pwd);
+				} catch {
+					/* swallow; user can enable from settings */
+				}
+			}
 			toast.success(m.setup_toast_created_title(), {
 				description: m.setup_toast_created_description()
 			});
@@ -100,6 +110,20 @@
 						required
 					/>
 				</Field>
+
+				<label class="flex cursor-pointer items-start gap-2.5 text-[13px] leading-snug text-[var(--color-fg)]">
+					<input
+						type="checkbox"
+						bind:checked={trust}
+						class="mt-[3px] size-[14px] shrink-0 cursor-pointer accent-[var(--color-accent)]"
+					/>
+					<span class="flex flex-col gap-1">
+						<span>{m.setup_trust_label()}</span>
+						<span class="text-[11px] text-[var(--color-fg-muted)]">
+							{m.setup_trust_hint()}
+						</span>
+					</span>
+				</label>
 
 				<Button type="submit" disabled={!canSubmit} loading={busy} fullWidth size="lg">
 					{m.setup_submit()}
