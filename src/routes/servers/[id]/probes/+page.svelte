@@ -549,7 +549,7 @@
 			METRIC HISTORY
 		</summary>
 		<div class="flex flex-col gap-4 border-t border-[var(--color-border)] px-3 py-3">
-			{#each metrics as metric, i (metric.name)}
+			{#each metrics as metric, i (metric.name + ':' + i)}
 				{@const key = `${probeName}::${metric.name}`}
 				{@const entry = metricHistoryCache[key]}
 				{@const loading = metricHistoryLoading[key]}
