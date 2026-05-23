@@ -11,8 +11,15 @@
 	import { applyHtmlLang } from '$lib/utils/lang';
 	import { loadEcharts } from '$lib/charts/echarts-lazy';
 	import { onMount } from 'svelte';
+	import { useRegisterSW } from 'virtual:pwa-register/svelte';
 
 	let { children } = $props();
+
+	const { needRefresh, updateServiceWorker } = useRegisterSW({
+		onRegisterError(e) {
+			console.warn('SW registration failed', e);
+		}
+	});
 
 	onMount(() => {
 		applyTheme(getTheme());
@@ -20,11 +27,6 @@
 		void loadEcharts().catch(() => {
 			/* no-op — chart components will retry on mount */
 		});
-		if ('serviceWorker' in navigator) {
-			void navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch((err) => {
-				console.warn('Service worker registration failed:', err);
-			});
-		}
 	});
 
 	// View Transitions API — animation rules in app.css; no-ops on unsupported browsers.
@@ -79,6 +81,26 @@
 		{/if}
 	</main>
 </div>
+
+{#if $needRefresh}
+	<div
+		class="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-4 py-2.5 text-sm shadow-lg"
+	>
+		<span class="text-[var(--color-fg-muted)]">Update available</span>
+		<button
+			onclick={() => needRefresh.set(false)}
+			class="text-[var(--color-fg-subtle)] transition hover:text-[var(--color-fg)]"
+		>
+			Dismiss
+		</button>
+		<button
+			onclick={() => updateServiceWorker(true)}
+			class="rounded-md bg-[var(--color-accent)] px-3 py-1 text-xs font-medium text-white transition hover:opacity-90"
+		>
+			Reload
+		</button>
+	</div>
+{/if}
 
 <Toaster />
 <ConfirmDialog />
