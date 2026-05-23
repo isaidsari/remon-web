@@ -208,6 +208,28 @@
 
 	let isBool = $derived(currentMetric?.value_type === 'bool');
 
+	// When namespace=probe and a probe_name is selected, load that probe's last_metrics
+	// so the metric field can show a dropdown instead of a free-form input.
+	let probeMetricOptions = $state<string[]>([]);
+	const probeMetricCache = new Map<string, Promise<string[]>>();
+	function fetchProbeMetrics(probeName: string): Promise<string[]> {
+		let p = probeMetricCache.get(probeName);
+		if (!p) {
+			p = conn.client.getProbe(probeName).then((d) => {
+				const names = [...new Set(d.last_metrics.map((m) => m.name))].sort();
+				return names;
+			}).catch(() => []);
+			probeMetricCache.set(probeName, p);
+		}
+		return p;
+	}
+	$effect(() => {
+		if (builder.namespace !== 'probe') { probeMetricOptions = []; return; }
+		const probeName = builder.labels['probe_name'];
+		if (!probeName) { probeMetricOptions = []; return; }
+		fetchProbeMetrics(probeName).then((names) => { probeMetricOptions = names; });
+	});
+
 	function setBoolShortcut(want: 'up' | 'down') {
 		builder = {
 			...builder,
@@ -294,7 +316,18 @@
 			</Field>
 
 			<Field label={m.alerts_editor_field_metric()}>
-				{#if currentNamespace?.dynamic_metrics}
+				{#if currentNamespace?.dynamic_metrics && probeMetricOptions.length > 0}
+					<select
+						value={builder.field}
+						onchange={(e) => selectField((e.currentTarget as HTMLSelectElement).value)}
+						class="h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] focus:border-[var(--color-accent)] focus:outline-none"
+					>
+						<option value="" disabled>{m.alerts_editor_select_metric()}</option>
+						{#each probeMetricOptions as opt (opt)}
+							<option value={opt}>{opt}</option>
+						{/each}
+					</select>
+				{:else if currentNamespace?.dynamic_metrics}
 					<Input
 						value={builder.field}
 						oninput={(e) => selectField((e.currentTarget as HTMLInputElement).value)}
@@ -440,7 +473,7 @@
 				<Input bind:value={description} placeholder={m.alerts_form_description_placeholder()} />
 			</Field>
 
-			<div class="grid grid-cols-2 gap-4">
+			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<Field label={m.alerts_form_severity_label()}>
 					<select
 						bind:value={severity}
@@ -458,7 +491,7 @@
 				</Field>
 			</div>
 
-			<div class="grid grid-cols-3 gap-4">
+			<div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
 				<Field label={m.alerts_form_for_seconds_label()}>
 					<Input type="number" bind:value={for_duration_secs} min={0} max={3600} />
 				</Field>
