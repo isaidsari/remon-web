@@ -71,14 +71,14 @@
 			aria-labelledby={title ? 'modal-title' : undefined}
 			aria-describedby={description ? 'modal-desc' : undefined}
 			class={cn(
-				'relative w-full rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl',
+				'relative flex max-h-[min(90vh,calc(100dvh-2rem))] w-full flex-col overflow-hidden rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl',
 				widthCls[width],
 				klass
 			)}
 			transition:scale={{ duration: 130, start: 0.96 }}
 		>
 			{#if title || description}
-				<header class="border-b border-[var(--color-border)] px-6 py-4">
+				<header class="shrink-0 border-b border-[var(--color-border)] px-6 py-4">
 					{#if title}
 						<h2 id="modal-title" class="text-base font-semibold text-[var(--color-fg)]">
 							{title}
@@ -93,14 +93,14 @@
 			{/if}
 
 			{#if children}
-				<div class="px-6 py-5 text-sm text-[var(--color-fg)]">
+				<div class="min-h-0 flex-1 overflow-y-auto px-6 py-5 text-sm text-[var(--color-fg)]">
 					{@render children()}
 				</div>
 			{/if}
 
 			{#if footer}
 				<footer
-					class="flex items-center justify-end gap-2 border-t border-[var(--color-border)] bg-[var(--color-bg-soft)]/40 px-6 py-3"
+					class="flex shrink-0 items-center justify-end gap-2 border-t border-[var(--color-border)] bg-[var(--color-bg-soft)]/40 px-6 py-3"
 				>
 					{@render footer()}
 				</footer>

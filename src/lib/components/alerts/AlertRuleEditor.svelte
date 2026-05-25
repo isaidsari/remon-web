@@ -9,7 +9,8 @@
 		AlertsSchemaResponse,
 		LabelSchema,
 		NamespaceSchema,
-		MetricSchema
+		MetricSchema,
+		ProbeDetail
 	} from '$lib/types/api';
 	import type { Connection } from '$lib/stores/connections.svelte';
 	import {
@@ -26,28 +27,46 @@
 	// Template IDs are stable constants; localized labels come from the message catalogue.
 	function templateTitle(id: string): string {
 		switch (id) {
-			case 'cpu-high': return m.alerts_template_cpu_high_title();
-			case 'mem-pressure': return m.alerts_template_mem_pressure_title();
-			case 'disk-full': return m.alerts_template_disk_full_title();
-			case 'inode-full': return m.alerts_template_inode_full_title();
-			case 'swap-active': return m.alerts_template_swap_active_title();
-			case 'load-high': return m.alerts_template_load_high_title();
-			case 'pressure-cpu': return m.alerts_template_pressure_cpu_title();
-			case 'service-down': return m.alerts_template_service_down_title();
-			default: return id;
+			case 'cpu-high':
+				return m.alerts_template_cpu_high_title();
+			case 'mem-pressure':
+				return m.alerts_template_mem_pressure_title();
+			case 'disk-full':
+				return m.alerts_template_disk_full_title();
+			case 'inode-full':
+				return m.alerts_template_inode_full_title();
+			case 'swap-active':
+				return m.alerts_template_swap_active_title();
+			case 'load-high':
+				return m.alerts_template_load_high_title();
+			case 'pressure-cpu':
+				return m.alerts_template_pressure_cpu_title();
+			case 'service-down':
+				return m.alerts_template_service_down_title();
+			default:
+				return id;
 		}
 	}
 	function templateSummary(id: string): string {
 		switch (id) {
-			case 'cpu-high': return m.alerts_template_cpu_high_summary();
-			case 'mem-pressure': return m.alerts_template_mem_pressure_summary();
-			case 'disk-full': return m.alerts_template_disk_full_summary();
-			case 'inode-full': return m.alerts_template_inode_full_summary();
-			case 'swap-active': return m.alerts_template_swap_active_summary();
-			case 'load-high': return m.alerts_template_load_high_summary();
-			case 'pressure-cpu': return m.alerts_template_pressure_cpu_summary();
-			case 'service-down': return m.alerts_template_service_down_summary();
-			default: return '';
+			case 'cpu-high':
+				return m.alerts_template_cpu_high_summary();
+			case 'mem-pressure':
+				return m.alerts_template_mem_pressure_summary();
+			case 'disk-full':
+				return m.alerts_template_disk_full_summary();
+			case 'inode-full':
+				return m.alerts_template_inode_full_summary();
+			case 'swap-active':
+				return m.alerts_template_swap_active_summary();
+			case 'load-high':
+				return m.alerts_template_load_high_summary();
+			case 'pressure-cpu':
+				return m.alerts_template_pressure_cpu_summary();
+			case 'service-down':
+				return m.alerts_template_service_down_summary();
+			default:
+				return '';
 		}
 	}
 
@@ -95,7 +114,9 @@
 	type Mode = 'templates' | 'builder' | 'raw';
 	// initial is read once at construct; parent re-mounts the component for a different rule.
 	let mode = $state<Mode>(
-		untrack(() => (initial ? (parseExpression(initial.expression) ? 'builder' : 'raw') : 'templates'))
+		untrack(() =>
+			initial ? (parseExpression(initial.expression) ? 'builder' : 'raw') : 'templates'
+		)
 	);
 
 	// Builder parts mirror what `buildExpression()` consumes.
@@ -208,27 +229,86 @@
 
 	let isBool = $derived(currentMetric?.value_type === 'bool');
 
-	// When namespace=probe and a probe_name is selected, load that probe's last_metrics
-	// so the metric field can show a dropdown instead of a free-form input.
-	let probeMetricOptions = $state<string[]>([]);
-	const probeMetricCache = new Map<string, Promise<string[]>>();
-	function fetchProbeMetrics(probeName: string): Promise<string[]> {
-		let p = probeMetricCache.get(probeName);
+	// "Dynamic-metric" namespaces (today: `probe`) expose a runtime-defined
+	// metric list rather than a server-side whitelist. Schema marks them
+	// with `dynamic_metrics: true`. We treat the namespace's first label as
+	// the "selector" — the user picks an instance (a specific probe), and
+	// we then fetch that instance's emitted metrics. Generalising on schema
+	// flags keeps this code working if a second dynamic-metric namespace
+	// ever joins the schema.
+	let isDynamicMetricNs = $derived<boolean>(currentNamespace?.dynamic_metrics === true);
+	let selectorLabel = $derived<LabelSchema | null>(
+		isDynamicMetricNs ? (currentLabels[0] ?? null) : null
+	);
+	let selectorValue = $derived<string>(
+		selectorLabel ? (builder.labels[selectorLabel.name] ?? '') : ''
+	);
+
+	// The instance-detail fetcher is genuinely namespace-specific (probe today),
+	// so it stays a switch keyed on namespace name. New dynamic namespaces would
+	// add a branch here. Everything ABOVE this is schema-driven and generic.
+	let probeDetail = $state<ProbeDetail | null>(null);
+	const probeDetailCache = new Map<string, Promise<ProbeDetail | null>>();
+	function fetchProbeDetail(probeName: string): Promise<ProbeDetail | null> {
+		let p = probeDetailCache.get(probeName);
 		if (!p) {
-			p = conn.client.getProbe(probeName).then((d) => {
-				const names = [...new Set(d.last_metrics.map((m) => m.name))].sort();
-				return names;
-			}).catch(() => []);
-			probeMetricCache.set(probeName, p);
+			p = conn.client.getProbe(probeName).catch(() => null);
+			probeDetailCache.set(probeName, p);
 		}
 		return p;
 	}
 	$effect(() => {
-		if (builder.namespace !== 'probe') { probeMetricOptions = []; return; }
-		const probeName = builder.labels['probe_name'];
-		if (!probeName) { probeMetricOptions = []; return; }
-		fetchProbeMetrics(probeName).then((names) => { probeMetricOptions = names; });
+		if (!isDynamicMetricNs || !selectorValue) {
+			probeDetail = null;
+			return;
+		}
+		if (builder.namespace === 'probe') {
+			fetchProbeDetail(selectorValue).then((d) => {
+				probeDetail = d;
+			});
+		}
+		// Future dynamic-metric namespaces: add their fetcher here.
 	});
+
+	let dynamicMetricOptions = $derived<string[]>(
+		probeDetail ? [...new Set(probeDetail.last_metrics.map((mm) => mm.name))].sort() : []
+	);
+
+	type DynamicLabel = { name: string; values: string[] };
+	// Inspect the rows matching the chosen metric and project them into a
+	// (label_key → observed_values) list. The user picks one value per key
+	// to scope the rule to a single stream (e.g. `drive=C:`).
+	let dynamicScopeLabels = $derived.by<DynamicLabel[]>(() => {
+		if (!probeDetail || !builder.field) return [];
+		const matching = probeDetail.last_metrics.filter((mm) => mm.name === builder.field);
+		const byKey = new Map<string, Set<string>>();
+		for (const entry of matching) {
+			for (const [k, v] of Object.entries(entry.labels ?? {})) {
+				let set = byKey.get(k);
+				if (!set) {
+					set = new Set();
+					byKey.set(k, set);
+				}
+				set.add(v);
+			}
+		}
+		return [...byKey.entries()]
+			.sort((a, b) => a[0].localeCompare(b[0]))
+			.map(([name, values]) => ({ name, values: [...values].sort() }));
+	});
+
+	function setLabel(key: string, value: string) {
+		const next = { ...builder.labels };
+		if (value === '') delete next[key];
+		else next[key] = value;
+		builder = { ...builder, labels: next };
+	}
+
+	// The selector label is rendered on its own row before the metric field;
+	// pull it out of the generic labels block so it isn't drawn twice.
+	let staticLabelsExcludingSelector = $derived<LabelSchema[]>(
+		selectorLabel ? currentLabels.filter((l) => l.name !== selectorLabel!.name) : currentLabels
+	);
 
 	function setBoolShortcut(want: 'up' | 'down') {
 		builder = {
@@ -240,7 +320,9 @@
 </script>
 
 <div class="flex flex-col gap-5">
-	<div class="inline-flex self-start rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5">
+	<div
+		class="inline-flex self-start rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5"
+	>
 		{#each ['templates', 'builder', 'raw'] as const as modeKey (modeKey)}
 			<button
 				type="button"
@@ -288,7 +370,9 @@
 							{t.severity}
 						</span>
 					</div>
-					<span class="text-[11px] leading-relaxed text-[var(--color-fg-muted)]">{templateSummary(t.id)}</span>
+					<span class="text-[11px] leading-relaxed text-[var(--color-fg-muted)]"
+						>{templateSummary(t.id)}</span
+					>
 				</button>
 			{/each}
 		</div>
@@ -296,6 +380,7 @@
 			{m.alerts_editor_templates_footer()}
 		</p>
 	{:else if mode === 'builder'}
+		{@const metricDisabledByGate = isDynamicMetricNs && selectorValue === ''}
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 			<Field label={m.alerts_editor_field_resource()}>
 				<select
@@ -315,65 +400,144 @@
 				{/if}
 			</Field>
 
+			{#if selectorLabel}
+				<Field label={selectorLabel.name}>
+					{#if labelOptions[selectorLabel.name]?.length}
+						<select
+							value={selectorValue}
+							onchange={(e) =>
+								setLabel(selectorLabel!.name, (e.currentTarget as HTMLSelectElement).value)}
+							class="h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] focus:border-[var(--color-accent)] focus:outline-none"
+						>
+							<option value="">{m.alerts_editor_label_pick_one()}</option>
+							{#each labelOptions[selectorLabel.name] as opt (opt)}
+								<option value={opt}>{opt}</option>
+							{/each}
+						</select>
+					{:else}
+						<Input
+							value={selectorValue}
+							oninput={(e) =>
+								setLabel(selectorLabel!.name, (e.currentTarget as HTMLInputElement).value)}
+							placeholder={m.alerts_editor_label_required_placeholder()}
+							class="font-mono text-[12px]"
+						/>
+					{/if}
+				</Field>
+			{:else}
+				<Field label={m.alerts_editor_field_metric()}>
+					{#if currentNamespace?.dynamic_metrics && dynamicMetricOptions.length > 0}
+						<select
+							value={builder.field}
+							onchange={(e) => selectField((e.currentTarget as HTMLSelectElement).value)}
+							class="h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] focus:border-[var(--color-accent)] focus:outline-none"
+						>
+							<option value="" disabled>{m.alerts_editor_select_metric()}</option>
+							{#each dynamicMetricOptions as opt (opt)}
+								<option value={opt}>{opt}</option>
+							{/each}
+						</select>
+					{:else if currentNamespace?.dynamic_metrics}
+						<Input
+							value={builder.field}
+							oninput={(e) => selectField((e.currentTarget as HTMLInputElement).value)}
+							placeholder={m.alerts_editor_metric_dynamic_placeholder()}
+							class="font-mono text-[12px]"
+						/>
+					{:else}
+						<select
+							value={builder.field}
+							disabled={!currentNamespace}
+							onchange={(e) => selectField((e.currentTarget as HTMLSelectElement).value)}
+							class="h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] focus:border-[var(--color-accent)] focus:outline-none disabled:opacity-50"
+						>
+							<option value="" disabled>{m.alerts_editor_select_metric()}</option>
+							{#each currentNamespace?.metrics ?? [] as opt (opt.name)}
+								<option value={opt.name}>{opt.name}{opt.unit ? ` (${opt.unit})` : ''}</option>
+							{/each}
+						</select>
+					{/if}
+					{#if currentMetric?.description}
+						<p class="mt-1 text-[11px] leading-relaxed text-[var(--color-fg-muted)]">
+							{currentMetric.description}
+						</p>
+					{/if}
+				</Field>
+			{/if}
+		</div>
+
+		{#if isDynamicMetricNs}
 			<Field label={m.alerts_editor_field_metric()}>
-				{#if currentNamespace?.dynamic_metrics && probeMetricOptions.length > 0}
+				{#if metricDisabledByGate}
+					<select
+						disabled
+						class="h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] opacity-50"
+					>
+						<option
+							>{m.alerts_editor_metric_pick_selector_first({
+								label: selectorLabel?.name ?? ''
+							})}</option
+						>
+					</select>
+				{:else if dynamicMetricOptions.length > 0}
 					<select
 						value={builder.field}
 						onchange={(e) => selectField((e.currentTarget as HTMLSelectElement).value)}
 						class="h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] focus:border-[var(--color-accent)] focus:outline-none"
 					>
 						<option value="" disabled>{m.alerts_editor_select_metric()}</option>
-						{#each probeMetricOptions as opt (opt)}
+						{#each dynamicMetricOptions as opt (opt)}
 							<option value={opt}>{opt}</option>
 						{/each}
 					</select>
-				{:else if currentNamespace?.dynamic_metrics}
+				{:else}
 					<Input
 						value={builder.field}
 						oninput={(e) => selectField((e.currentTarget as HTMLInputElement).value)}
 						placeholder={m.alerts_editor_metric_dynamic_placeholder()}
 						class="font-mono text-[12px]"
 					/>
-				{:else}
-					<select
-						value={builder.field}
-						disabled={!currentNamespace}
-						onchange={(e) => selectField((e.currentTarget as HTMLSelectElement).value)}
-						class="h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] focus:border-[var(--color-accent)] focus:outline-none disabled:opacity-50"
-					>
-						<option value="" disabled>{m.alerts_editor_select_metric()}</option>
-						{#each currentNamespace?.metrics ?? [] as opt (opt.name)}
-							<option value={opt.name}>{opt.name}{opt.unit ? ` (${opt.unit})` : ''}</option>
-						{/each}
-					</select>
-				{/if}
-				{#if currentMetric?.description}
 					<p class="mt-1 text-[11px] leading-relaxed text-[var(--color-fg-muted)]">
-						{currentMetric.description}
+						{m.alerts_editor_metric_no_snapshot()}
 					</p>
 				{/if}
 			</Field>
-		</div>
 
-		{#if currentLabels.length > 0}
+			{#if dynamicScopeLabels.length > 0}
+				<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+					{#each dynamicScopeLabels as label (label.name)}
+						<Field label={label.name}>
+							<select
+								value={builder.labels[label.name] ?? ''}
+								onchange={(e) => setLabel(label.name, (e.currentTarget as HTMLSelectElement).value)}
+								class="h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] focus:border-[var(--color-accent)] focus:outline-none"
+							>
+								<option value="">{m.alerts_editor_label_any()}</option>
+								{#each label.values as opt (opt)}
+									<option value={opt}>{opt}</option>
+								{/each}
+							</select>
+						</Field>
+					{/each}
+				</div>
+			{/if}
+		{/if}
+
+		{#if staticLabelsExcludingSelector.length > 0}
 			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-				{#each currentLabels as label (label.name)}
+				{#each staticLabelsExcludingSelector as label (label.name)}
 					<Field label={`${label.name}${label.required ? ' *' : ''}`}>
 						{#if labelOptions[label.name]?.length}
 							<select
 								value={builder.labels[label.name] ?? ''}
-								onchange={(e) => {
-									builder = {
-										...builder,
-										labels: {
-											...builder.labels,
-											[label.name]: (e.currentTarget as HTMLSelectElement).value
-										}
-									};
-								}}
+								onchange={(e) => setLabel(label.name, (e.currentTarget as HTMLSelectElement).value)}
 								class="h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] focus:border-[var(--color-accent)] focus:outline-none"
 							>
-								<option value="">{label.required ? m.alerts_editor_label_pick_one() : m.alerts_editor_label_any()}</option>
+								<option value=""
+									>{label.required
+										? m.alerts_editor_label_pick_one()
+										: m.alerts_editor_label_any()}</option
+								>
 								{#each labelOptions[label.name] as opt (opt)}
 									<option value={opt}>{opt}</option>
 								{/each}
@@ -381,15 +545,7 @@
 						{:else}
 							<Input
 								value={builder.labels[label.name] ?? ''}
-								oninput={(e) => {
-									builder = {
-										...builder,
-										labels: {
-											...builder.labels,
-											[label.name]: (e.currentTarget as HTMLInputElement).value
-										}
-									};
-								}}
+								oninput={(e) => setLabel(label.name, (e.currentTarget as HTMLInputElement).value)}
 								placeholder={label.required
 									? m.alerts_editor_label_required_placeholder()
 									: m.alerts_editor_label_optional_placeholder()}
@@ -415,9 +571,11 @@
 					{/each}
 				</select>
 			</Field>
-			<Field label={currentMetric?.unit
-				? m.alerts_editor_field_threshold_with_unit({ unit: currentMetric.unit })
-				: m.alerts_editor_field_threshold()}>
+			<Field
+				label={currentMetric?.unit
+					? m.alerts_editor_field_threshold_with_unit({ unit: currentMetric.unit })
+					: m.alerts_editor_field_threshold()}
+			>
 				<Input
 					value={builder.threshold}
 					oninput={(e) => {
@@ -431,10 +589,20 @@
 				/>
 				{#if isBool}
 					<div class="mt-2 flex gap-2">
-						<Button type="button" variant="secondary" size="sm" onclick={() => setBoolShortcut('down')}>
+						<Button
+							type="button"
+							variant="secondary"
+							size="sm"
+							onclick={() => setBoolShortcut('down')}
+						>
 							{m.alerts_editor_bool_down()}
 						</Button>
-						<Button type="button" variant="secondary" size="sm" onclick={() => setBoolShortcut('up')}>
+						<Button
+							type="button"
+							variant="secondary"
+							size="sm"
+							onclick={() => setBoolShortcut('up')}
+						>
 							{m.alerts_editor_bool_up()}
 						</Button>
 					</div>
@@ -442,7 +610,9 @@
 			</Field>
 		</div>
 
-		<div class="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2">
+		<div
+			class="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2"
+		>
 			<div class="mb-0.5 text-[10px] uppercase tracking-wide text-[var(--color-fg-subtle)]">
 				{m.alerts_editor_expression_preview_label()}
 			</div>

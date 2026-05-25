@@ -14,6 +14,7 @@
 	import type { ECharts, EChartsCoreOption, LinearGradientObject } from 'echarts/core';
 	import { loadEcharts } from '$lib/charts/echarts-lazy';
 	import { chartPalette } from '$lib/charts/chart-theme';
+	import { m } from '$lib/paraglide/messages';
 
 	interface Props {
 		series: Series[];
@@ -24,6 +25,8 @@
 		axisLabel?: string;
 		/** Same string on every chart on the page to sync crosshair hover. */
 		group?: string;
+		/** Suppress the small "drag to zoom · double-click to reset" caption. */
+		hideZoomHint?: boolean;
 		class?: string;
 	}
 
@@ -35,6 +38,7 @@
 		valueFormatter,
 		axisLabel,
 		group,
+		hideZoomHint = false,
 		class: klass = ''
 	}: Props = $props();
 
@@ -96,7 +100,7 @@
 		const palette = chartPalette();
 		return {
 			animation: false,
-			grid: { left: 56, right: 16, top: 28, bottom: 56 },
+			grid: { left: 56, right: 16, top: 28, bottom: 28 },
 			tooltip: {
 				trigger: 'axis',
 				axisPointer: {
@@ -108,9 +112,7 @@
 				backgroundColor: palette.tooltipBg,
 				borderColor: palette.tooltipBorder,
 				textStyle: { color: palette.tooltipText, fontSize: 12 },
-				valueFormatter: valueFormatter
-					? (v: unknown) => valueFormatter(v as number)
-					: undefined
+				valueFormatter: valueFormatter ? (v: unknown) => valueFormatter(v as number) : undefined
 			},
 			legend: {
 				show: series.length > 1,
@@ -140,12 +142,12 @@
 				axisLabel: {
 					color: palette.axisText,
 					fontSize: 10,
-					formatter: valueFormatter
-						? (v: number) => valueFormatter(v) ?? ''
-						: undefined
+					formatter: valueFormatter ? (v: number) => valueFormatter(v) ?? '' : undefined
 				},
 				splitLine: { lineStyle: { color: palette.gridLine } }
 			},
+			// Wheel zoom only here — drag-to-zoom is wired via the brush
+			// component below so the cursor stays in brush mode permanently.
 			dataZoom: [
 				{
 					type: 'inside',
@@ -153,22 +155,47 @@
 					zoomOnMouseWheel: true,
 					moveOnMouseMove: false,
 					moveOnMouseWheel: false
-				},
-				{
-					type: 'slider',
-					height: 18,
-					bottom: 6,
-					backgroundColor: palette.gridLine,
-					fillerColor: 'rgba(120,140,180,0.15)',
-					borderColor: 'transparent',
-					handleStyle: { color: 'rgb(120,140,180)' },
-					moveHandleStyle: { color: 'rgb(120,140,180)' },
-					textStyle: { color: palette.axisText, fontSize: 10 },
-					labelFormatter: ''
 				}
 			],
+			// Brush is configured with no toolbox UI; we drive it
+			// programmatically via takeGlobalCursor so dragging anywhere on
+			// the chart starts a horizontal selection without a click-into
+			// "zoom mode" first. brushEnd then triggers dataZoom below.
+			brush: {
+				xAxisIndex: 0,
+				brushType: 'lineX',
+				brushMode: 'single',
+				transformable: false,
+				throttleType: 'debounce',
+				throttleDelay: 100,
+				brushStyle: {
+					borderWidth: 1,
+					color: 'rgba(120,140,180,0.15)',
+					borderColor: 'rgba(120,140,180,0.45)'
+				}
+			},
+			// toolbox must exist for `brush` to be addressable, but we hide it.
+			toolbox: { show: false, feature: { brush: {} } },
 			series: seriesArr
 		};
+	}
+
+	function enableBrushCursor() {
+		chart?.dispatchAction({
+			type: 'takeGlobalCursor',
+			key: 'brush',
+			brushOption: { brushType: 'lineX', brushMode: 'single' }
+		});
+	}
+
+	function clearBrush() {
+		chart?.dispatchAction({ type: 'brush', areas: [] });
+	}
+
+	function resetZoom() {
+		chart?.dispatchAction({ type: 'dataZoom', start: 0, end: 100 });
+		clearBrush();
+		enableBrushCursor();
 	}
 
 	onMount(() => {
@@ -178,6 +205,24 @@
 			if (cancelled || !container) return;
 			chart = echarts.init(container, undefined, { renderer: 'canvas' });
 			chart.setOption(buildOption());
+
+			// brushEnd carries the selected coordRange in axis units; feed it
+			// straight into the inside-dataZoom and then drop the brush rect
+			// so the chart isn't decorated with the selection afterwards.
+			chart.on('brushEnd', (params: unknown) => {
+				const p = params as { areas?: Array<{ coordRange?: [number, number] }> };
+				const range = p.areas?.[0]?.coordRange;
+				if (!range) return;
+				const [startValue, endValue] = range;
+				chart?.dispatchAction({ type: 'dataZoom', startValue, endValue });
+				clearBrush();
+				// Re-arm brush cursor so the next drag also zooms.
+				enableBrushCursor();
+			});
+
+			chart.getZr().on('dblclick', resetZoom);
+			enableBrushCursor();
+
 			if (group) {
 				chart.group = group;
 				echarts.connect(group);
@@ -205,4 +250,13 @@
 	});
 </script>
 
-<div bind:this={container} class={klass} style="width: 100%; height: {height}px;"></div>
+<div class={klass}>
+	<div bind:this={container} style="width: 100%; height: {height}px;"></div>
+	{#if !hideZoomHint}
+		<p
+			class="mt-0.5 hidden truncate text-right font-mono text-[10px] text-[var(--color-fg-faint)] select-none sm:block"
+		>
+			{m.chart_zoom_hint()}
+		</p>
+	{/if}
+</div>
