@@ -20,7 +20,8 @@
 		if (!conn) return;
 		untrack(() => {
 			conn.ensureSignedIn().catch((e) => {
-				if (e instanceof ApiError) toast.error(m.config_signin_failed(), { description: e.userMessage });
+				if (e instanceof ApiError)
+					toast.error(m.config_signin_failed(), { description: e.userMessage });
 			});
 		});
 	});
@@ -42,7 +43,7 @@
 	function fromResponse(c: ConfigResponse): EditableConfig {
 		return {
 			server_name: c.server_name,
-			stats_ms: c.collector_stats_base_interval_ms,
+			stats_ms: c.collector_stats_interval_ms,
 			processes_ms: c.collector_processes_interval_ms,
 			docker_ms: c.collector_docker_interval_ms,
 			rollup_ms: c.rollup_tick_interval_ms,
@@ -74,7 +75,7 @@
 		if (!original || !form) return {};
 		const d: UpdateConfigRequest = {};
 		if (form.server_name !== original.server_name) d.server_name = form.server_name;
-		if (form.stats_ms !== original.collector_stats_base_interval_ms)
+		if (form.stats_ms !== original.collector_stats_interval_ms)
 			d.collector_stats_interval_ms = form.stats_ms;
 		if (form.processes_ms !== original.collector_processes_interval_ms)
 			d.collector_processes_interval_ms = form.processes_ms;
@@ -89,18 +90,28 @@
 
 	let dirty = $derived(Object.keys(diff).length > 0);
 
+	// Docker collector is compiled out on servers built --no-default-features;
+	// the API then reports interval 0. Hide the field and skip its validation.
+	let dockerEnabled = $derived(original ? original.collector_docker_interval_ms !== 0 : false);
+
+	// Server enforces >= 1000 ms for collector intervals (sub-second sampling
+	// collides with second-resolution metric PKs). Mirror that floor here.
+	const MIN_INTERVAL_MS = 1000;
+
 	let validationError = $derived.by((): string | null => {
 		if (!form) return null;
 		if (!form.server_name.trim()) return m.config_validation_server_name_empty();
 		const intervals: [string, number][] = [
 			[m.config_interval_label_stats(), form.stats_ms],
 			[m.config_interval_label_processes(), form.processes_ms],
-			[m.config_interval_label_docker(), form.docker_ms],
+			...(dockerEnabled
+				? [[m.config_interval_label_docker(), form.docker_ms] as [string, number]]
+				: []),
 			[m.config_interval_label_rollup(), form.rollup_ms],
 			[m.config_interval_label_retention(), form.retention_ms]
 		];
 		for (const [label, v] of intervals) {
-			if (!Number.isFinite(v) || v < 100) return m.config_validation_min({ label });
+			if (!Number.isFinite(v) || v < MIN_INTERVAL_MS) return m.config_validation_min({ label });
 			if (v > 24 * 3600 * 1000) return m.config_validation_max({ label });
 		}
 		return null;
@@ -174,9 +185,20 @@
 				}}
 			>
 				<Card>
-					<p class="mb-4 text-xs tracking-wide text-[var(--color-fg-muted)]">{m.config_section_general()}</p>
-					<Field label={m.config_field_server_name_label()} hint={m.config_field_server_name_hint()} for="server-name">
-						<Input id="server-name" bind:value={form.server_name} placeholder={m.config_field_server_name_placeholder()} required />
+					<p class="mb-4 text-xs tracking-wide text-[var(--color-fg-muted)]">
+						{m.config_section_general()}
+					</p>
+					<Field
+						label={m.config_field_server_name_label()}
+						hint={m.config_field_server_name_hint()}
+						for="server-name"
+					>
+						<Input
+							id="server-name"
+							bind:value={form.server_name}
+							placeholder={m.config_field_server_name_placeholder()}
+							required
+						/>
 					</Field>
 				</Card>
 
@@ -190,9 +212,7 @@
 							m.config_interval_hint_stats(),
 							'stats',
 							form.stats_ms,
-							(v) => (form!.stats_ms = v),
-							original.collector_stats_base_interval_ms,
-							original.collector_stats_interval_ms
+							(v) => (form!.stats_ms = v)
 						)}
 						{@render intervalField(
 							m.config_interval_label_processes(),
@@ -201,13 +221,15 @@
 							form.processes_ms,
 							(v) => (form!.processes_ms = v)
 						)}
-						{@render intervalField(
-							m.config_interval_label_docker(),
-							m.config_interval_hint_docker(),
-							'docker',
-							form.docker_ms,
-							(v) => (form!.docker_ms = v)
-						)}
+						{#if dockerEnabled}
+							{@render intervalField(
+								m.config_interval_label_docker(),
+								m.config_interval_hint_docker(),
+								'docker',
+								form.docker_ms,
+								(v) => (form!.docker_ms = v)
+							)}
+						{/if}
 					</div>
 				</Card>
 
@@ -243,7 +265,9 @@
 							? m.config_fields_changed_one()
 							: m.config_fields_changed_other({ count: Object.keys(diff).length })}
 					</span>
-					<Button variant="ghost" onclick={reset} disabled={!dirty || saving}>{m.config_reset()}</Button>
+					<Button variant="ghost" onclick={reset} disabled={!dirty || saving}
+						>{m.config_reset()}</Button
+					>
 					<Button type="submit" disabled={!dirty || !!validationError || saving} loading={saving}>
 						{m.config_save()}
 					</Button>
@@ -262,27 +286,20 @@
 	hint: string,
 	id: string,
 	value: number,
-	setValue: (v: number) => void,
-	baseValue?: number,
-	effectiveValue?: number
+	setValue: (v: number) => void
 )}
 	<Field {label} {hint} for={id}>
 		<div class="flex items-center gap-2">
 			<Input
 				{id}
 				type="number"
-				min="100"
+				min="1000"
 				step="100"
-				value={value}
+				{value}
 				oninput={(e) => setValue(Number((e.target as HTMLInputElement).value))}
 				class="w-40 font-mono"
 			/>
 			<span class="text-xs text-[var(--color-fg-muted)]">ms · {fmtMs(value)}</span>
-			{#if baseValue !== undefined && effectiveValue !== undefined && baseValue !== effectiveValue}
-				<span class="ml-2 rounded-full bg-[var(--color-info)]/10 px-2 py-0.5 text-[10px] text-[var(--color-info)]">
-					{m.config_adaptive_running_at({ value: fmtMs(effectiveValue) })}
-				</span>
-			{/if}
 		</div>
 		<div class="mt-2 flex flex-wrap gap-1.5">
 			{#each presets as p (p.label)}

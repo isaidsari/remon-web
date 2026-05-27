@@ -87,7 +87,6 @@ export interface RenameSessionRequest {
 
 export interface ConfigResponse {
 	server_name: string;
-	collector_stats_base_interval_ms: number;
 	collector_stats_interval_ms: number;
 	collector_processes_interval_ms: number;
 	collector_docker_interval_ms: number;
@@ -249,13 +248,7 @@ export interface ComponentsHistoryResponse {
 	points: ComponentPoint[];
 }
 
-export type BatchResource =
-	| 'cpu'
-	| 'cpu_cores'
-	| 'memory'
-	| 'disk'
-	| 'network'
-	| 'components';
+export type BatchResource = 'cpu' | 'cpu_cores' | 'memory' | 'disk' | 'network' | 'components';
 
 export interface BatchMetricsQuery {
 	/** Comma-joined list, e.g. `'cpu,memory,disk'`. Max 8, no dupes. */
