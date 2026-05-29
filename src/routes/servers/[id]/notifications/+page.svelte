@@ -39,7 +39,8 @@
 		if (!conn) return;
 		untrack(() => {
 			conn.ensureSignedIn().catch((e) => {
-				if (e instanceof ApiError) toast.error(m.notifications_toast_signin_failed(), { description: e.userMessage });
+				if (e instanceof ApiError)
+					toast.error(m.notifications_toast_signin_failed(), { description: e.userMessage });
 			});
 		});
 	});
@@ -56,7 +57,8 @@
 			const res = await conn.client.listChannels();
 			channels = res.channels;
 		} catch (e) {
-			if (e instanceof ApiError) toast.error(m.notifications_toast_load_failed(), { description: e.userMessage });
+			if (e instanceof ApiError)
+				toast.error(m.notifications_toast_load_failed(), { description: e.userMessage });
 		} finally {
 			busy = false;
 		}
@@ -72,7 +74,8 @@
 			const res = await conn!.client.testChannel(ch.id);
 			toast.success(m.notifications_toast_test_sent({ count: res.delivered }));
 		} catch (e) {
-			if (e instanceof ApiError) toast.error(m.notifications_toast_test_failed(), { description: e.userMessage });
+			if (e instanceof ApiError)
+				toast.error(m.notifications_toast_test_failed(), { description: e.userMessage });
 		} finally {
 			testing = null;
 		}
@@ -89,7 +92,8 @@
 			});
 			fetchAll();
 		} catch (e) {
-			if (e instanceof ApiError) toast.error(m.notifications_toast_update_failed(), { description: e.userMessage });
+			if (e instanceof ApiError)
+				toast.error(m.notifications_toast_update_failed(), { description: e.userMessage });
 		} finally {
 			acting = null;
 		}
@@ -109,7 +113,8 @@
 			toast.success(m.notifications_toast_deleted({ name: ch.name }));
 			fetchAll();
 		} catch (e) {
-			if (e instanceof ApiError) toast.error(m.notifications_toast_delete_failed(), { description: e.userMessage });
+			if (e instanceof ApiError)
+				toast.error(m.notifications_toast_delete_failed(), { description: e.userMessage });
 		} finally {
 			acting = null;
 		}
@@ -158,11 +163,16 @@
 
 	function buildConfig(): Record<string, unknown> {
 		switch (formType) {
-			case 'telegram': return { chat_id: cfgChatId.trim() };
-			case 'ntfy': return { server: cfgNtfyServer.trim(), topic: cfgNtfyTopic.trim() };
-			case 'webhook': return { url: cfgWebhookUrl.trim() };
-			case 'fcm': return {};
-			case 'web-push': return {};
+			case 'telegram':
+				return { chat_id: cfgChatId.trim() };
+			case 'ntfy':
+				return { server: cfgNtfyServer.trim(), topic: cfgNtfyTopic.trim() };
+			case 'webhook':
+				return { url: cfgWebhookUrl.trim() };
+			case 'fcm':
+				return {};
+			case 'web-push':
+				return {};
 		}
 	}
 
@@ -192,7 +202,8 @@
 			showForm = false;
 			fetchAll();
 		} catch (e) {
-			if (e instanceof ApiError) toast.error(m.notifications_toast_save_failed(), { description: e.userMessage });
+			if (e instanceof ApiError)
+				toast.error(m.notifications_toast_save_failed(), { description: e.userMessage });
 		} finally {
 			formBusy = false;
 		}
@@ -217,7 +228,9 @@
 
 {#snippet typePill(type: NotificationChannelType)}
 	{@const Icon = TYPE_ICONS[type]}
-	<span class="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-surface-2)] px-2.5 py-0.5 font-mono text-[10px] text-[var(--color-fg-muted)]">
+	<span
+		class="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-surface-2)] px-2.5 py-0.5 font-mono text-[10px] text-[var(--color-fg-muted)]"
+	>
 		<Icon class="size-[10px]" stroke-width="2" />
 		{TYPE_LABELS[type]()}
 	</span>
@@ -233,16 +246,22 @@
 				</p>
 			</div>
 			<div class="flex items-center gap-2">
-				<Button variant="secondary" size="sm" onclick={fetchAll} loading={busy}>{m.notifications_action_refresh()}</Button>
+				<Button variant="secondary" size="sm" onclick={fetchAll} loading={busy}
+					>{m.notifications_action_refresh()}</Button
+				>
 				<Button size="sm" onclick={openCreate}>{m.notifications_action_add_channel()}</Button>
 			</div>
 		</header>
 
 		{#if !conn?.isAuthenticated}
-			<Banner variant="warning" title={m.notifications_banner_not_signed_in_title()}>{m.notifications_banner_not_signed_in_body()}</Banner>
+			<Banner variant="warning" title={m.notifications_banner_not_signed_in_title()}
+				>{m.notifications_banner_not_signed_in_body()}</Banner
+			>
 		{:else if channels.length === 0 && !busy}
 			<Card padding="lg" class="text-center">
-				<div class="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-accent)]/10">
+				<div
+					class="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-accent)]/10"
+				>
 					<IconBell class="size-5 text-[var(--color-accent)]" stroke-width="2" />
 				</div>
 				<p class="font-medium">{m.notifications_empty_title()}</p>
@@ -256,26 +275,32 @@
 		{:else}
 			<div class="flex flex-col gap-3">
 				{#each channels as ch (ch.id)}
-					<Card padding="none" class={cn('overflow-hidden transition', !ch.enabled && 'opacity-60')}>
+					<Card
+						padding="none"
+						class={cn('overflow-hidden transition', !ch.enabled && 'opacity-60')}
+					>
 						<div class="flex items-center gap-4 px-4 py-3">
 							<div class="flex flex-1 flex-col gap-1 min-w-0">
 								<div class="flex items-center gap-2">
 									<span class="font-medium truncate">{ch.name}</span>
 									{@render typePill(ch.type)}
 									{#if ch.min_severity}
-										<span class={cn(
-											'rounded-full px-2 py-0.5 font-mono text-[10px] tracking-wide',
-											ch.min_severity === 'crit'
-												? 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]'
-												: 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]'
-										)}>{m.notifications_min_severity_pill({ severity: ch.min_severity })}</span>
+										<span
+											class={cn(
+												'rounded-full px-2 py-0.5 font-mono text-[10px] tracking-wide',
+												ch.min_severity === 'crit'
+													? 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]'
+													: 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]'
+											)}>{m.notifications_min_severity_pill({ severity: ch.min_severity })}</span
+										>
 									{/if}
 								</div>
 								<p class="font-mono text-[11px] text-[var(--color-fg-subtle)]">
 									{#if ch.type === 'telegram'}
 										chat_id: {(ch.config.chat_id as string) || '—'}
 									{:else if ch.type === 'ntfy'}
-										{(ch.config.server as string) || 'https://ntfy.sh'} / {(ch.config.topic as string) || '—'}
+										{(ch.config.server as string) || 'https://ntfy.sh'} / {(ch.config
+											.topic as string) || '—'}
 									{:else if ch.type === 'webhook'}
 										{(ch.config.url as string) || '—'}
 									{:else if ch.type === 'fcm'}
@@ -283,7 +308,9 @@
 									{:else if ch.type === 'web-push'}
 										{m.notifications_target_web_push()}
 									{/if}
-									<span class="ml-2 text-[var(--color-fg-faint)]">{m.notifications_updated_suffix({ when: fmtRelative(ch.updated_at) })}</span>
+									<span class="ml-2 text-[var(--color-fg-faint)]"
+										>{m.notifications_updated_suffix({ when: fmtRelative(ch.updated_at) })}</span
+									>
 								</p>
 							</div>
 
@@ -292,16 +319,20 @@
 									type="button"
 									onclick={() => toggleEnabled(ch)}
 									disabled={acting !== null}
-									title={ch.enabled ? m.notifications_action_disable() : m.notifications_action_enable()}
+									title={ch.enabled
+										? m.notifications_action_disable()
+										: m.notifications_action_enable()}
 									class={cn(
 										'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50',
 										ch.enabled ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-border)]'
 									)}
 								>
-									<span class={cn(
-										'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
-										ch.enabled ? 'translate-x-4' : 'translate-x-0'
-									)}></span>
+									<span
+										class={cn(
+											'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+											ch.enabled ? 'translate-x-4' : 'translate-x-0'
+										)}
+									></span>
 								</button>
 
 								<Button
@@ -309,8 +340,8 @@
 									size="sm"
 									loading={testing === ch.id}
 									onclick={() => testChannel(ch)}
-									disabled={!ch.enabled || testing !== null}
-								>{m.notifications_action_test()}</Button>
+									disabled={!ch.enabled || testing !== null}>{m.notifications_action_test()}</Button
+								>
 
 								<button
 									type="button"
@@ -329,7 +360,9 @@
 									class="grid h-8 w-8 place-items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-fg-muted)] transition hover:border-[var(--color-danger)]/50 hover:text-[var(--color-danger)] disabled:cursor-not-allowed disabled:opacity-30"
 								>
 									{#if acting === `delete:${ch.id}`}
-										<span class="h-3 w-3 animate-spin rounded-full border-2 border-current border-r-transparent"></span>
+										<span
+											class="h-3 w-3 animate-spin rounded-full border-2 border-current border-r-transparent"
+										></span>
 									{:else}
 										<IconTrash class="size-[13px]" stroke-width="2" />
 									{/if}
@@ -349,7 +382,13 @@
 	title={editTarget ? m.notifications_modal_edit_title() : m.notifications_modal_create_title()}
 	width="md"
 >
-	<form onsubmit={(e) => { e.preventDefault(); submitForm(); }} class="flex flex-col gap-4">
+	<form
+		onsubmit={(e) => {
+			e.preventDefault();
+			submitForm();
+		}}
+		class="flex flex-col gap-4"
+	>
 		<Field label={m.notifications_field_name()} required>
 			<Input bind:value={formName} placeholder={m.notifications_field_name_placeholder()} />
 		</Field>
@@ -395,16 +434,22 @@
 			</Field>
 		{:else if formType === 'webhook'}
 			<Field label={m.notifications_field_url()} required>
-				<Input bind:value={cfgWebhookUrl} placeholder="https://example.com/hook" class="font-mono" />
+				<Input
+					bind:value={cfgWebhookUrl}
+					placeholder="https://example.com/hook"
+					class="font-mono"
+				/>
 				<p class="mt-1 text-[12px] text-[var(--color-fg-muted)]">
-					{m.notifications_hint_webhook_pre()} <code class="font-mono">{'{'} event, severity, title, body, timestamp {'}'}</code>.
+					{m.notifications_hint_webhook_pre()}
+					<code class="font-mono">&#123; event, severity, title, body, timestamp &#125;</code>.
 					{m.notifications_hint_webhook_mid()}
 					<code class="font-mono">notifications.webhook.secret</code>.
 				</p>
 			</Field>
 		{:else if formType === 'fcm'}
 			<Banner variant="info" title={m.notifications_banner_no_config_title()}>
-				{m.notifications_banner_fcm_body_pre()} <code class="font-mono text-[11px]">notifications.fcm.service_account_path</code>.
+				{m.notifications_banner_fcm_body_pre()}
+				<code class="font-mono text-[11px]">notifications.fcm.service_account_path</code>.
 			</Banner>
 		{:else if formType === 'web-push'}
 			<Banner variant="info" title={m.notifications_banner_no_config_title()}>

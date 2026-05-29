@@ -619,7 +619,7 @@
 						{m.probes_detail_platforms()}
 					</dt>
 					<dd class="mt-0.5 flex flex-wrap gap-1">
-						{#each d.platforms as p}
+						{#each d.platforms as p (p)}
 							<span
 								class="rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--color-fg-muted)]"
 							>
@@ -898,7 +898,6 @@
 						<HistoryChart
 							{series}
 							height={160}
-							hideZoomHint
 							yMin={normalizeUnit(metric.unit) === 'percent' ? 0 : undefined}
 							yMax={normalizeUnit(metric.unit) === 'percent' ? 100 : undefined}
 							valueFormatter={chartFormatterFor(metric.unit)}

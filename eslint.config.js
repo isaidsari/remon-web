@@ -11,6 +11,9 @@ import svelteConfig from './svelte.config.js';
 const gitignorePath = path.resolve(import.meta.dirname, '.gitignore');
 
 export default defineConfig(
+	{
+		ignores: ['src/lib/paraglide/**']
+	},
 	includeIgnoreFile(gitignorePath),
 	js.configs.recommended,
 	ts.configs.recommended,
@@ -21,7 +24,15 @@ export default defineConfig(
 		languageOptions: { globals: { ...globals.browser, ...globals.node } },
 		rules: {
 			// typescript-eslint recommends disabling no-undef on TS projects (covered by the type checker)
-			'no-undef': 'off'
+			'no-undef': 'off',
+			'@typescript-eslint/no-unused-vars': [
+				'error',
+				{ argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', varsIgnorePattern: '^_' }
+			],
+			// The app has no configured SvelteKit base path and uses plain internal links throughout.
+			'svelte/no-navigation-without-resolve': 'off',
+			// Most flagged Map/Set instances here are local indexing/caches, not reactive state.
+			'svelte/prefer-svelte-reactivity': 'off'
 		}
 	},
 	{

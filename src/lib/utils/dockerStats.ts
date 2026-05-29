@@ -1,4 +1,3 @@
-
 export interface DerivedStats {
 	cpuPercent: number | null;
 	memUsedBytes: number | null;

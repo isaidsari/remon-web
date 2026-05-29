@@ -168,9 +168,13 @@
 			/>
 		</label>
 		{#if !connected && !connecting}
-			<Button size="sm" onclick={connect} disabled={!conn.isAuthenticated}>{m.terminal_button_connect()}</Button>
+			<Button size="sm" onclick={connect} disabled={!conn.isAuthenticated}
+				>{m.terminal_button_connect()}</Button
+			>
 		{:else}
-			<Button variant="secondary" size="sm" onclick={disconnect}>{m.terminal_button_disconnect()}</Button>
+			<Button variant="secondary" size="sm" onclick={disconnect}
+				>{m.terminal_button_disconnect()}</Button
+			>
 		{/if}
 		{#if connecting}
 			<span class="text-xs text-[var(--color-fg-muted)]">{m.terminal_status_opening()}</span>

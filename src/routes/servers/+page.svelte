@@ -24,7 +24,9 @@
 						console.warn(`sign-in to ${p.name}:`, e.userMessage);
 					}
 				});
-				void conn.fetchSystemInfo().catch(() => {/* not critical */});
+				void conn.fetchSystemInfo().catch(() => {
+					/* not critical */
+				});
 			}
 		});
 	});
@@ -34,9 +36,7 @@
 		const needle = q.trim().toLowerCase();
 		if (!needle) return profiles.list;
 		return profiles.list.filter(
-			(p) =>
-				p.name.toLowerCase().includes(needle) ||
-				p.baseUrl.toLowerCase().includes(needle)
+			(p) => p.name.toLowerCase().includes(needle) || p.baseUrl.toLowerCase().includes(needle)
 		);
 	});
 
@@ -84,13 +84,17 @@
 					{profiles.list.length}
 				</span>
 				{#if toneCounts.connecting > 0}
-					<span class="inline-flex items-center gap-1 font-mono text-[11px] font-medium text-[var(--color-warning)]">
+					<span
+						class="inline-flex items-center gap-1 font-mono text-[11px] font-medium text-[var(--color-warning)]"
+					>
 						<span class="h-1.5 w-1.5 rounded-full bg-[var(--color-warning)]"></span>
 						{toneCounts.connecting}
 					</span>
 				{/if}
 				{#if toneCounts.offline > 0}
-					<span class="inline-flex items-center gap-1 font-mono text-[11px] font-medium text-[var(--color-danger)]">
+					<span
+						class="inline-flex items-center gap-1 font-mono text-[11px] font-medium text-[var(--color-danger)]"
+					>
 						<span class="h-1.5 w-1.5 rounded-full bg-[var(--color-danger)]"></span>
 						{toneCounts.offline}
 					</span>
@@ -125,17 +129,15 @@
 			</div>
 		</div>
 	{:else if filtered.length === 0}
-		<div class="rounded-[var(--radius-card)] border border-dashed border-[var(--color-border)] px-6 py-12 text-center text-sm text-[var(--color-fg-muted)]">
+		<div
+			class="rounded-[var(--radius-card)] border border-dashed border-[var(--color-border)] px-6 py-12 text-center text-sm text-[var(--color-fg-muted)]"
+		>
 			{m.servers_no_match({ q })}
 		</div>
 	{:else}
 		<div class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
 			{#each filtered as p (p.id)}
-				<ServerCard
-					profile={p}
-					conn={connections.connect(p)}
-					onRemove={(e) => remove(p, e)}
-				/>
+				<ServerCard profile={p} conn={connections.connect(p)} onRemove={(e) => remove(p, e)} />
 			{/each}
 			{#if !q.trim()}
 				<a
@@ -147,7 +149,9 @@
 					>
 						<IconPlus class="size-[18px]" stroke-width="1.8" />
 					</div>
-					<p class="mt-3 font-mono text-[12px] tracking-[0.04em] text-[var(--color-fg-muted)] transition-colors group-hover:text-[var(--color-fg)]">
+					<p
+						class="mt-3 font-mono text-[12px] tracking-[0.04em] text-[var(--color-fg-muted)] transition-colors group-hover:text-[var(--color-fg)]"
+					>
 						{m.servers_add_card()}
 					</p>
 				</a>

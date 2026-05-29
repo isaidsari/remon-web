@@ -15,7 +15,7 @@
 	import { confirm } from '$lib/stores/confirm.svelte';
 	import IconChevronLeft from '~icons/lucide/chevron-left';
 	import { ApiError } from '$lib/api/error';
-	import { fmtRelative, shortId } from '$lib/utils/format';
+	import { shortId } from '$lib/utils/format';
 	import type { ContainerInspectInfo } from '$lib/types/api';
 	import { m } from '$lib/paraglide/messages';
 
@@ -211,12 +211,7 @@
 					</Button>
 				{/if}
 				{#if paused}
-					<Button
-						size="sm"
-						onclick={unpause}
-						loading={acting === 'unpause'}
-						disabled={!!acting}
-					>
+					<Button size="sm" onclick={unpause} loading={acting === 'unpause'} disabled={!!acting}>
 						{m.docker_container_action_resume()}
 					</Button>
 				{/if}

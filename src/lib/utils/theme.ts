@@ -1,4 +1,3 @@
-
 export type ThemeMode = 'auto' | 'light' | 'dark';
 const STORAGE_KEY = 'remon.theme';
 

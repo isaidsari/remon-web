@@ -16,19 +16,16 @@
 		actions?: Snippet;
 	}
 
-	let {
-		variant = 'info',
-		title,
-		class: klass = '',
-		children,
-		actions
-	}: Props = $props();
+	let { variant = 'info', title, class: klass = '', children, actions }: Props = $props();
 
 	const wrapper: Record<Variant, string> = {
 		info: 'shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-info)_30%,transparent)] bg-[var(--color-cyan-bg)]',
-		success: 'shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-success)_30%,transparent)] bg-[var(--color-success-bg)]',
-		warning: 'shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-warning)_30%,transparent)] bg-[var(--color-warning-bg)]',
-		danger: 'shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-danger)_30%,transparent)] bg-[var(--color-danger-bg)]'
+		success:
+			'shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-success)_30%,transparent)] bg-[var(--color-success-bg)]',
+		warning:
+			'shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-warning)_30%,transparent)] bg-[var(--color-warning-bg)]',
+		danger:
+			'shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-danger)_30%,transparent)] bg-[var(--color-danger-bg)]'
 	};
 
 	const accent: Record<Variant, string> = {

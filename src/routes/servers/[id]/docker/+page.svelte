@@ -19,11 +19,7 @@
 	import { fmtBytes, fmtRelative, shortId } from '$lib/utils/format';
 	import { cn } from '$lib/utils/cn';
 	import type { Component } from 'svelte';
-	import type {
-		ContainerInfo,
-		DockerStatusResponse,
-		ImageInfo
-	} from '$lib/types/api';
+	import type { ContainerInfo, DockerStatusResponse, ImageInfo } from '$lib/types/api';
 	import IconPlay from '~icons/lucide/play';
 	import IconPause from '~icons/lucide/pause';
 	import IconSquare from '~icons/lucide/square';
@@ -38,7 +34,8 @@
 		if (!conn) return;
 		untrack(() => {
 			conn.ensureSignedIn().catch((e) => {
-				if (e instanceof ApiError) toast.error(m.docker_toast_signin_failed(), { description: e.userMessage });
+				if (e instanceof ApiError)
+					toast.error(m.docker_toast_signin_failed(), { description: e.userMessage });
 			});
 		});
 	});
@@ -129,11 +126,7 @@
 		return c.names[0]?.replace(/^\//, '') ?? shortId(c.id);
 	}
 
-	async function withAction<T>(
-		key: string,
-		successMsg: string,
-		fn: () => Promise<T>
-	) {
+	async function withAction<T>(key: string, successMsg: string, fn: () => Promise<T>) {
 		acting = key;
 		try {
 			await fn();
@@ -149,15 +142,21 @@
 	}
 
 	const start = (c: ContainerInfo) =>
-		withAction(`start:${c.id}`, m.docker_toast_started({ name: name(c) }), () => conn!.client.startContainer(c.id));
+		withAction(`start:${c.id}`, m.docker_toast_started({ name: name(c) }), () =>
+			conn!.client.startContainer(c.id)
+		);
 	const stop = (c: ContainerInfo) =>
-		withAction(`stop:${c.id}`, m.docker_toast_stopped({ name: name(c) }), () => conn!.client.stopContainer(c.id));
+		withAction(`stop:${c.id}`, m.docker_toast_stopped({ name: name(c) }), () =>
+			conn!.client.stopContainer(c.id)
+		);
 	const restart = (c: ContainerInfo) =>
 		withAction(`restart:${c.id}`, m.docker_toast_restarted({ name: name(c) }), () =>
 			conn!.client.restartContainer(c.id)
 		);
 	const pause = (c: ContainerInfo) =>
-		withAction(`pause:${c.id}`, m.docker_toast_paused({ name: name(c) }), () => conn!.client.pauseContainer(c.id));
+		withAction(`pause:${c.id}`, m.docker_toast_paused({ name: name(c) }), () =>
+			conn!.client.pauseContainer(c.id)
+		);
 	const unpause = (c: ContainerInfo) =>
 		withAction(`unpause:${c.id}`, m.docker_toast_resumed({ name: name(c) }), () =>
 			conn!.client.unpauseContainer(c.id)
@@ -191,11 +190,15 @@
 			busy = true;
 			const res = await conn!.client.pruneContainers();
 			toast.success(
-				m.docker_toast_pruned_containers({ count: res.containers_deleted.length, size: fmtBytes(res.space_reclaimed) })
+				m.docker_toast_pruned_containers({
+					count: res.containers_deleted.length,
+					size: fmtBytes(res.space_reclaimed)
+				})
 			);
 			fetchAll();
 		} catch (e) {
-			if (e instanceof ApiError) toast.error(m.docker_toast_prune_failed(), { description: e.userMessage });
+			if (e instanceof ApiError)
+				toast.error(m.docker_toast_prune_failed(), { description: e.userMessage });
 		} finally {
 			busy = false;
 		}
@@ -216,7 +219,8 @@
 			toast.success(m.docker_toast_image_deleted({ label }));
 			fetchAll();
 		} catch (e) {
-			if (e instanceof ApiError) toast.error(m.docker_toast_delete_failed(), { description: e.userMessage });
+			if (e instanceof ApiError)
+				toast.error(m.docker_toast_delete_failed(), { description: e.userMessage });
 		} finally {
 			acting = null;
 		}
@@ -234,11 +238,15 @@
 			busy = true;
 			const res = await conn!.client.pruneImages();
 			toast.success(
-				m.docker_toast_pruned_images({ count: res.containers_deleted.length, size: fmtBytes(res.space_reclaimed) })
+				m.docker_toast_pruned_images({
+					count: res.containers_deleted.length,
+					size: fmtBytes(res.space_reclaimed)
+				})
 			);
 			fetchAll();
 		} catch (e) {
-			if (e instanceof ApiError) toast.error(m.docker_toast_prune_failed(), { description: e.userMessage });
+			if (e instanceof ApiError)
+				toast.error(m.docker_toast_prune_failed(), { description: e.userMessage });
 		} finally {
 			busy = false;
 		}
@@ -254,7 +262,14 @@
 	]);
 </script>
 
-{#snippet iconBtn(label: string, onclick: () => void, disabled: boolean, busy: boolean, Icon: Component, color?: string)}
+{#snippet iconBtn(
+	label: string,
+	onclick: () => void,
+	disabled: boolean,
+	busy: boolean,
+	Icon: Component,
+	color?: string
+)}
 	<button
 		type="button"
 		{onclick}
@@ -264,7 +279,8 @@
 		class={cn(
 			'grid h-8 w-8 place-items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] transition disabled:cursor-not-allowed disabled:opacity-30',
 			'hover:border-[var(--color-border-strong)]',
-			color === 'danger' && 'hover:border-[var(--color-danger)]/50 hover:text-[var(--color-danger)]',
+			color === 'danger' &&
+				'hover:border-[var(--color-danger)]/50 hover:text-[var(--color-danger)]',
 			color !== 'danger' && 'hover:text-[var(--color-fg)]',
 			'text-[var(--color-fg-muted)]'
 		)}
@@ -288,11 +304,15 @@
 				<p class="mt-1.5 text-[12px] text-[var(--color-fg-muted)]">
 					{#if status?.available}
 						{#if status.version}<span class="text-[var(--color-fg)]">{status.version}</span>{/if}
-						{#if status.os}<span class="text-[var(--color-fg-subtle)]"> · {status.os}/{status.arch}</span>{/if}
+						{#if status.os}<span class="text-[var(--color-fg-subtle)]">
+								· {status.os}/{status.arch}</span
+							>{/if}
 					{:else}
 						<span class="text-[var(--color-warning)]">{m.docker_daemon_unavailable()}</span>
 					{/if}
-					{#if lastFetched}<span class="text-[var(--color-fg-subtle)]"> · {m.docker_updated_at({ time: new Date(lastFetched).toLocaleTimeString() })}</span>{/if}
+					{#if lastFetched}<span class="text-[var(--color-fg-subtle)]">
+							· {m.docker_updated_at({ time: new Date(lastFetched).toLocaleTimeString() })}</span
+						>{/if}
 				</p>
 			</div>
 			<div class="flex items-center gap-2">
@@ -334,9 +354,13 @@
 						class="w-72 text-sm"
 					/>
 					{#if tab === 'containers'}
-						<Button variant="ghost" size="sm" onclick={pruneContainers}>{m.docker_action_prune_stopped()}</Button>
+						<Button variant="ghost" size="sm" onclick={pruneContainers}
+							>{m.docker_action_prune_stopped()}</Button
+						>
 					{:else}
-						<Button variant="ghost" size="sm" onclick={pruneImages}>{m.docker_action_prune_dangling()}</Button>
+						<Button variant="ghost" size="sm" onclick={pruneImages}
+							>{m.docker_action_prune_dangling()}</Button
+						>
 					{/if}
 				</div>
 			</div>
@@ -368,100 +392,102 @@
 										</tr>
 									{/each}
 								{:else}
-								{#each filteredContainers as c (c.id)}
-									{@const running = c.state === 'running'}
-									{@const paused = c.state === 'paused'}
-									{@const stopped = !running && !paused}
-									<tr
-										class="cursor-pointer border-t border-[var(--color-border)] transition hover:bg-[var(--color-surface-2)]/40"
-										onclick={() => openContainer(c)}
-									>
-										<td class="px-3 py-2.5">
-											<div class="flex flex-col">
-												<span class="font-medium text-[var(--color-fg)]">{name(c)}</span>
-												<span class="font-mono text-[10px] text-[var(--color-fg-subtle)]"
-													>{shortId(c.id)}</span
+									{#each filteredContainers as c (c.id)}
+										{@const running = c.state === 'running'}
+										{@const paused = c.state === 'paused'}
+										{@const stopped = !running && !paused}
+										<tr
+											class="cursor-pointer border-t border-[var(--color-border)] transition hover:bg-[var(--color-surface-2)]/40"
+											onclick={() => openContainer(c)}
+										>
+											<td class="px-3 py-2.5">
+												<div class="flex flex-col">
+													<span class="font-medium text-[var(--color-fg)]">{name(c)}</span>
+													<span class="font-mono text-[10px] text-[var(--color-fg-subtle)]"
+														>{shortId(c.id)}</span
+													>
+												</div>
+											</td>
+											<td class="px-3 py-2.5 font-mono text-xs text-[var(--color-fg-muted)]"
+												>{c.image}</td
+											>
+											<td class="px-3 py-2.5"><StateBadge state={c.state} /></td>
+											<td class="px-3 py-2.5 text-xs text-[var(--color-fg-muted)]">
+												<span title={c.status}>{c.status}</span>
+												<span class="block text-[10px] text-[var(--color-fg-subtle)]"
+													>{m.docker_created_at({ time: fmtRelative(c.created) })}</span
 												>
-											</div>
-										</td>
-										<td class="px-3 py-2.5 font-mono text-xs text-[var(--color-fg-muted)]"
-											>{c.image}</td
-										>
-										<td class="px-3 py-2.5"><StateBadge state={c.state} /></td>
-										<td class="px-3 py-2.5 text-xs text-[var(--color-fg-muted)]">
-											<span title={c.status}>{c.status}</span>
-											<span class="block text-[10px] text-[var(--color-fg-subtle)]"
-												>{m.docker_created_at({ time: fmtRelative(c.created) })}</span
+											</td>
+											<td class="px-3 py-2.5">
+												<div
+													class="flex items-center justify-end gap-1.5"
+													onclickcapture={(e) => e.stopPropagation()}
+													role="presentation"
+												>
+													{#if stopped}
+														{@render iconBtn(
+															m.docker_action_start(),
+															() => start(c),
+															acting !== null,
+															acting === `start:${c.id}`,
+															IconPlay
+														)}
+													{/if}
+													{#if running}
+														{@render iconBtn(
+															m.docker_action_pause(),
+															() => pause(c),
+															acting !== null,
+															acting === `pause:${c.id}`,
+															IconPause
+														)}
+														{@render iconBtn(
+															m.docker_action_stop(),
+															() => stop(c),
+															acting !== null,
+															acting === `stop:${c.id}`,
+															IconSquare
+														)}
+													{/if}
+													{#if paused}
+														{@render iconBtn(
+															m.docker_action_resume(),
+															() => unpause(c),
+															acting !== null,
+															acting === `unpause:${c.id}`,
+															IconPlay
+														)}
+													{/if}
+													{#if running || paused}
+														{@render iconBtn(
+															m.docker_action_restart(),
+															() => restart(c),
+															acting !== null,
+															acting === `restart:${c.id}`,
+															IconRefresh
+														)}
+													{/if}
+													{@render iconBtn(
+														m.docker_action_delete(),
+														() => remove(c),
+														acting !== null,
+														acting === `delete:${c.id}`,
+														IconTrash,
+														'danger'
+													)}
+												</div>
+											</td>
+										</tr>
+									{/each}
+									{#if filteredContainers.length === 0}
+										<tr>
+											<td
+												colspan="5"
+												class="px-3 py-8 text-center text-sm text-[var(--color-fg-subtle)]"
+												>{m.docker_empty_containers()}</td
 											>
-										</td>
-										<td class="px-3 py-2.5">
-											<div
-												class="flex items-center justify-end gap-1.5"
-												onclickcapture={(e) => e.stopPropagation()}
-												role="presentation"
-											>
-												{#if stopped}
-													{@render iconBtn(
-														m.docker_action_start(),
-														() => start(c),
-														acting !== null,
-														acting === `start:${c.id}`,
-														IconPlay
-													)}
-												{/if}
-												{#if running}
-													{@render iconBtn(
-														m.docker_action_pause(),
-														() => pause(c),
-														acting !== null,
-														acting === `pause:${c.id}`,
-														IconPause
-													)}
-													{@render iconBtn(
-														m.docker_action_stop(),
-														() => stop(c),
-														acting !== null,
-														acting === `stop:${c.id}`,
-														IconSquare
-													)}
-												{/if}
-												{#if paused}
-													{@render iconBtn(
-														m.docker_action_resume(),
-														() => unpause(c),
-														acting !== null,
-														acting === `unpause:${c.id}`,
-														IconPlay
-													)}
-												{/if}
-												{#if running || paused}
-													{@render iconBtn(
-														m.docker_action_restart(),
-														() => restart(c),
-														acting !== null,
-														acting === `restart:${c.id}`,
-														IconRefresh
-													)}
-												{/if}
-												{@render iconBtn(
-													m.docker_action_delete(),
-													() => remove(c),
-													acting !== null,
-													acting === `delete:${c.id}`,
-													IconTrash,
-													'danger'
-												)}
-											</div>
-										</td>
-									</tr>
-								{/each}
-								{#if filteredContainers.length === 0}
-									<tr>
-										<td colspan="5" class="px-3 py-8 text-center text-sm text-[var(--color-fg-subtle)]"
-											>{m.docker_empty_containers()}</td
-										>
-									</tr>
-								{/if}
+										</tr>
+									{/if}
 								{/if}
 							</tbody>
 						</table>
@@ -494,49 +520,55 @@
 										</tr>
 									{/each}
 								{:else}
-								{#each filteredImages as img (img.id)}
-									<tr class="border-t border-[var(--color-border)] transition hover:bg-[var(--color-surface-2)]/40">
-										<td class="px-3 py-2.5">
-											{#if img.tags.length === 0}
-												<span class="text-[var(--color-fg-subtle)]">{m.docker_image_no_tag()}</span>
-											{:else}
-												<div class="flex flex-col gap-0.5">
-													{#each img.tags as t (t)}
-														<span class="font-mono text-xs text-[var(--color-fg)]">{t}</span>
-													{/each}
-												</div>
-											{/if}
-										</td>
-										<td class="px-3 py-2.5 font-mono text-xs text-[var(--color-fg-muted)]">
-											{shortId(img.id)}
-										</td>
-										<td class="px-3 py-2.5 text-right font-mono text-xs">
-											{fmtBytes(img.size)}
-										</td>
-										<td class="px-3 py-2.5 text-xs text-[var(--color-fg-muted)]">
-											{fmtRelative(img.created)}
-										</td>
-										<td class="px-3 py-2.5">
-											<div class="flex items-center justify-end gap-1.5">
-												{@render iconBtn(
-													m.docker_action_delete(),
-													() => deleteImage(img),
-													acting !== null,
-													acting === `image-delete:${img.id}`,
-													IconTrash,
-													'danger'
-												)}
-											</div>
-										</td>
-									</tr>
-								{/each}
-								{#if filteredImages.length === 0}
-									<tr>
-										<td colspan="5" class="px-3 py-8 text-center text-sm text-[var(--color-fg-subtle)]"
-											>{m.docker_empty_images()}</td
+									{#each filteredImages as img (img.id)}
+										<tr
+											class="border-t border-[var(--color-border)] transition hover:bg-[var(--color-surface-2)]/40"
 										>
-									</tr>
-								{/if}
+											<td class="px-3 py-2.5">
+												{#if img.tags.length === 0}
+													<span class="text-[var(--color-fg-subtle)]"
+														>{m.docker_image_no_tag()}</span
+													>
+												{:else}
+													<div class="flex flex-col gap-0.5">
+														{#each img.tags as t (t)}
+															<span class="font-mono text-xs text-[var(--color-fg)]">{t}</span>
+														{/each}
+													</div>
+												{/if}
+											</td>
+											<td class="px-3 py-2.5 font-mono text-xs text-[var(--color-fg-muted)]">
+												{shortId(img.id)}
+											</td>
+											<td class="px-3 py-2.5 text-right font-mono text-xs">
+												{fmtBytes(img.size)}
+											</td>
+											<td class="px-3 py-2.5 text-xs text-[var(--color-fg-muted)]">
+												{fmtRelative(img.created)}
+											</td>
+											<td class="px-3 py-2.5">
+												<div class="flex items-center justify-end gap-1.5">
+													{@render iconBtn(
+														m.docker_action_delete(),
+														() => deleteImage(img),
+														acting !== null,
+														acting === `image-delete:${img.id}`,
+														IconTrash,
+														'danger'
+													)}
+												</div>
+											</td>
+										</tr>
+									{/each}
+									{#if filteredImages.length === 0}
+										<tr>
+											<td
+												colspan="5"
+												class="px-3 py-8 text-center text-sm text-[var(--color-fg-subtle)]"
+												>{m.docker_empty_images()}</td
+											>
+										</tr>
+									{/if}
 								{/if}
 							</tbody>
 						</table>

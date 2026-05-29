@@ -34,7 +34,8 @@
 		if (!conn) return;
 		untrack(() => {
 			conn.ensureSignedIn().catch((e) => {
-				if (e instanceof ApiError) toast.error(m.services_toast_sign_in_failed(), { description: e.userMessage });
+				if (e instanceof ApiError)
+					toast.error(m.services_toast_sign_in_failed(), { description: e.userMessage });
 			});
 		});
 	});
@@ -178,17 +179,22 @@
 			toast.success(successMsg);
 			await fetchServices();
 		} catch (e) {
-			if (e instanceof ApiError) toast.error(m.services_toast_action_failed(), { description: e.userMessage });
+			if (e instanceof ApiError)
+				toast.error(m.services_toast_action_failed(), { description: e.userMessage });
 		} finally {
 			acting = null;
 		}
 	}
 
 	function doStart(s: ServiceDto) {
-		void withAction(`start:${s.name}`, m.services_toast_started({ name: s.name }), () => conn!.client.startService(s.name));
+		void withAction(`start:${s.name}`, m.services_toast_started({ name: s.name }), () =>
+			conn!.client.startService(s.name)
+		);
 	}
 	function doStop(s: ServiceDto) {
-		void withAction(`stop:${s.name}`, m.services_toast_stopped({ name: s.name }), () => conn!.client.stopService(s.name));
+		void withAction(`stop:${s.name}`, m.services_toast_stopped({ name: s.name }), () =>
+			conn!.client.stopService(s.name)
+		);
 	}
 	function doRestart(s: ServiceDto) {
 		void withAction(`restart:${s.name}`, m.services_toast_restarted({ name: s.name }), () =>
@@ -225,10 +231,15 @@
 			: () => conn!.client.disableTimer(t.name);
 		try {
 			await action();
-			toast.success(desiredEnable ? m.services_toast_timer_enabled({ name: t.name }) : m.services_toast_timer_disabled({ name: t.name }));
+			toast.success(
+				desiredEnable
+					? m.services_toast_timer_enabled({ name: t.name })
+					: m.services_toast_timer_disabled({ name: t.name })
+			);
 			await fetchTimers();
 		} catch (e) {
-			if (e instanceof ApiError) toast.error(m.services_toast_action_failed(), { description: e.userMessage });
+			if (e instanceof ApiError)
+				toast.error(m.services_toast_action_failed(), { description: e.userMessage });
 		}
 	}
 
@@ -290,7 +301,14 @@
 	}
 </script>
 
-{#snippet iconBtn(label: string, onclick: () => void, disabled: boolean, busy: boolean, path: string, danger?: boolean)}
+{#snippet iconBtn(
+	label: string,
+	onclick: () => void,
+	disabled: boolean,
+	busy: boolean,
+	path: string,
+	danger?: boolean
+)}
 	<button
 		type="button"
 		{onclick}
@@ -359,7 +377,9 @@
 						</select>
 					{/if}
 					<Input
-						placeholder={tab === 'cron' ? m.services_filter_cron_placeholder() : m.services_filter_placeholder()}
+						placeholder={tab === 'cron'
+							? m.services_filter_cron_placeholder()
+							: m.services_filter_placeholder()}
 						bind:value={q}
 						class="w-full text-sm sm:w-48"
 					/>
@@ -375,11 +395,20 @@
 						title={m.services_action_refresh()}
 						aria-label={m.services_action_refresh()}
 					>
-						<svg xmlns="http://www.w3.org/2000/svg" class="size-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-							<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-							<path d="M21 3v5h-5"/>
-							<path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-							<path d="M8 16H3v5"/>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							class="size-[15px]"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+							<path d="M21 3v5h-5" />
+							<path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+							<path d="M8 16H3v5" />
 						</svg>
 					</button>
 				</div>
@@ -426,138 +455,143 @@
 								</tr>
 							{/each}
 						{:else}
-						{#each filteredServices as s (s.name)}
-							{@const running = s.state === 'running' || s.state === 'reloading'}
-							{@const failed = s.state === 'failed'}
-							{@const enabled = s.enabled_at_boot === true}
-							<tr
-								class={cn(
-									'border-t border-[var(--color-border)] transition hover:bg-[var(--color-surface-2)]/40',
-									failed && 'bg-[var(--color-danger)]/5'
-								)}
-							>
-								<td class="px-3 py-2.5">
-									<button
-										type="button"
-										onclick={() => toggleExpand(s.name)}
-										class="flex flex-col text-left"
-									>
-										<span class="font-mono text-[12px] font-medium text-[var(--color-fg)]"
-											>{s.name}</span
+							{#each filteredServices as s (s.name)}
+								{@const running = s.state === 'running' || s.state === 'reloading'}
+								{@const failed = s.state === 'failed'}
+								{@const enabled = s.enabled_at_boot === true}
+								<tr
+									class={cn(
+										'border-t border-[var(--color-border)] transition hover:bg-[var(--color-surface-2)]/40',
+										failed && 'bg-[var(--color-danger)]/5'
+									)}
+								>
+									<td class="px-3 py-2.5">
+										<button
+											type="button"
+											onclick={() => toggleExpand(s.name)}
+											class="flex flex-col text-left"
 										>
-										{#if s.description}
-											<span class="mt-0.5 text-[11px] text-[var(--color-fg-muted)]" title={s.description}>
-												{s.description.length > 60
-													? s.description.slice(0, 60) + '…'
-													: s.description}
-											</span>
-										{/if}
-									</button>
-								</td>
-								<td class="px-3 py-2.5">
-									<ServiceStateBadge state={s.state} />
-								</td>
-								<td class="px-3 py-2.5 font-mono text-[11px] text-[var(--color-fg-muted)]">
-									{#if s.enabled_at_boot === null}
-										—
-									{:else if enabled}
-										<span class="text-[var(--color-success)]">{m.services_boot_enabled()}</span>
-									{:else}
-										<span class="text-[var(--color-fg-subtle)]">{m.services_boot_disabled()}</span>
-									{/if}
-								</td>
-								<td class="px-3 py-2.5">
-									<div class="flex items-center justify-end gap-1.5">
-										{#if running}
-											{@render iconBtn(
-												m.services_action_stop(),
-												() => doStop(s),
-												acting !== null,
-												acting === `stop:${s.name}`,
-												'M6 6h12v12H6z'
-											)}
-											{@render iconBtn(
-												m.services_action_restart(),
-												() => doRestart(s),
-												acting !== null,
-												acting === `restart:${s.name}`,
-												'M3 12a9 9 0 0 1 15-6.7M21 12a9 9 0 0 1-15 6.7M21 3v6h-6M3 21v-6h6'
-											)}
-											{@render iconBtn(
-												m.services_action_reload(),
-												() => doReload(s),
-												acting !== null,
-												acting === `reload:${s.name}`,
-												'M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8'
-											)}
+											<span class="font-mono text-[12px] font-medium text-[var(--color-fg)]"
+												>{s.name}</span
+											>
+											{#if s.description}
+												<span
+													class="mt-0.5 text-[11px] text-[var(--color-fg-muted)]"
+													title={s.description}
+												>
+													{s.description.length > 60
+														? s.description.slice(0, 60) + '…'
+														: s.description}
+												</span>
+											{/if}
+										</button>
+									</td>
+									<td class="px-3 py-2.5">
+										<ServiceStateBadge state={s.state} />
+									</td>
+									<td class="px-3 py-2.5 font-mono text-[11px] text-[var(--color-fg-muted)]">
+										{#if s.enabled_at_boot === null}
+											—
+										{:else if enabled}
+											<span class="text-[var(--color-success)]">{m.services_boot_enabled()}</span>
 										{:else}
-											{@render iconBtn(
-												m.services_action_start(),
-												() => doStart(s),
-												acting !== null,
-												acting === `start:${s.name}`,
-												'M7 4v16l13-8L7 4z'
-											)}
+											<span class="text-[var(--color-fg-subtle)]">{m.services_boot_disabled()}</span
+											>
 										{/if}
-										{#if s.enabled_at_boot !== null}
-											{#if enabled}
+									</td>
+									<td class="px-3 py-2.5">
+										<div class="flex items-center justify-end gap-1.5">
+											{#if running}
 												{@render iconBtn(
-													m.services_action_disable_at_boot(),
-													() => doDisable(s),
+													m.services_action_stop(),
+													() => doStop(s),
 													acting !== null,
-													acting === `disable:${s.name}`,
-													'M5 12h14'
+													acting === `stop:${s.name}`,
+													'M6 6h12v12H6z'
+												)}
+												{@render iconBtn(
+													m.services_action_restart(),
+													() => doRestart(s),
+													acting !== null,
+													acting === `restart:${s.name}`,
+													'M3 12a9 9 0 0 1 15-6.7M21 12a9 9 0 0 1-15 6.7M21 3v6h-6M3 21v-6h6'
+												)}
+												{@render iconBtn(
+													m.services_action_reload(),
+													() => doReload(s),
+													acting !== null,
+													acting === `reload:${s.name}`,
+													'M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8'
 												)}
 											{:else}
 												{@render iconBtn(
-													m.services_action_enable_at_boot(),
-													() => doEnable(s),
+													m.services_action_start(),
+													() => doStart(s),
 													acting !== null,
-													acting === `enable:${s.name}`,
-													'M12 5v14M5 12h14'
+													acting === `start:${s.name}`,
+													'M7 4v16l13-8L7 4z'
 												)}
 											{/if}
-										{/if}
-									</div>
-								</td>
-							</tr>
-							{#if expanded === s.name}
-								<tr class="border-t border-[var(--color-border)] bg-[var(--color-bg-soft)]/40">
-									<td colspan="4" class="px-5 py-4">
-										<div class="mb-3 flex items-baseline justify-between gap-3 text-xs">
-											<div class="font-mono text-[var(--color-fg-subtle)]">
-												{m.services_raw_state_label()} <span class="text-[var(--color-fg-muted)]">{s.raw_state}</span>
-											</div>
-											<button
-												type="button"
-												onclick={() => toggleExpand(s.name)}
-												class="text-[11px] tracking-wide text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)]"
-											>
-												{m.services_action_collapse()}
-											</button>
+											{#if s.enabled_at_boot !== null}
+												{#if enabled}
+													{@render iconBtn(
+														m.services_action_disable_at_boot(),
+														() => doDisable(s),
+														acting !== null,
+														acting === `disable:${s.name}`,
+														'M5 12h14'
+													)}
+												{:else}
+													{@render iconBtn(
+														m.services_action_enable_at_boot(),
+														() => doEnable(s),
+														acting !== null,
+														acting === `enable:${s.name}`,
+														'M12 5v14M5 12h14'
+													)}
+												{/if}
+											{/if}
 										</div>
-										{#if canStreamLogs && conn}
-											<LogStream
-												{conn}
-												path={`/services/${s.name}/logs`}
-												initialTail={100}
-											/>
-										{:else}
-											<p class="text-[12px] text-[var(--color-fg-muted)]">
-												{m.services_logs_journalctl_only_prefix()} <span class="font-mono text-[var(--color-fg)]">{s.backend}</span>.
-											</p>
-										{/if}
+									</td>
+								</tr>
+								{#if expanded === s.name}
+									<tr class="border-t border-[var(--color-border)] bg-[var(--color-bg-soft)]/40">
+										<td colspan="4" class="px-5 py-4">
+											<div class="mb-3 flex items-baseline justify-between gap-3 text-xs">
+												<div class="font-mono text-[var(--color-fg-subtle)]">
+													{m.services_raw_state_label()}
+													<span class="text-[var(--color-fg-muted)]">{s.raw_state}</span>
+												</div>
+												<button
+													type="button"
+													onclick={() => toggleExpand(s.name)}
+													class="text-[11px] tracking-wide text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)]"
+												>
+													{m.services_action_collapse()}
+												</button>
+											</div>
+											{#if canStreamLogs && conn}
+												<LogStream {conn} path={`/services/${s.name}/logs`} initialTail={100} />
+											{:else}
+												<p class="text-[12px] text-[var(--color-fg-muted)]">
+													{m.services_logs_journalctl_only_prefix()}
+													<span class="font-mono text-[var(--color-fg)]">{s.backend}</span>.
+												</p>
+											{/if}
+										</td>
+									</tr>
+								{/if}
+							{/each}
+							{#if filteredServices.length === 0}
+								<tr>
+									<td
+										colspan="4"
+										class="px-3 py-8 text-center text-sm text-[var(--color-fg-subtle)]"
+									>
+										{m.services_no_services_match()}
 									</td>
 								</tr>
 							{/if}
-						{/each}
-						{#if filteredServices.length === 0}
-							<tr>
-								<td colspan="4" class="px-3 py-8 text-center text-sm text-[var(--color-fg-subtle)]">
-									{m.services_no_services_match()}
-								</td>
-							</tr>
-						{/if}
 						{/if}
 					</tbody>
 				</table>
@@ -600,54 +634,61 @@
 								</tr>
 							{/each}
 						{:else}
-						{#each filteredTimers as t (t.name)}
-							{@const enabled = t.enabled_at_boot === true}
-							<tr class="border-t border-[var(--color-border)] transition hover:bg-[var(--color-surface-2)]/40">
-								<td class="px-3 py-2.5">
-									<div class="flex flex-col">
-										<span class="font-mono text-[12px] text-[var(--color-fg)]">{t.name}</span>
-										{#if t.description}
-											<span class="mt-0.5 text-[11px] text-[var(--color-fg-muted)]">{t.description}</span>
-										{/if}
-									</div>
-								</td>
-								<td class="px-3 py-2.5 font-mono text-[11px] text-[var(--color-fg-muted)]">
-									{t.service ?? '—'}
-								</td>
-								<td class="px-3 py-2.5">
-									<ServiceStateBadge state={t.state} />
-								</td>
-								<td class="px-3 py-2.5 font-mono text-[11px] text-[var(--color-fg-muted)]">
-									{fmtNextRun(t.next_run)}
-								</td>
-								<td class="px-3 py-2.5 font-mono text-[11px] text-[var(--color-fg-muted)]">
-									{t.last_run ? fmtRelative(t.last_run) : '—'}
-								</td>
-								<td class="px-3 py-2.5">
-									<div class="flex items-center justify-end">
-										<button
-											type="button"
-											onclick={() => toggleTimer(t)}
-											class={cn(
-												'rounded-full border px-2.5 py-0.5 font-mono text-[10px] tracking-wide transition',
-												enabled
-													? 'border-[var(--color-success)]/40 bg-[var(--color-success)]/15 text-[var(--color-success)] hover:bg-[var(--color-success)]/25'
-													: 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-fg-subtle)] hover:border-[var(--color-border-strong)]'
-											)}
-										>
-											{enabled ? m.services_boot_enabled() : m.services_boot_disabled()}
-										</button>
-									</div>
-								</td>
-							</tr>
-						{/each}
-						{#if filteredTimers.length === 0}
-							<tr>
-								<td colspan="6" class="px-3 py-8 text-center text-sm text-[var(--color-fg-subtle)]">
-									{m.services_no_timers_match()}
-								</td>
-							</tr>
-						{/if}
+							{#each filteredTimers as t (t.name)}
+								{@const enabled = t.enabled_at_boot === true}
+								<tr
+									class="border-t border-[var(--color-border)] transition hover:bg-[var(--color-surface-2)]/40"
+								>
+									<td class="px-3 py-2.5">
+										<div class="flex flex-col">
+											<span class="font-mono text-[12px] text-[var(--color-fg)]">{t.name}</span>
+											{#if t.description}
+												<span class="mt-0.5 text-[11px] text-[var(--color-fg-muted)]"
+													>{t.description}</span
+												>
+											{/if}
+										</div>
+									</td>
+									<td class="px-3 py-2.5 font-mono text-[11px] text-[var(--color-fg-muted)]">
+										{t.service ?? '—'}
+									</td>
+									<td class="px-3 py-2.5">
+										<ServiceStateBadge state={t.state} />
+									</td>
+									<td class="px-3 py-2.5 font-mono text-[11px] text-[var(--color-fg-muted)]">
+										{fmtNextRun(t.next_run)}
+									</td>
+									<td class="px-3 py-2.5 font-mono text-[11px] text-[var(--color-fg-muted)]">
+										{t.last_run ? fmtRelative(t.last_run) : '—'}
+									</td>
+									<td class="px-3 py-2.5">
+										<div class="flex items-center justify-end">
+											<button
+												type="button"
+												onclick={() => toggleTimer(t)}
+												class={cn(
+													'rounded-full border px-2.5 py-0.5 font-mono text-[10px] tracking-wide transition',
+													enabled
+														? 'border-[var(--color-success)]/40 bg-[var(--color-success)]/15 text-[var(--color-success)] hover:bg-[var(--color-success)]/25'
+														: 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-fg-subtle)] hover:border-[var(--color-border-strong)]'
+												)}
+											>
+												{enabled ? m.services_boot_enabled() : m.services_boot_disabled()}
+											</button>
+										</div>
+									</td>
+								</tr>
+							{/each}
+							{#if filteredTimers.length === 0}
+								<tr>
+									<td
+										colspan="6"
+										class="px-3 py-8 text-center text-sm text-[var(--color-fg-subtle)]"
+									>
+										{m.services_no_timers_match()}
+									</td>
+								</tr>
+							{/if}
 						{/if}
 					</tbody>
 				</table>
@@ -694,29 +735,39 @@
 								</tr>
 							{/each}
 						{:else}
-						{#each filtered as j, i (i)}
-							<tr class="border-t border-[var(--color-border)] transition hover:bg-[var(--color-surface-2)]/40">
-								<td class="px-3 py-2.5 font-mono text-[11px] text-[var(--color-fg)]">{j.schedule}</td>
-								<td class="px-3 py-2.5 font-mono text-[11px] text-[var(--color-fg-muted)]">
-									{j.user ?? '—'}
-								</td>
-								<td class="px-3 py-2.5">
-									<span class="block truncate font-mono text-[11px] text-[var(--color-fg)]" title={j.command}>
-										{j.command}
-									</span>
-								</td>
-								<td class="px-3 py-2.5 font-mono text-[11px] text-[var(--color-fg-subtle)]">
-									{j.source}
-								</td>
-							</tr>
-						{/each}
-						{#if filtered.length === 0}
-							<tr>
-								<td colspan="4" class="px-3 py-8 text-center text-sm text-[var(--color-fg-subtle)]">
-									{m.services_no_cron_match()}
-								</td>
-							</tr>
-						{/if}
+							{#each filtered as j, i (i)}
+								<tr
+									class="border-t border-[var(--color-border)] transition hover:bg-[var(--color-surface-2)]/40"
+								>
+									<td class="px-3 py-2.5 font-mono text-[11px] text-[var(--color-fg)]"
+										>{j.schedule}</td
+									>
+									<td class="px-3 py-2.5 font-mono text-[11px] text-[var(--color-fg-muted)]">
+										{j.user ?? '—'}
+									</td>
+									<td class="px-3 py-2.5">
+										<span
+											class="block truncate font-mono text-[11px] text-[var(--color-fg)]"
+											title={j.command}
+										>
+											{j.command}
+										</span>
+									</td>
+									<td class="px-3 py-2.5 font-mono text-[11px] text-[var(--color-fg-subtle)]">
+										{j.source}
+									</td>
+								</tr>
+							{/each}
+							{#if filtered.length === 0}
+								<tr>
+									<td
+										colspan="4"
+										class="px-3 py-8 text-center text-sm text-[var(--color-fg-subtle)]"
+									>
+										{m.services_no_cron_match()}
+									</td>
+								</tr>
+							{/if}
 						{/if}
 					</tbody>
 				</table>
@@ -733,7 +784,8 @@
 		</Card>
 	{:else if err.isForbidden}
 		<Banner variant="warning" title={m.services_error_forbidden_title()}>
-			{err.userMessage} {m.services_error_forbidden_hint()}
+			{err.userMessage}
+			{m.services_error_forbidden_hint()}
 		</Banner>
 	{:else}
 		<Banner variant="danger" title={m.services_error_failed_to_fetch()}>

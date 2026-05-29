@@ -10,7 +10,6 @@
 	import type { LiveTone } from '$lib/utils/connTone';
 	import IconTrash from '~icons/lucide/trash-2';
 	import OsIcon from './OsIcon.svelte';
-	import { DEFAULT_ACCENT, accentFg } from '$lib/utils/accent';
 	import { connectionTone } from '$lib/utils/connTone';
 	import { m } from '$lib/paraglide/messages';
 
@@ -70,7 +69,6 @@
 	// connTone is shared with the server list so both count by the same rule.
 	let tone = $derived<LiveTone>(connectionTone(conn));
 	let isStreaming = $derived(conn.isAuthenticated && live.status === 'open');
-	let accent = $derived(profile.accent ?? DEFAULT_ACCENT);
 
 	let sysInfo = $derived(conn.systemInfo?.data ?? null);
 	let sysFetchedAt = $derived(conn.systemInfo?.fetchedAt ?? 0);
@@ -112,11 +110,11 @@
 	}
 
 	const metricColor = {
-		cpu: '#4fb6c2',  // teal-500
-		mem: '#d97706',  // amber-600
+		cpu: '#4fb6c2', // teal-500
+		mem: '#d97706', // amber-600
 		disk: '#8b7cc6', // muted violet
 		netRx: '#3b82f6', // blue-500 — download (incoming)
-		netTx: '#f59e0b'  // amber-500 — upload (outgoing)
+		netTx: '#f59e0b' // amber-500 — upload (outgoing)
 	} as const;
 
 	function handleRemoveClick(e: MouseEvent) {
@@ -162,7 +160,9 @@
 >
 	<header class="flex items-start gap-3 px-4 pt-4">
 		<div class="min-w-0 flex-1">
-			<h3 class="flex items-center gap-2 font-mono text-[14px] font-semibold tracking-[0.01em] text-[var(--color-fg)]">
+			<h3
+				class="flex items-center gap-2 font-mono text-[14px] font-semibold tracking-[0.01em] text-[var(--color-fg)]"
+			>
 				{#if sysInfo}
 					<OsIcon
 						os={sysInfo.description.os}
@@ -209,7 +209,16 @@
 	</header>
 
 	<div class="mt-2.5 flex flex-col gap-1 px-4">
-		{@render sparkRow('CPU', cpuPct, fmtPct, metricColor.cpu, live.cpuHistory, severity(cpuPct), 0, 100)}
+		{@render sparkRow(
+			'CPU',
+			cpuPct,
+			fmtPct,
+			metricColor.cpu,
+			live.cpuHistory,
+			severity(cpuPct),
+			0,
+			100
+		)}
 		{@render barRow('MEM', memPct, fmtPct, metricColor.mem, severity(memPct))}
 		{@render barRow('DISK', diskPct, fmtPct, metricColor.disk, severity(diskPct))}
 		{@render netRow()}
@@ -246,7 +255,9 @@
 	max?: number
 )}
 	<div class="grid grid-cols-[40px_1fr_auto] items-center gap-3">
-		<span class="font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)]">{label}</span>
+		<span class="font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)]"
+			>{label}</span
+		>
 		<div class="min-w-0">
 			<Sparkline data={series} {color} height={36} {min} {max} fill window={20} />
 		</div>
@@ -263,7 +274,9 @@
 
 {#snippet netRow()}
 	<div class="grid grid-cols-[40px_1fr_auto] items-center gap-3">
-		<span class="font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)]">NET</span>
+		<span class="font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)]"
+			>NET</span
+		>
 		<div class="min-w-0">
 			<Sparkline
 				data={live.netRxHistory}
@@ -274,7 +287,9 @@
 				window={20}
 			/>
 		</div>
-		<div class="flex min-w-[88px] flex-col items-end gap-0.5 font-mono text-[11px] tabular-nums leading-tight">
+		<div
+			class="flex min-w-[88px] flex-col items-end gap-0.5 font-mono text-[11px] tabular-nums leading-tight"
+		>
 			<span class="flex items-center gap-1 text-[var(--color-fg)]">
 				<span class="text-[var(--color-fg-subtle)]">↓</span>
 				<TweenedNumber value={netRx} format={fmtBpsClean} class="inline-block" />
@@ -295,7 +310,9 @@
 	valueClass: string
 )}
 	<div class="grid grid-cols-[40px_1fr_auto] items-center gap-3">
-		<span class="font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)]">{label}</span>
+		<span class="font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)]"
+			>{label}</span
+		>
 		<div class="flex h-9 min-w-0 items-center">
 			<div class="relative h-2 w-full overflow-hidden rounded-full bg-[var(--color-surface-2)]">
 				<div

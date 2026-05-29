@@ -67,7 +67,7 @@
 
 		<Card padding="lg">
 			<form class="flex flex-col gap-5" onsubmit={submit}>
-				<Field label={m.common_master_password()} error={error} for="pwd">
+				<Field label={m.common_master_password()} {error} for="pwd">
 					<Input
 						id="pwd"
 						type="password"
@@ -79,7 +79,9 @@
 					/>
 				</Field>
 
-				<label class="flex cursor-pointer items-start gap-2.5 text-[13px] leading-snug text-[var(--color-fg)]">
+				<label
+					class="flex cursor-pointer items-start gap-2.5 text-[13px] leading-snug text-[var(--color-fg)]"
+				>
 					<input
 						type="checkbox"
 						bind:checked={trust}

@@ -1,12 +1,6 @@
 // Locale switching reloads the page — paraglide messages capture locale at
 // call time (not reactive), so a reload is the cleanest way to flush caches.
-import {
-	baseLocale,
-	getLocale,
-	isLocale,
-	locales,
-	setLocale
-} from '$lib/paraglide/runtime';
+import { baseLocale, getLocale, isLocale, locales, setLocale } from '$lib/paraglide/runtime';
 
 export type Locale = (typeof locales)[number];
 

@@ -16,7 +16,7 @@ interface ShowOptions {
 
 const DEFAULT_DURATION = 4500;
 
-let toasts = $state<Toast[]>([]);
+const toasts = $state<Toast[]>([]);
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
 
 function push(variant: ToastVariant, title: string, opts: ShowOptions = {}) {

@@ -1,4 +1,3 @@
-
 export const DEFAULT_ACCENT = '#c2410c';
 
 export interface AccentPreset {
@@ -9,18 +8,18 @@ export interface AccentPreset {
 }
 
 export const ACCENT_PRESETS: AccentPreset[] = [
-	{ name: 'Rust',    hex: '#c2410c', strong: '#9a3412', hover: '#ea580c' },
-	{ name: 'Sky',     hex: '#38bdf8', strong: '#0284c7', hover: '#7dd3fc' },
-	{ name: 'Indigo',  hex: '#818cf8', strong: '#6366f1', hover: '#a5b4fc' },
-	{ name: 'Teal',    hex: '#2dd4bf', strong: '#0d9488', hover: '#5eead4' },
+	{ name: 'Rust', hex: '#c2410c', strong: '#9a3412', hover: '#ea580c' },
+	{ name: 'Sky', hex: '#38bdf8', strong: '#0284c7', hover: '#7dd3fc' },
+	{ name: 'Indigo', hex: '#818cf8', strong: '#6366f1', hover: '#a5b4fc' },
+	{ name: 'Teal', hex: '#2dd4bf', strong: '#0d9488', hover: '#5eead4' },
 	{ name: 'Emerald', hex: '#34d399', strong: '#059669', hover: '#6ee7b7' },
-	{ name: 'Lime',    hex: '#a3e635', strong: '#65a30d', hover: '#bef264' },
-	{ name: 'Amber',   hex: '#fbbf24', strong: '#d97706', hover: '#fcd34d' },
-	{ name: 'Orange',  hex: '#f97316', strong: '#c2410c', hover: '#fb923c' },
-	{ name: 'Rose',    hex: '#fb7185', strong: '#e11d48', hover: '#fda4af' },
-	{ name: 'Pink',    hex: '#f472b6', strong: '#db2777', hover: '#f9a8d4' },
+	{ name: 'Lime', hex: '#a3e635', strong: '#65a30d', hover: '#bef264' },
+	{ name: 'Amber', hex: '#fbbf24', strong: '#d97706', hover: '#fcd34d' },
+	{ name: 'Orange', hex: '#f97316', strong: '#c2410c', hover: '#fb923c' },
+	{ name: 'Rose', hex: '#fb7185', strong: '#e11d48', hover: '#fda4af' },
+	{ name: 'Pink', hex: '#f472b6', strong: '#db2777', hover: '#f9a8d4' },
 	{ name: 'Fuchsia', hex: '#d946ef', strong: '#a21caf', hover: '#e879f9' },
-	{ name: 'Slate',   hex: '#94a3b8', strong: '#475569', hover: '#cbd5e1' }
+	{ name: 'Slate', hex: '#94a3b8', strong: '#475569', hover: '#cbd5e1' }
 ];
 
 export function isValidHex(s: string): boolean {

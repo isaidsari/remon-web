@@ -1,6 +1,5 @@
-
 import type { VaultData } from '$lib/types/profile';
-import { EMPTY_VAULT_DATA } from '$lib/types/profile';
+import { EMPTY_VAULT_DATA, VAULT_SCHEMA_VERSION, migrateVaultData } from '$lib/types/profile';
 import {
 	KDF_ITERATIONS,
 	SALT_LENGTH,
@@ -86,7 +85,7 @@ async function autoUnlock(blob: EncryptedBlob, wrapped: WrappedKey): Promise<boo
 		const device = await getDeviceKey();
 		if (!device) return false;
 		const candidateKey = await unwrapMasterKey(wrapped, device);
-		const decrypted = await decryptJson<VaultData>(candidateKey, blob);
+		const decrypted = migrateVaultData(await decryptJson<VaultData>(candidateKey, blob));
 		key = candidateKey;
 		salt = base64ToBytes(blob.kdf.salt);
 		iterations = blob.kdf.iter;
@@ -134,7 +133,7 @@ async function createVault(password: string, initial?: Partial<VaultData>): Prom
 	const initialData: VaultData = {
 		...EMPTY_VAULT_DATA,
 		...initial,
-		schemaVersion: 1,
+		schemaVersion: VAULT_SCHEMA_VERSION,
 		createdAt: Date.now()
 	};
 	const blob = await encryptJson(newKey, initialData, newSalt, KDF_ITERATIONS);
@@ -160,7 +159,7 @@ async function unlock(password: string): Promise<void> {
 	const blobIter = blob.kdf.iter;
 	const candidateKey = await deriveKey(password, blobSalt, blobIter);
 
-	const decrypted = await decryptJson<VaultData>(candidateKey, blob);
+	const decrypted = migrateVaultData(await decryptJson<VaultData>(candidateKey, blob));
 
 	key = candidateKey;
 	salt = blobSalt;

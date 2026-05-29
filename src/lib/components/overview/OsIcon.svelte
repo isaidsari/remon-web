@@ -27,12 +27,22 @@
 		// Backends place distro tokens in either field; concatenate to match regardless.
 		const blob = `${os ?? ''} ${version ?? ''}`.toLowerCase();
 		const isLinuxFamily =
-			blob.includes('linux') || blob.includes('gnu') || blob.includes('debian') ||
-			blob.includes('ubuntu') || blob.includes('arch') || blob.includes('fedora') ||
-			blob.includes('alpine') || blob.includes('centos') || blob.includes('rhel') ||
-			blob.includes('rocky') || blob.includes('alma') || blob.includes('suse') ||
-			blob.includes('gentoo') || blob.includes('nixos') ||
-			blob.includes('raspbian') || blob.includes('raspberry');
+			blob.includes('linux') ||
+			blob.includes('gnu') ||
+			blob.includes('debian') ||
+			blob.includes('ubuntu') ||
+			blob.includes('arch') ||
+			blob.includes('fedora') ||
+			blob.includes('alpine') ||
+			blob.includes('centos') ||
+			blob.includes('rhel') ||
+			blob.includes('rocky') ||
+			blob.includes('alma') ||
+			blob.includes('suse') ||
+			blob.includes('gentoo') ||
+			blob.includes('nixos') ||
+			blob.includes('raspbian') ||
+			blob.includes('raspberry');
 
 		if (isLinuxFamily) {
 			if (blob.includes('debian')) return { Icon: IconDebian, color: '#A81D33', label: 'Debian' };
@@ -55,10 +65,8 @@
 		}
 		if (blob.includes('darwin') || blob.includes('mac os') || blob.includes('macos'))
 			return { Icon: IconApple, color: '#A2AAAD', label: 'macOS' };
-		if (blob.includes('windows'))
-			return { Icon: IconWindows, color: '#0078D4', label: 'Windows' };
-		if (blob.includes('freebsd'))
-			return { Icon: IconFreebsd, color: '#AB2B28', label: 'FreeBSD' };
+		if (blob.includes('windows')) return { Icon: IconWindows, color: '#0078D4', label: 'Windows' };
+		if (blob.includes('freebsd')) return { Icon: IconFreebsd, color: '#AB2B28', label: 'FreeBSD' };
 		return { Icon: IconLinux, color: '#FCC624', label: os || 'unknown' };
 	}
 </script>

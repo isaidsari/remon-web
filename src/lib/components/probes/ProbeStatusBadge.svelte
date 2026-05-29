@@ -21,7 +21,11 @@
 	);
 
 	let label = $derived(
-		parseOk === true ? m.badge_probe_ok() : parseOk === false ? m.badge_probe_fail() : m.badge_probe_pending()
+		parseOk === true
+			? m.badge_probe_ok()
+			: parseOk === false
+				? m.badge_probe_fail()
+				: m.badge_probe_pending()
 	);
 
 	const Icon = $derived(

@@ -65,11 +65,7 @@
 	let m = $derived(deriveStats(curr, prev, deltaSecs));
 
 	let secondsSinceSample = $derived(lastSampleAt > 0 ? Math.floor((now - lastSampleAt) / 1000) : 0);
-	let stale = $derived(
-		!paused &&
-			lastSampleAt > 0 &&
-			secondsSinceSample * 1000 > intervalMs * 3
-	);
+	let stale = $derived(!paused && lastSampleAt > 0 && secondsSinceSample * 1000 > intervalMs * 3);
 
 	function fmtMaybePct(v: number | null): string {
 		return v === null ? '—' : fmtPercent(v);
@@ -123,7 +119,9 @@
 		</div>
 
 		<div class="flex flex-col gap-1">
-			<span class="text-xs tracking-wide text-[var(--color-fg-muted)]">{t.statspanel_label_memory()}</span>
+			<span class="text-xs tracking-wide text-[var(--color-fg-muted)]"
+				>{t.statspanel_label_memory()}</span
+			>
 			<span class="text-xl font-semibold tabular-nums" style="color: rgb(167, 139, 250)">
 				{fmtMaybePct(m.memPercent)}
 			</span>
@@ -135,7 +133,9 @@
 		</div>
 
 		<div class="flex flex-col gap-1">
-			<span class="text-xs tracking-wide text-[var(--color-fg-muted)]">{t.statspanel_label_network()}</span>
+			<span class="text-xs tracking-wide text-[var(--color-fg-muted)]"
+				>{t.statspanel_label_network()}</span
+			>
 			<span class="text-xl font-semibold tabular-nums" style="color: rgb(52, 211, 153)">
 				{fmtMaybeBps((m.netRxBps ?? 0) + (m.netTxBps ?? 0))}
 			</span>
@@ -147,7 +147,9 @@
 		</div>
 
 		<div class="flex flex-col gap-1">
-			<span class="text-xs tracking-wide text-[var(--color-fg-muted)]">{t.statspanel_label_block_io()}</span>
+			<span class="text-xs tracking-wide text-[var(--color-fg-muted)]"
+				>{t.statspanel_label_block_io()}</span
+			>
 			<span class="text-xl font-semibold tabular-nums" style="color: rgb(251, 191, 36)">
 				{fmtMaybeBps((m.blkReadBps ?? 0) + (m.blkWriteBps ?? 0))}
 			</span>

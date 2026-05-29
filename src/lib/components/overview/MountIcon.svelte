@@ -19,7 +19,8 @@
 		if (p === '/var/log' || p.startsWith('/var/log/')) return { Icon: IconFileText, label: 'logs' };
 		if (p.startsWith('/var/lib/docker/') || p.startsWith('/var/lib/containers/'))
 			return { Icon: IconContainer, label: 'container layer' };
-		if (p === '/dev/shm' || p === '/run' || p.startsWith('/run/')) return { Icon: IconZap, label: 'tmpfs' };
+		if (p === '/dev/shm' || p === '/run' || p.startsWith('/run/'))
+			return { Icon: IconZap, label: 'tmpfs' };
 		if (p === '/etc' || p.startsWith('/etc/')) return { Icon: IconSettings, label: 'config' };
 		if (p.startsWith('/mnt/') || p.startsWith('/media/'))
 			return { Icon: IconHardDrive, label: 'mount' };

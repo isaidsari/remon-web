@@ -16,7 +16,7 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('push', (event) => {
-	let data: Record<string, string> = {};
+	let data: Record<string, string>;
 	try {
 		data = event.data ? event.data.json() : {};
 	} catch {

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { cn } from '$lib/utils/cn';
-	import AutoRefreshSelect, { type AutoRefreshOption } from '$lib/components/ui/AutoRefreshSelect.svelte';
+	import AutoRefreshSelect, {
+		type AutoRefreshOption
+	} from '$lib/components/ui/AutoRefreshSelect.svelte';
 	import RefreshButton from '$lib/components/ui/RefreshButton.svelte';
 	import SegmentedControl from '$lib/components/ui/SegmentedControl.svelte';
 	import type { RangeKey } from './range';
@@ -111,7 +113,9 @@
 					onclick={() => onResetNow?.()}
 					class={cn(
 						'h-7 min-w-[4.75rem] flex-1 px-2 font-mono text-[10px] tracking-wide tabular-nums transition sm:flex-none',
-						offsetSecs === 0 ? 'cursor-default text-[var(--color-fg-subtle)]' : 'rounded-md text-[var(--color-warning)] hover:bg-[var(--color-surface-2)]'
+						offsetSecs === 0
+							? 'cursor-default text-[var(--color-fg-subtle)]'
+							: 'rounded-md text-[var(--color-warning)] hover:bg-[var(--color-surface-2)]'
 					)}
 					disabled={offsetSecs === 0}
 					title={offsetSecs === 0 ? m.chart_range_live_title() : m.chart_range_jump_now_title()}

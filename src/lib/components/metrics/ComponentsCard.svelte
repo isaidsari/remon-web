@@ -117,7 +117,9 @@
 						{#if s.latest && (s.latest.max_c != null || s.latest.critical_c != null)}
 							<p class="mt-0.5 text-[11px] text-[var(--color-fg-subtle)] tabular-nums">
 								{#if s.latest.max_c != null}{m.sensors_label_max()} {fmtTemp(s.latest.max_c)}{/if}
-								{#if s.latest.max_c != null && s.latest.critical_c != null} · {/if}
+								{#if s.latest.max_c != null && s.latest.critical_c != null}
+									·
+								{/if}
 								{#if s.latest.critical_c != null}
 									{m.sensors_label_crit()}
 									<span class="text-[var(--color-danger)]/80">{fmtTemp(s.latest.critical_c)}</span>

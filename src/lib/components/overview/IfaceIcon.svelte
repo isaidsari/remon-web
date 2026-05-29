@@ -6,7 +6,6 @@
 	import IconShield from '~icons/lucide/shield';
 	import IconLoop from '~icons/lucide/repeat';
 	import IconRouter from '~icons/lucide/router';
-	import IconCircleQuestion from '~icons/lucide/circle-help';
 
 	import type { Component } from 'svelte';
 
@@ -18,7 +17,8 @@
 		if (/^docker/.test(n)) return { Icon: IconContainer, label: 'Docker bridge' };
 		if (/^br-/.test(n) || n === 'br0') return { Icon: IconRouter, label: 'Bridge' };
 		if (/^(cni|cilium|flannel|calico|kube)/.test(n)) return { Icon: IconContainer, label: 'CNI' };
-		if (/^(tun|tap|wg|tailscale|zt|nordlynx)/.test(n)) return { Icon: IconShield, label: 'VPN/tunnel' };
+		if (/^(tun|tap|wg|tailscale|zt|nordlynx)/.test(n))
+			return { Icon: IconShield, label: 'VPN/tunnel' };
 		if (n === 'lo') return { Icon: IconLoop, label: 'loopback' };
 		return { Icon: IconNetwork, label: 'interface' };
 	}

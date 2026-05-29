@@ -28,7 +28,12 @@
 
 	let slots = $derived<Slot[]>([
 		{ key: 'cpu', label: 'CPU', color: 'rgb(96, 165, 250)', data: cpu },
-		{ key: 'memory', label: m.statspanel_label_memory(), color: 'rgb(167, 139, 250)', data: memory },
+		{
+			key: 'memory',
+			label: m.statspanel_label_memory(),
+			color: 'rgb(167, 139, 250)',
+			data: memory
+		},
 		{ key: 'io', label: 'I/O', color: 'rgb(251, 191, 36)', data: io }
 	]);
 
@@ -90,10 +95,14 @@
 					</div>
 
 					{#if hasPoints && last}
-						<p class={cn('mt-2 text-xl font-semibold tabular-nums', pressureColor(last.some_avg10))}>
+						<p
+							class={cn('mt-2 text-xl font-semibold tabular-nums', pressureColor(last.some_avg10))}
+						>
 							{fmtPercent(last.some_avg10, 1)}
 						</p>
-						<div class="mt-1 flex items-center gap-3 text-[11px] text-[var(--color-fg-subtle)] tabular-nums">
+						<div
+							class="mt-1 flex items-center gap-3 text-[11px] text-[var(--color-fg-subtle)] tabular-nums"
+						>
 							<span>10s {fmtNumber(last.some_avg10, 1)}</span>
 							<span>60s {fmtNumber(last.some_avg60, 1)}</span>
 							<span>300s {fmtNumber(last.some_avg300, 1)}</span>

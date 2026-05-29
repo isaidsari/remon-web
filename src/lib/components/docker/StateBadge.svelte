@@ -12,13 +12,20 @@
 
 	function stateLabel(raw: string): string {
 		switch (raw.toLowerCase()) {
-			case 'running': return m.badge_state_running();
-			case 'paused': return m.badge_state_paused();
-			case 'restarting': return m.badge_state_restarting();
-			case 'exited': return m.badge_state_exited();
-			case 'dead': return m.badge_state_dead();
-			case 'created': return m.badge_state_created();
-			default: return raw;
+			case 'running':
+				return m.badge_state_running();
+			case 'paused':
+				return m.badge_state_paused();
+			case 'restarting':
+				return m.badge_state_restarting();
+			case 'exited':
+				return m.badge_state_exited();
+			case 'dead':
+				return m.badge_state_dead();
+			case 'created':
+				return m.badge_state_created();
+			default:
+				return raw;
 		}
 	}
 

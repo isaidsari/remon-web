@@ -8,7 +8,10 @@ function activeTheme(): ChartTheme {
 	if (declared === 'light') return 'light';
 	if (declared === 'dark' || declared === undefined || declared === '') return 'dark';
 	// 'auto' — follow OS
-	if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: light)').matches) {
+	if (
+		typeof window !== 'undefined' &&
+		window.matchMedia?.('(prefers-color-scheme: light)').matches
+	) {
 		return 'light';
 	}
 	return 'dark';

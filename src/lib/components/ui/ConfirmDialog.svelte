@@ -14,13 +14,7 @@
 	}
 </script>
 
-<Modal
-	open={!!cur}
-	title={cur?.title}
-	description={cur?.description}
-	onClose={cancel}
-	width="sm"
->
+<Modal open={!!cur} title={cur?.title} description={cur?.description} onClose={cancel} width="sm">
 	{#snippet footer()}
 		<Button variant="ghost" size="sm" onclick={cancel}>
 			{cur?.cancelLabel ?? m.common_cancel()}

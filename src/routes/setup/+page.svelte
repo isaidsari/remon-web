@@ -21,7 +21,8 @@
 		const hasSym = /[^A-Za-z0-9]/.test(pwd);
 		const variety = [hasUpper, hasLower, hasDigit, hasSym].filter(Boolean).length;
 		if (len === 0) return { label: '', cls: '', pct: 0 };
-		if (len < 8) return { label: m.setup_strength_weak(), cls: 'bg-[var(--color-danger)]', pct: 25 };
+		if (len < 8)
+			return { label: m.setup_strength_weak(), cls: 'bg-[var(--color-danger)]', pct: 25 };
 		if (len < 12 || variety < 2)
 			return { label: m.setup_strength_fair(), cls: 'bg-[var(--color-warning)]', pct: 55 };
 		if (len < 16 || variety < 3)
@@ -74,11 +75,7 @@
 
 		<Card padding="lg">
 			<form class="flex flex-col gap-5" onsubmit={submit}>
-				<Field
-					label={m.common_master_password()}
-					hint={m.setup_password_hint()}
-					for="pwd"
-				>
+				<Field label={m.common_master_password()} hint={m.setup_password_hint()} for="pwd">
 					<Input id="pwd" type="password" bind:value={pwd} autocomplete="new-password" required />
 					{#if pwd.length > 0}
 						<div class="mt-2 flex items-center gap-3">
@@ -111,7 +108,9 @@
 					/>
 				</Field>
 
-				<label class="flex cursor-pointer items-start gap-2.5 text-[13px] leading-snug text-[var(--color-fg)]">
+				<label
+					class="flex cursor-pointer items-start gap-2.5 text-[13px] leading-snug text-[var(--color-fg)]"
+				>
 					<input
 						type="checkbox"
 						bind:checked={trust}

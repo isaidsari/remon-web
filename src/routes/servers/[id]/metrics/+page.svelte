@@ -16,7 +16,12 @@
 	import { fmtBps, fmtNumber, fmtPercent } from '$lib/utils/format';
 	import { cn } from '$lib/utils/cn';
 	import { m } from '$lib/paraglide/messages';
-	import { classifyInterface, isPhysicalInterface, isContainerMount, type IfaceClass } from '$lib/utils/netClassify';
+	import {
+		classifyInterface,
+		isPhysicalInterface,
+		isContainerMount,
+		type IfaceClass
+	} from '$lib/utils/netClassify';
 	import type {
 		ComponentsHistoryResponse,
 		CpuHistoryResponse,
@@ -104,11 +109,26 @@
 			const diskBatch = batch.series.find((s) => s.resource === 'disk');
 			const netBatch = batch.series.find((s) => s.resource === 'network');
 			const compBatch = batch.series.find((s) => s.resource === 'components');
-			cpu = cpuBatch && cpuBatch.resource === 'cpu' ? { resolution: res, points: cpuBatch.points } : null;
-			memory = memBatch && memBatch.resource === 'memory' ? { resolution: res, points: memBatch.points } : null;
-			disk = diskBatch && diskBatch.resource === 'disk' ? { resolution: res, points: diskBatch.points } : null;
-			network = netBatch && netBatch.resource === 'network' ? { resolution: res, points: netBatch.points } : null;
-			components = compBatch && compBatch.resource === 'components' ? { resolution: res, points: compBatch.points } : null;
+			cpu =
+				cpuBatch && cpuBatch.resource === 'cpu'
+					? { resolution: res, points: cpuBatch.points }
+					: null;
+			memory =
+				memBatch && memBatch.resource === 'memory'
+					? { resolution: res, points: memBatch.points }
+					: null;
+			disk =
+				diskBatch && diskBatch.resource === 'disk'
+					? { resolution: res, points: diskBatch.points }
+					: null;
+			network =
+				netBatch && netBatch.resource === 'network'
+					? { resolution: res, points: netBatch.points }
+					: null;
+			components =
+				compBatch && compBatch.resource === 'components'
+					? { resolution: res, points: compBatch.points }
+					: null;
 			pressureCpu = pc;
 			pressureMem = pm;
 			pressureIo = pi;
@@ -134,7 +154,10 @@
 		}
 	});
 
-	function latestByKey<T extends { timestamp: number }>(points: T[] | undefined, key: (p: T) => string): Map<string, T> {
+	function latestByKey<T extends { timestamp: number }>(
+		points: T[] | undefined,
+		key: (p: T) => string
+	): Map<string, T> {
 		const out = new Map<string, T>();
 		if (!points) return out;
 		for (const p of points) {
@@ -251,7 +274,13 @@
 		return series;
 	});
 
-	const DISK_PALETTE = ['rgb(251, 191, 36)', 'rgb(244, 114, 182)', 'rgb(16, 185, 129)', 'rgb(56, 189, 248)', 'rgb(217, 70, 239)'];
+	const DISK_PALETTE = [
+		'rgb(251, 191, 36)',
+		'rgb(244, 114, 182)',
+		'rgb(16, 185, 129)',
+		'rgb(56, 189, 248)',
+		'rgb(217, 70, 239)'
+	];
 
 	let diskSeries = $derived.by((): Series[] => {
 		if (!disk) return [];
@@ -280,8 +309,10 @@
 		const writeByTs = new Map<number, number>();
 		for (const p of disk.points) {
 			if (isDockerMount(p.mount_point)) continue;
-			if (p.read_iops != null) readByTs.set(p.timestamp, (readByTs.get(p.timestamp) ?? 0) + p.read_iops);
-			if (p.write_iops != null) writeByTs.set(p.timestamp, (writeByTs.get(p.timestamp) ?? 0) + p.write_iops);
+			if (p.read_iops != null)
+				readByTs.set(p.timestamp, (readByTs.get(p.timestamp) ?? 0) + p.read_iops);
+			if (p.write_iops != null)
+				writeByTs.set(p.timestamp, (writeByTs.get(p.timestamp) ?? 0) + p.write_iops);
 		}
 		if (readByTs.size === 0) return [];
 		const xs = [...readByTs.keys()].sort((a, b) => a - b);
@@ -343,7 +374,9 @@
 
 	let lastCpu = $derived(cpu && cpu.points.length > 0 ? cpu.points[cpu.points.length - 1] : null);
 
-	let hasKernelRateData = $derived(!!lastCpu && (lastCpu.context_switches_per_sec != null || lastCpu.process_forks_per_sec != null));
+	let hasKernelRateData = $derived(
+		!!lastCpu && (lastCpu.context_switches_per_sec != null || lastCpu.process_forks_per_sec != null)
+	);
 
 	type InodeRow = { mount: string; pct: number; isDocker: boolean };
 	let inodeRows = $derived.by((): InodeRow[] => {
@@ -362,7 +395,13 @@
 	let mainInodeRows = $derived(inodeRows.filter((r) => !r.isDocker));
 	let dockerInodeRows = $derived(inodeRows.filter((r) => r.isDocker));
 
-	type IoUtilRow = { mount: string; readIops: number; writeIops: number; util: number; isDocker: boolean };
+	type IoUtilRow = {
+		mount: string;
+		readIops: number;
+		writeIops: number;
+		util: number;
+		isDocker: boolean;
+	};
 	let ioUtilRows = $derived.by((): IoUtilRow[] => {
 		const latest = latestByKey(disk?.points, (p) => p.mount_point);
 		const out: IoUtilRow[] = [];
@@ -436,18 +475,6 @@
 		return `${fmtNumber(v, 0)}/s`;
 	}
 
-	function stealColor(p: number | null | undefined): string {
-		if (p == null) return 'text-[var(--color-fg)]';
-		if (p >= 5) return 'text-[var(--color-danger)]';
-		if (p >= 2) return 'text-[var(--color-warning)]';
-		return 'text-[var(--color-fg)]';
-	}
-	function iowaitColor(p: number | null | undefined): string {
-		if (p == null) return 'text-[var(--color-fg)]';
-		if (p >= 30) return 'text-[var(--color-danger)]';
-		if (p >= 15) return 'text-[var(--color-warning)]';
-		return 'text-[var(--color-fg)]';
-	}
 	function inodeColor(p: number): string {
 		if (p >= 90) return 'bg-[var(--color-danger)]';
 		if (p >= 75) return 'bg-[var(--color-warning)]';
@@ -479,7 +506,9 @@
 					onShift={(d) => (offsetSecs = Math.max(0, offsetSecs - d))}
 					onResetNow={() => (offsetSecs = 0)}
 				/>
-				<div class="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] tabular-nums text-[var(--color-fg-subtle)] lg:justify-end">
+				<div
+					class="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] tabular-nums text-[var(--color-fg-subtle)] lg:justify-end"
+				>
 					{#if resolution}
 						<span>
 							{m.metrics_resolution_label({ value: resolution })}
@@ -514,10 +543,21 @@
 						{@render chartSkeleton()}
 					{:else}
 						{#if cpuSeries.length > 0}
-							<StatStrip data={cpuSeries[0].data} format={fmtPct} accent={cpuSeries[0].color} class="mb-3" />
+							<StatStrip
+								data={cpuSeries[0].data}
+								format={fmtPct}
+								accent={cpuSeries[0].color}
+								class="mb-3"
+							/>
 						{/if}
 						{#key cpuKey}
-							<HistoryChart series={cpuSeries} valueFormatter={fmtPct} yMin={0} yMax={100} group="metrics" />
+							<HistoryChart
+								series={cpuSeries}
+								valueFormatter={fmtPct}
+								yMin={0}
+								yMax={100}
+								group="metrics"
+							/>
 						{/key}
 						{#if hasKernelRateData && lastCpu}
 							<div
@@ -525,13 +565,16 @@
 							>
 								{#if lastCpu.context_switches_per_sec != null}
 									<span>
-										<span class="text-[var(--color-fg-subtle)]">{m.metrics_kernel_ctx_label()}</span>
+										<span class="text-[var(--color-fg-subtle)]">{m.metrics_kernel_ctx_label()}</span
+										>
 										{fmtRate(lastCpu.context_switches_per_sec)}
 									</span>
 								{/if}
 								{#if lastCpu.process_forks_per_sec != null}
 									<span>
-										<span class="text-[var(--color-fg-subtle)]">{m.metrics_kernel_forks_label()}</span>
+										<span class="text-[var(--color-fg-subtle)]"
+											>{m.metrics_kernel_forks_label()}</span
+										>
 										{fmtRate(lastCpu.process_forks_per_sec)}
 									</span>
 								{/if}
@@ -550,10 +593,21 @@
 						{@render chartSkeleton()}
 					{:else}
 						{#if memorySeries.length > 0}
-							<StatStrip data={memorySeries[0].data} format={fmtPct} accent={memorySeries[0].color} class="mb-3" />
+							<StatStrip
+								data={memorySeries[0].data}
+								format={fmtPct}
+								accent={memorySeries[0].color}
+								class="mb-3"
+							/>
 						{/if}
 						{#key memoryKey}
-							<HistoryChart series={memorySeries} valueFormatter={fmtPct} yMin={0} yMax={100} group="metrics" />
+							<HistoryChart
+								series={memorySeries}
+								valueFormatter={fmtPct}
+								yMin={0}
+								yMax={100}
+								group="metrics"
+							/>
 						{/key}
 					{/if}
 				</Card>
@@ -568,7 +622,13 @@
 						{@render chartSkeleton()}
 					{:else}
 						{#key diskKey}
-							<HistoryChart series={diskSeries} valueFormatter={fmtPct} yMin={0} yMax={100} group="metrics" />
+							<HistoryChart
+								series={diskSeries}
+								valueFormatter={fmtPct}
+								yMin={0}
+								yMax={100}
+								group="metrics"
+							/>
 						{/key}
 
 						{#if diskIopsSeries.length > 0}
@@ -582,12 +642,19 @@
 											<p class="mb-0.5 text-[10px] tracking-[0.08em]" style="color: {s.color}">
 												{s.name}
 											</p>
-											<StatStrip data={s.data} format={(v) => (v == null ? '—' : `${fmtNumber(v, 0)}/s`)} />
+											<StatStrip
+												data={s.data}
+												format={(v) => (v == null ? '—' : `${fmtNumber(v, 0)}/s`)}
+											/>
 										</div>
 									{/each}
 								</div>
 								{#key diskIopsKey}
-									<HistoryChart series={diskIopsSeries} valueFormatter={(v) => (v == null ? '—' : `${fmtNumber(v, 0)}/s`)} group="metrics" />
+									<HistoryChart
+										series={diskIopsSeries}
+										valueFormatter={(v) => (v == null ? '—' : `${fmtNumber(v, 0)}/s`)}
+										group="metrics"
+									/>
 								{/key}
 								{#if ioUtilRows.length > 0}
 									<div class="mt-3 border-t border-[var(--color-border)] pt-3">
@@ -596,14 +663,27 @@
 										</p>
 										<ul class="flex flex-col gap-1.5">
 											{#each ioUtilRows as r (r.mount)}
-												<li class="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-xs">
-													<span class="truncate font-mono text-[var(--color-fg-muted)]" title={r.mount}>
+												<li
+													class="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-xs"
+												>
+													<span
+														class="truncate font-mono text-[var(--color-fg-muted)]"
+														title={r.mount}
+													>
 														{shortenMount(r.mount)}
 													</span>
-													<div class="flex items-center gap-3 tabular-nums text-[var(--color-fg-subtle)]">
+													<div
+														class="flex items-center gap-3 tabular-nums text-[var(--color-fg-subtle)]"
+													>
 														<span class="text-[rgb(251,191,36)]">↓ {fmtRate(r.readIops)}</span>
 														<span class="text-[rgb(244,114,182)]">↑ {fmtRate(r.writeIops)}</span>
-														<span class={r.util >= 80 ? 'text-[var(--color-danger)]' : r.util >= 50 ? 'text-[var(--color-warning)]' : ''}>
+														<span
+															class={r.util >= 80
+																? 'text-[var(--color-danger)]'
+																: r.util >= 50
+																	? 'text-[var(--color-warning)]'
+																	: ''}
+														>
 															{fmtPct(r.util)}
 														</span>
 													</div>
@@ -659,7 +739,10 @@
 							<div class="mb-3 grid grid-cols-1 gap-y-2 sm:grid-cols-2">
 								{#each networkSeries as s (s.name)}
 									<div>
-										<p class="mb-0.5 text-[10px] tracking-[0.08em] text-[var(--color-fg-subtle)]" style="color: {s.color}">
+										<p
+											class="mb-0.5 text-[10px] tracking-[0.08em] text-[var(--color-fg-subtle)]"
+											style="color: {s.color}"
+										>
 											{s.name}
 										</p>
 										<StatStrip data={s.data} format={fmtBpsCell} />
@@ -737,7 +820,11 @@
 							</div>
 						</div>
 						{#key memoryPressureKey}
-							<HistoryChart series={memoryPressureSeries} valueFormatter={(v) => (v == null ? '—' : fmtNumber(v, 0))} group="metrics" />
+							<HistoryChart
+								series={memoryPressureSeries}
+								valueFormatter={(v) => (v == null ? '—' : fmtNumber(v, 0))}
+								group="metrics"
+							/>
 						{/key}
 					</Card>
 				{/if}
@@ -748,7 +835,7 @@
 
 {#snippet chartSkeleton()}
 	<div class="mb-3 flex gap-4">
-		{#each [80, 64, 56, 56, 64] as w}
+		{#each [80, 64, 56, 56, 64] as w, i (i)}
 			<div class="flex flex-col gap-1.5">
 				<Skeleton class="h-2.5" style="width: {w}px" />
 				<Skeleton class="h-3.5" style="width: {w}px" />
@@ -767,14 +854,22 @@
 			<span class="font-mono text-xs tabular-nums">{fmtPct(r.pct)}</span>
 		</div>
 		<div class="mt-1 h-1 overflow-hidden rounded-full bg-[var(--color-surface-3)]">
-			<div class={cn('h-full rounded-full transition-all', inodeColor(r.pct))} style="width: {Math.min(100, r.pct)}%"></div>
+			<div
+				class={cn('h-full rounded-full transition-all', inodeColor(r.pct))}
+				style="width: {Math.min(100, r.pct)}%"
+			></div>
 		</div>
 	</li>
 {/snippet}
 
 {#snippet ifaceRow(r: NetErrRow)}
 	{@const hasErr = r.rxErr > 0 || r.txErr > 0}
-	<li class={cn('flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-xs', hasErr && 'bg-[var(--color-danger)]/10')}>
+	<li
+		class={cn(
+			'flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-xs',
+			hasErr && 'bg-[var(--color-danger)]/10'
+		)}
+	>
 		<span class="truncate font-mono text-[var(--color-fg-muted)]">{r.iface}</span>
 		<div class="flex items-center gap-3 tabular-nums">
 			<span class="text-[var(--color-info)]">↓ {fmtBpsCell(r.rx)}</span>

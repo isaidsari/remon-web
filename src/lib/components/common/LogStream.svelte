@@ -16,13 +16,7 @@
 		class?: string;
 	}
 
-	let {
-		conn,
-		path,
-		initialTail = 200,
-		maxLines = 5000,
-		class: klass = ''
-	}: Props = $props();
+	let { conn, path, initialTail = 200, maxLines = 5000, class: klass = '' }: Props = $props();
 
 	type Line = { kind: 'log' | 'error'; text: string; ts: number };
 
@@ -192,9 +186,7 @@
 			variant="info"
 			title={slow ? m.log_banner_opening_slow_title() : m.log_banner_opening_title()}
 		>
-			{slow
-				? m.log_banner_opening_slow_body({ secs: pendingSecs })
-				: m.log_banner_opening_body()}
+			{slow ? m.log_banner_opening_slow_body({ secs: pendingSecs }) : m.log_banner_opening_body()}
 		</Banner>
 	{:else if status === 'reconnecting' && !stuck}
 		<Banner

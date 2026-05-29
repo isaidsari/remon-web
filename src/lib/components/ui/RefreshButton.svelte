@@ -10,7 +10,12 @@
 		class?: string;
 	}
 
-	let { onclick, loading = false, label = m.chart_refresh_aria(), class: klass = '' }: Props = $props();
+	let {
+		onclick,
+		loading = false,
+		label = m.chart_refresh_aria(),
+		class: klass = ''
+	}: Props = $props();
 </script>
 
 <button

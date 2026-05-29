@@ -15,11 +15,21 @@
 		buttonClass?: string;
 	}
 
-	let { value, options, onSelect, ariaLabel, class: klass = '', buttonClass = '' }: Props<T> = $props();
+	let {
+		value,
+		options,
+		onSelect,
+		ariaLabel,
+		class: klass = '',
+		buttonClass = ''
+	}: Props<T> = $props();
 </script>
 
 <div
-	class={cn('inline-flex items-center rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5', klass)}
+	class={cn(
+		'inline-flex items-center rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5',
+		klass
+	)}
 	role="tablist"
 	aria-label={ariaLabel}
 >
@@ -31,7 +41,9 @@
 			onclick={() => onSelect(option.value)}
 			class={cn(
 				'rounded-md px-3 py-1.5 text-xs font-medium whitespace-nowrap transition',
-				value === option.value ? 'bg-[var(--color-surface-3)] text-[var(--color-fg)]' : 'text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]',
+				value === option.value
+					? 'bg-[var(--color-surface-3)] text-[var(--color-fg)]'
+					: 'text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]',
 				buttonClass
 			)}
 		>

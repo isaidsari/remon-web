@@ -7,3 +7,6 @@ dist/
 .env.*.local
 .DS_Store
 *.log
+src/lib/paraglide/
+.claude/
+memory/

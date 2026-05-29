@@ -148,7 +148,11 @@ export class LiveStats {
 			const diskReadByTs = new Map<number, number>();
 			const diskWriteByTs = new Map<number, number>();
 			for (const p of d.points) {
-				if (p.mount_point.startsWith('/var/lib/docker/') || p.mount_point.startsWith('/var/lib/containers/')) continue;
+				if (
+					p.mount_point.startsWith('/var/lib/docker/') ||
+					p.mount_point.startsWith('/var/lib/containers/')
+				)
+					continue;
 				const total = p.total_bytes;
 				if (total > 0) {
 					const pct = (p.used_bytes / total) * 100;

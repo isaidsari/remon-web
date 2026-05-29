@@ -627,7 +627,7 @@
 			/>
 			<p class="mt-1 text-[11px] leading-relaxed text-[var(--color-fg-muted)]">
 				{m.alerts_editor_raw_help_prefix()}
-				<code class="font-mono">namespace.field{'{'}label="value"{'}'} comparator number</code>.
+				<code class="font-mono">namespace.field&#123;label="value"&#125; comparator number</code>.
 				{m.alerts_editor_raw_help_suffix()}
 			</p>
 		</Field>

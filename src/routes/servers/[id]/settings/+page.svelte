@@ -13,7 +13,13 @@
 	import { confirm } from '$lib/stores/confirm.svelte';
 	import { vault } from '$lib/vault/store.svelte';
 	import { ApiError } from '$lib/api/error';
-	import { ACCENT_PRESETS, DEFAULT_ACCENT, isValidHex, applyAccent, clearAccent } from '$lib/utils/accent';
+	import {
+		ACCENT_PRESETS,
+		DEFAULT_ACCENT,
+		isValidHex,
+		applyAccent,
+		clearAccent
+	} from '$lib/utils/accent';
 	import { applyTheme, getTheme, type ThemeMode } from '$lib/utils/theme';
 	import {
 		changeLocale,
@@ -65,7 +71,8 @@
 			await conn.login();
 			toast.success(m.settings_toast_signed_in());
 		} catch (e) {
-			if (e instanceof ApiError) toast.error(m.settings_toast_signin_failed(), { description: e.userMessage });
+			if (e instanceof ApiError)
+				toast.error(m.settings_toast_signin_failed(), { description: e.userMessage });
 		}
 	}
 
@@ -75,7 +82,8 @@
 			await conn.refresh();
 			toast.success(m.settings_toast_tokens_rotated());
 		} catch (e) {
-			if (e instanceof ApiError) toast.error(m.settings_toast_refresh_failed(), { description: e.userMessage });
+			if (e instanceof ApiError)
+				toast.error(m.settings_toast_refresh_failed(), { description: e.userMessage });
 		}
 	}
 
@@ -359,14 +367,15 @@
 		<Card class="mb-5">
 			<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<div class="min-w-0">
-					<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">{m.settings_session_eyebrow()}</p>
+					<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">
+						{m.settings_session_eyebrow()}
+					</p>
 					<div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
 						{#if conn && conn.isAuthenticated}
 							<StatusDot status="connected" label={m.settings_session_authenticated()} />
 							<span class="text-sm text-[var(--color-fg-muted)]">
-								{m.settings_session_expires_in()} <span class="font-mono text-[var(--color-fg)]"
-									>{fmtSeconds(secondsToExpiry)}</span
-								>
+								{m.settings_session_expires_in()}
+								<span class="font-mono text-[var(--color-fg)]">{fmtSeconds(secondsToExpiry)}</span>
 							</span>
 						{:else if conn?.status === 'authenticating'}
 							<StatusDot status="unknown" label={m.settings_session_signing_in()} />
@@ -382,8 +391,12 @@
 				</div>
 				<div class="flex items-center gap-2 sm:shrink-0">
 					{#if conn?.isAuthenticated}
-						<Button variant="secondary" size="sm" onclick={refreshNow}>{m.settings_action_refresh()}</Button>
-						<Button variant="ghost" size="sm" onclick={signOut}>{m.settings_action_signout()}</Button>
+						<Button variant="secondary" size="sm" onclick={refreshNow}
+							>{m.settings_action_refresh()}</Button
+						>
+						<Button variant="ghost" size="sm" onclick={signOut}
+							>{m.settings_action_signout()}</Button
+						>
 					{:else}
 						<Button size="sm" onclick={signIn} loading={conn?.status === 'authenticating'}>
 							{m.settings_action_signin()}
@@ -421,7 +434,10 @@
 					class="inline-flex items-center gap-1 text-[11px] text-[var(--color-fg-subtle)] transition hover:text-[var(--color-fg)] disabled:opacity-50"
 					title={m.settings_devices_refresh_title()}
 				>
-					<IconRefreshCw class={cn('size-[11px]', sessionsLoading && 'animate-spin')} stroke-width="2.25" />
+					<IconRefreshCw
+						class={cn('size-[11px]', sessionsLoading && 'animate-spin')}
+						stroke-width="2.25"
+					/>
 					{m.settings_devices_refresh()}
 				</button>
 			</div>
@@ -486,7 +502,9 @@
 										</span>
 									{/if}
 								</div>
-								<p class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[var(--color-fg-subtle)]">
+								<p
+									class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[var(--color-fg-subtle)]"
+								>
 									<span>{m.settings_devices_last_seen({ time: fmtRelative(s.last_seen) })}</span>
 									{#if s.last_ip}
 										<span class="text-[var(--color-fg-faint)]" aria-hidden="true">·</span>
@@ -522,9 +540,7 @@
 					<span
 						class={cn(
 							'text-[11px]',
-							pushSubscribed
-								? 'text-[var(--color-success)]'
-								: 'text-[var(--color-fg-subtle)]'
+							pushSubscribed ? 'text-[var(--color-success)]' : 'text-[var(--color-fg-subtle)]'
 						)}
 					>
 						{pushSubscribed ? m.settings_push_status_enabled() : m.settings_push_status_disabled()}
@@ -570,9 +586,7 @@
 					<span
 						class={cn(
 							'text-[11px]',
-							vault.isTrusted
-								? 'text-[var(--color-success)]'
-								: 'text-[var(--color-fg-subtle)]'
+							vault.isTrusted ? 'text-[var(--color-success)]' : 'text-[var(--color-fg-subtle)]'
 						)}
 					>
 						{vault.isTrusted
@@ -601,15 +615,21 @@
 
 		<Card padding="md" class="mb-5">
 			<div class="mb-3 flex items-baseline justify-between">
-				<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">{m.settings_appearance_eyebrow()}</p>
+				<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">
+					{m.settings_appearance_eyebrow()}
+				</p>
 				<span class="text-[11px] text-[var(--color-fg-subtle)]">
 					{m.settings_applies_to_all()}
 				</span>
 			</div>
 			<p class="mb-3 max-w-md text-[12px] text-[var(--color-fg-muted)]">
-				{m.settings_appearance_description_prefix()} <span class="font-mono">{m.settings_theme_auto()}</span> {m.settings_appearance_description_suffix()}
+				{m.settings_appearance_description_prefix()}
+				<span class="font-mono">{m.settings_theme_auto()}</span>
+				{m.settings_appearance_description_suffix()}
 			</p>
-			<div class="inline-flex items-center rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-0.5">
+			<div
+				class="inline-flex items-center rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-0.5"
+			>
 				{@render themeBtn('auto', m.settings_theme_auto(), IconMonitor)}
 				{@render themeBtn('light', m.settings_theme_light(), IconSun)}
 				{@render themeBtn('dark', m.settings_theme_dark(), IconMoon)}
@@ -618,7 +638,9 @@
 
 		<Card padding="md" class="mb-5">
 			<div class="mb-3 flex items-baseline justify-between">
-				<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">{m.settings_accent_eyebrow()}</p>
+				<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">
+					{m.settings_accent_eyebrow()}
+				</p>
 				{#if profile.accent}
 					<button
 						type="button"
@@ -659,13 +681,11 @@
 			<div class="mt-4 flex items-end gap-2">
 				<label class="flex-1 text-[11px] font-medium tracking-wide text-[var(--color-fg-muted)]">
 					{m.settings_accent_custom_hex_label()}
-					<Input
-						bind:value={customHex}
-						placeholder="#38bdf8"
-						class="mt-1 font-mono"
-					/>
+					<Input bind:value={customHex} placeholder="#38bdf8" class="mt-1 font-mono" />
 				</label>
-				<Button variant="secondary" size="sm" onclick={applyCustom}>{m.settings_action_apply()}</Button>
+				<Button variant="secondary" size="sm" onclick={applyCustom}
+					>{m.settings_action_apply()}</Button
+				>
 			</div>
 		</Card>
 
@@ -681,7 +701,9 @@
 			<p class="mb-3 max-w-md text-[12px] text-[var(--color-fg-muted)]">
 				{m.settings_language_description()}
 			</p>
-			<div class="inline-flex items-center rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-0.5">
+			<div
+				class="inline-flex items-center rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-0.5"
+			>
 				{#each SUPPORTED_LOCALES as code (code)}
 					{@render langBtn(code, LOCALE_LABELS[code])}
 				{/each}
@@ -689,7 +711,9 @@
 		</Card>
 
 		<Card padding="md" class="mb-5">
-			<p class="mb-3 text-xs tracking-wide text-[var(--color-fg-muted)]">{m.settings_versions_eyebrow()}</p>
+			<p class="mb-3 text-xs tracking-wide text-[var(--color-fg-muted)]">
+				{m.settings_versions_eyebrow()}
+			</p>
 			<dl class="grid gap-y-2 text-sm sm:grid-cols-[140px_1fr]">
 				<dt class="text-[var(--color-fg-muted)]">remon-server</dt>
 				<dd class="flex flex-wrap items-baseline gap-x-2 font-mono text-[var(--color-fg)]">
@@ -768,44 +792,38 @@
 	description={m.settings_autounlock_enable_dialog_description()}
 	width="sm"
 >
-	{#snippet children()}
-		<form class="flex flex-col gap-4" onsubmit={confirmEnableAutoUnlock}>
-			<Field
-				label={m.common_master_password()}
-				error={autoUnlockError}
-				for="autounlock-pwd"
+	<form class="flex flex-col gap-4" onsubmit={confirmEnableAutoUnlock}>
+		<Field label={m.common_master_password()} error={autoUnlockError} for="autounlock-pwd">
+			<Input
+				id="autounlock-pwd"
+				type="password"
+				bind:value={autoUnlockPwd}
+				invalid={!!autoUnlockError}
+				autocomplete="current-password"
+				autofocus
+				required
+			/>
+		</Field>
+		<div class="flex items-center justify-end gap-2">
+			<Button
+				type="button"
+				variant="ghost"
+				size="sm"
+				onclick={closeAutoUnlockModal}
+				disabled={autoUnlockBusy}
 			>
-				<Input
-					id="autounlock-pwd"
-					type="password"
-					bind:value={autoUnlockPwd}
-					invalid={!!autoUnlockError}
-					autocomplete="current-password"
-					autofocus
-					required
-				/>
-			</Field>
-			<div class="flex items-center justify-end gap-2">
-				<Button
-					type="button"
-					variant="ghost"
-					size="sm"
-					onclick={closeAutoUnlockModal}
-					disabled={autoUnlockBusy}
-				>
-					{m.common_cancel()}
-				</Button>
-				<Button
-					type="submit"
-					size="sm"
-					disabled={!autoUnlockPwd || autoUnlockBusy}
-					loading={autoUnlockBusy}
-				>
-					{m.settings_autounlock_enable_dialog_button()}
-				</Button>
-			</div>
-		</form>
-	{/snippet}
+				{m.common_cancel()}
+			</Button>
+			<Button
+				type="submit"
+				size="sm"
+				disabled={!autoUnlockPwd || autoUnlockBusy}
+				loading={autoUnlockBusy}
+			>
+				{m.settings_autounlock_enable_dialog_button()}
+			</Button>
+		</div>
+	</form>
 </Modal>
 
 {#snippet langBtn(code: Locale, label: string)}

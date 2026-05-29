@@ -8,23 +8,33 @@
 
 	import type { Component } from 'svelte';
 
-	export function detectCpu(
-		model: string | undefined | null
-	): { Icon: Component; color: string; label: string } {
+	export function detectCpu(model: string | undefined | null): {
+		Icon: Component;
+		color: string;
+		label: string;
+	} {
 		const m = (model ?? '').toLowerCase();
 		if (!m) return { Icon: IconCpu, color: 'currentColor', label: 'CPU' };
 
 		// Apple silicon — string usually has " m1" / " m2" / " m3" with leading space.
-		if (
-			m.includes('apple') ||
-			/\bm[1-4](?:\s|$|\b)/.test(m) ||
-			m.includes('apple silicon')
-		) {
+		if (m.includes('apple') || /\bm[1-4](?:\s|$|\b)/.test(m) || m.includes('apple silicon')) {
 			return { Icon: IconApple, color: '#A2AAAD', label: 'Apple Silicon' };
 		}
-		if (m.includes('intel') || m.includes('xeon') || m.includes('core i') || m.includes('pentium') || m.includes('celeron'))
+		if (
+			m.includes('intel') ||
+			m.includes('xeon') ||
+			m.includes('core i') ||
+			m.includes('pentium') ||
+			m.includes('celeron')
+		)
 			return { Icon: IconIntel, color: '#0071C5', label: 'Intel' };
-		if (m.includes('amd') || m.includes('epyc') || m.includes('ryzen') || m.includes('threadripper') || m.includes('opteron'))
+		if (
+			m.includes('amd') ||
+			m.includes('epyc') ||
+			m.includes('ryzen') ||
+			m.includes('threadripper') ||
+			m.includes('opteron')
+		)
 			return { Icon: IconAmd, color: '#ED1C24', label: 'AMD' };
 		if (
 			m.includes('arm') ||

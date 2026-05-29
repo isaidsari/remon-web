@@ -252,7 +252,9 @@
 				</span>
 			</div>
 			{#if s.n < 3}
-				<div class="h-px flex-1 bg-gradient-to-r from-[var(--color-border)] via-[var(--color-border)] to-transparent"></div>
+				<div
+					class="h-px flex-1 bg-gradient-to-r from-[var(--color-border)] via-[var(--color-border)] to-transparent"
+				></div>
 			{/if}
 		{/each}
 	</div>
@@ -275,11 +277,7 @@
 						required
 					/>
 				</Field>
-				<Field
-					label={m.pair_field_name_label()}
-					hint={m.pair_field_name_hint()}
-					for="name"
-				>
+				<Field label={m.pair_field_name_label()} hint={m.pair_field_name_hint()} for="name">
 					<Input id="name" bind:value={name} placeholder="prod-server-01" required />
 				</Field>
 				<div class="flex items-center justify-end gap-2 pt-2">
@@ -292,7 +290,9 @@
 		</Card>
 	{:else if step === 2}
 		<Card>
-			<div class="mb-5 flex items-start gap-3 rounded-[var(--radius-input)] border border-[var(--color-info)]/30 bg-[var(--color-info)]/10 p-4 text-sm">
+			<div
+				class="mb-5 flex items-start gap-3 rounded-[var(--radius-input)] border border-[var(--color-info)]/30 bg-[var(--color-info)]/10 p-4 text-sm"
+			>
 				<IconInfo class="mt-0.5 size-[18px] shrink-0 text-[var(--color-info)]" stroke-width="2" />
 				<div>
 					<p class="font-medium text-[var(--color-fg)]">{m.pair_info_title()}</p>
@@ -334,11 +334,7 @@
 			{/if}
 
 			<form class="flex flex-col gap-5" onsubmit={completeStep2}>
-				<Field
-					label={m.pair_field_code_label()}
-					hint={m.pair_field_code_hint()}
-					for="code"
-				>
+				<Field label={m.pair_field_code_label()} hint={m.pair_field_code_hint()} for="code">
 					<Input
 						id="code"
 						bind:value={pairingCode}
@@ -352,11 +348,7 @@
 						required
 					/>
 				</Field>
-				<Field
-					label={m.pair_field_device_label()}
-					hint={m.pair_field_device_hint()}
-					for="dname"
-				>
+				<Field label={m.pair_field_device_label()} hint={m.pair_field_device_hint()} for="dname">
 					<Input
 						id="dname"
 						bind:value={deviceName}

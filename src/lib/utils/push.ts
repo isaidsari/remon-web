@@ -65,7 +65,7 @@ export async function subscribeToPush(vapidPublicKey: string): Promise<{
 	}
 	if (Notification.permission === 'denied') {
 		throw new Error(
-			'Notifications are blocked. Allow them in this site\'s browser settings and try again.'
+			"Notifications are blocked. Allow them in this site's browser settings and try again."
 		);
 	}
 	if (Notification.permission === 'default') {

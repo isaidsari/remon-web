@@ -129,9 +129,7 @@
 	}
 
 	function buildOption(): EChartsCoreOption {
-		const seriesArr: Record<string, unknown>[] = [
-			{ ...buildSeries(color, data), z: 2 }
-		];
+		const seriesArr: Record<string, unknown>[] = [{ ...buildSeries(color, data), z: 2 }];
 		if (extra) {
 			seriesArr.push({ ...buildSeries(extra.color, extra.data), z: 1 });
 		}

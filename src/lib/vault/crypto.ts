@@ -211,10 +211,7 @@ export async function wrapMasterKey(master: CryptoKey, device: CryptoKey): Promi
 }
 
 /** Unwrap a master key from a wrapped blob using the device key. */
-export async function unwrapMasterKey(
-	wrapped: WrappedKey,
-	device: CryptoKey
-): Promise<CryptoKey> {
+export async function unwrapMasterKey(wrapped: WrappedKey, device: CryptoKey): Promise<CryptoKey> {
 	const iv = fromBase64(wrapped.iv);
 	const ct = fromBase64(wrapped.ct);
 	return crypto.subtle.unwrapKey(

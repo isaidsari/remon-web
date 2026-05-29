@@ -74,11 +74,16 @@
 
 	function toServerSort(k: SortKey): 'cpu' | 'memory' | 'pid' | 'name' | null {
 		switch (k) {
-			case 'cpu_percent': return 'cpu';
-			case 'memory_bytes': return 'memory';
-			case 'pid': return 'pid';
-			case 'name': return 'name';
-			default: return null;
+			case 'cpu_percent':
+				return 'cpu';
+			case 'memory_bytes':
+				return 'memory';
+			case 'pid':
+				return 'pid';
+			case 'name':
+				return 'name';
+			default:
+				return null;
 		}
 	}
 
@@ -112,7 +117,8 @@
 			processes = reset ? res.processes : [...processes, ...res.processes];
 			total = res.total;
 			filteredTotal = res.filtered_total;
-			hasMore = isServerPaginated && processes.length < res.filtered_total && res.processes.length > 0;
+			hasMore =
+				isServerPaginated && processes.length < res.filtered_total && res.processes.length > 0;
 			lastFetched = Date.now();
 		} catch (e) {
 			if (e instanceof ApiError) {
@@ -146,7 +152,9 @@
 		const el = sentinel;
 		if (!el) return;
 		const observer = new IntersectionObserver(
-			([entry]) => { if (entry.isIntersecting && hasMore && !loadingMore) fetchProcesses(false); },
+			([entry]) => {
+				if (entry.isIntersecting && hasMore && !loadingMore) fetchProcesses(false);
+			},
 			{ rootMargin: '200px' }
 		);
 		observer.observe(el);
@@ -353,7 +361,9 @@
 					<span
 						class="ml-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-0.5 align-middle font-mono text-[12px] font-medium text-[var(--color-fg-muted)]"
 					>
-						{total > 0 && filteredTotal < total ? `${filteredTotal} / ${total}` : (total || processes.length)}
+						{total > 0 && filteredTotal < total
+							? `${filteredTotal} / ${total}`
+							: total || processes.length}
 					</span>
 				</h1>
 				{#if lastFetched}
@@ -381,7 +391,11 @@
 					onChange={(next) => (autoRefresh = next !== 'off')}
 					class="w-[8.5rem]"
 				/>
-				<RefreshButton onclick={() => fetchProcesses()} loading={loading} label={m.processes_action_refresh()} />
+				<RefreshButton
+					onclick={() => fetchProcesses()}
+					{loading}
+					label={m.processes_action_refresh()}
+				/>
 			</div>
 		</header>
 
@@ -393,7 +407,7 @@
 			width="sm"
 		>
 			<div class="flex flex-col gap-2">
-				{#each ([15, 9] as const) as sig (sig)}
+				{#each [15, 9] as const as sig (sig)}
 					<label
 						class={cn(
 							'flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition',
@@ -414,7 +428,9 @@
 								{sig === 15 ? m.processes_kill_signal_term() : m.processes_kill_signal_kill()}
 							</p>
 							<p class="mt-0.5 text-[12px] text-[var(--color-fg-muted)]">
-								{sig === 15 ? m.processes_kill_signal_term_hint() : m.processes_kill_signal_kill_hint()}
+								{sig === 15
+									? m.processes_kill_signal_term_hint()
+									: m.processes_kill_signal_kill_hint()}
 							</p>
 						</div>
 					</label>
@@ -475,7 +491,12 @@
 								{@render th('cpu_percent', 'CPU', 'right')}
 								{@render th('memory_bytes', m.processes_table_memory(), 'right')}
 								{@render th('state', m.processes_table_state(), 'left', 'hidden md:table-cell')}
-								{@render th('threads', m.processes_table_threads(), 'right', 'hidden md:table-cell')}
+								{@render th(
+									'threads',
+									m.processes_table_threads(),
+									'right',
+									'hidden md:table-cell'
+								)}
 								<th class="px-3 py-2.5"></th>
 							</tr>
 						</thead>
@@ -488,130 +509,145 @@
 										<td class="hidden px-3 py-2.5 sm:table-cell"><Skeleton class="h-3 w-16" /></td>
 										<td class="px-3 py-2.5"><Skeleton class="ml-auto h-3 w-12" /></td>
 										<td class="px-3 py-2.5"><Skeleton class="ml-auto h-3 w-14" /></td>
-										<td class="hidden px-3 py-2.5 md:table-cell"><Skeleton class="h-5 w-16" rounded="full" /></td>
-										<td class="hidden px-3 py-2.5 md:table-cell"><Skeleton class="ml-auto h-3 w-8" /></td>
+										<td class="hidden px-3 py-2.5 md:table-cell"
+											><Skeleton class="h-5 w-16" rounded="full" /></td
+										>
+										<td class="hidden px-3 py-2.5 md:table-cell"
+											><Skeleton class="ml-auto h-3 w-8" /></td
+										>
 										<td class="px-3 py-2.5"></td>
 									</tr>
 								{/each}
 							{:else}
-							{#each displayList as p (p.pid)}
-								{@const isCollapsed = collapsed.has(p.pid)}
-								{@const showSubtree = viewMode === 'tree' && p.hasChildren && isCollapsed}
-								{@const cpuDisplay = showSubtree ? p.subtreeCpu : p.cpu_percent}
-								<tr class="border-t border-[var(--color-border)] transition hover:bg-[var(--color-surface-2)]/40">
-									<td class="px-3 py-2 text-right font-mono tabular-nums text-[var(--color-fg-muted)]"
-										>{p.pid}</td
+								{#each displayList as p (p.pid)}
+									{@const isCollapsed = collapsed.has(p.pid)}
+									{@const showSubtree = viewMode === 'tree' && p.hasChildren && isCollapsed}
+									{@const cpuDisplay = showSubtree ? p.subtreeCpu : p.cpu_percent}
+									<tr
+										class="border-t border-[var(--color-border)] transition hover:bg-[var(--color-surface-2)]/40"
 									>
-									<td class="px-3 py-2">
-										<div
-											class="proc-name-cell flex items-start gap-1.5"
-											style="--tree-depth: {p.depth}"
+										<td
+											class="px-3 py-2 text-right font-mono tabular-nums text-[var(--color-fg-muted)]"
+											>{p.pid}</td
 										>
-											{#if viewMode === 'tree'}
-												{#if p.hasChildren}
-													<button
-														type="button"
-														onclick={() => toggleCollapse(p.pid)}
-														class="mt-[2px] inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)]"
-														aria-label={isCollapsed ? m.processes_aria_expand() : m.processes_aria_collapse()}
-													>
-														<svg
-															width="12"
-															height="12"
-															viewBox="0 0 24 24"
-															fill="currentColor"
-															style="transform: rotate({isCollapsed ? 0 : 90}deg); transition: transform 100ms ease"
+										<td class="px-3 py-2">
+											<div
+												class="proc-name-cell flex items-start gap-1.5"
+												style="--tree-depth: {p.depth}"
+											>
+												{#if viewMode === 'tree'}
+													{#if p.hasChildren}
+														<button
+															type="button"
+															onclick={() => toggleCollapse(p.pid)}
+															class="mt-[2px] inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)]"
+															aria-label={isCollapsed
+																? m.processes_aria_expand()
+																: m.processes_aria_collapse()}
 														>
-															<path d="M8 5l8 7-8 7z" />
-														</svg>
-													</button>
-												{:else}
-													<span
-														class="mt-[2px] inline-flex h-5 w-5 shrink-0 items-center justify-center text-[var(--color-fg-subtle)]"
-														aria-hidden="true"
-													>
-														<span class="block h-1 w-1 rounded-full bg-current"></span>
-													</span>
-												{/if}
-											{/if}
-											<div class="flex min-w-0 flex-col">
-												<span class="font-medium text-[var(--color-fg)]">
-													{p.name}
-													{#if viewMode === 'tree' && p.hasChildren && isCollapsed}
+															<svg
+																width="12"
+																height="12"
+																viewBox="0 0 24 24"
+																fill="currentColor"
+																style="transform: rotate({isCollapsed
+																	? 0
+																	: 90}deg); transition: transform 100ms ease"
+															>
+																<path d="M8 5l8 7-8 7z" />
+															</svg>
+														</button>
+													{:else}
 														<span
-															class="ml-1.5 font-mono text-[10px] font-normal text-[var(--color-fg-subtle)]"
-															title={m.processes_descendants_hidden({ count: p.descendantCount })}
+															class="mt-[2px] inline-flex h-5 w-5 shrink-0 items-center justify-center text-[var(--color-fg-subtle)]"
+															aria-hidden="true"
 														>
-															+{p.descendantCount}
+															<span class="block h-1 w-1 rounded-full bg-current"></span>
 														</span>
 													{/if}
-												</span>
-												{#if p.cmd && p.cmd.length > 1}
-													<span
-														class="truncate max-w-[40ch] font-mono text-[11px] text-[var(--color-fg-subtle)]"
-														title={p.cmd.join(' ')}
-													>
-														{p.cmd.slice(1).join(' ') || '—'}
-													</span>
 												{/if}
+												<div class="flex min-w-0 flex-col">
+													<span class="font-medium text-[var(--color-fg)]">
+														{p.name}
+														{#if viewMode === 'tree' && p.hasChildren && isCollapsed}
+															<span
+																class="ml-1.5 font-mono text-[10px] font-normal text-[var(--color-fg-subtle)]"
+																title={m.processes_descendants_hidden({ count: p.descendantCount })}
+															>
+																+{p.descendantCount}
+															</span>
+														{/if}
+													</span>
+													{#if p.cmd && p.cmd.length > 1}
+														<span
+															class="truncate max-w-[40ch] font-mono text-[11px] text-[var(--color-fg-subtle)]"
+															title={p.cmd.join(' ')}
+														>
+															{p.cmd.slice(1).join(' ') || '—'}
+														</span>
+													{/if}
+												</div>
 											</div>
-										</div>
-									</td>
-									<td class="hidden px-3 py-2 text-[var(--color-fg-muted)] sm:table-cell">{p.user ?? '—'}</td>
-									<td class="px-3 py-2 text-right font-mono tabular-nums">
-										{fmtPercent(cpuDisplay, 1)}
-										{#if showSubtree}
+										</td>
+										<td class="hidden px-3 py-2 text-[var(--color-fg-muted)] sm:table-cell"
+											>{p.user ?? '—'}</td
+										>
+										<td class="px-3 py-2 text-right font-mono tabular-nums">
+											{fmtPercent(cpuDisplay, 1)}
+											{#if showSubtree}
+												<span
+													class="ml-1 text-[10px] text-[var(--color-fg-subtle)]"
+													title={m.processes_subtree_total()}>Σ</span
+												>
+											{/if}
+										</td>
+										<td class="px-3 py-2 text-right font-mono tabular-nums">
+											{fmtBytes(p.memory_bytes)}
+										</td>
+										<td class="hidden px-3 py-2 md:table-cell">
 											<span
-												class="ml-1 text-[10px] text-[var(--color-fg-subtle)]"
-												title={m.processes_subtree_total()}>Σ</span
+												class={cn(
+													'inline-flex items-center rounded-full px-2 py-0.5 text-[11px]',
+													stateBadge[p.state]
+												)}
 											>
-										{/if}
-									</td>
-									<td class="px-3 py-2 text-right font-mono tabular-nums">
-										{fmtBytes(p.memory_bytes)}
-									</td>
-									<td class="hidden px-3 py-2 md:table-cell">
-										<span
-											class={cn(
-												'inline-flex items-center rounded-full px-2 py-0.5 text-[11px]',
-												stateBadge[p.state]
-											)}
+												{p.state}
+											</span>
+										</td>
+										<td
+											class="hidden px-3 py-2 text-right font-mono tabular-nums text-[var(--color-fg-muted)] md:table-cell"
+											>{p.threads ?? '—'}</td
 										>
-											{p.state}
-										</span>
-									</td>
-									<td class="hidden px-3 py-2 text-right font-mono tabular-nums text-[var(--color-fg-muted)] md:table-cell"
-										>{p.threads ?? '—'}</td
-									>
-									<td class="px-3 py-2 text-right">
-										<button
-											type="button"
-											onclick={() => openKillModal(p.pid, p.name)}
-											class="rounded-md p-1.5 text-[var(--color-fg-subtle)] transition hover:bg-[var(--color-danger)]/15 hover:text-[var(--color-danger)]"
-											aria-label={m.processes_aria_kill()}
-											title={m.processes_kill_title()}
-											disabled={killing && killTarget?.pid === p.pid}
-										>
-											<svg
-												width="14"
-												height="14"
-												viewBox="0 0 24 24"
-												fill="none"
-												stroke="currentColor"
-												stroke-width="2"
-												><path d="M18 6 6 18M6 6l12 12" /></svg
+										<td class="px-3 py-2 text-right">
+											<button
+												type="button"
+												onclick={() => openKillModal(p.pid, p.name)}
+												class="rounded-md p-1.5 text-[var(--color-fg-subtle)] transition hover:bg-[var(--color-danger)]/15 hover:text-[var(--color-danger)]"
+												aria-label={m.processes_aria_kill()}
+												title={m.processes_kill_title()}
+												disabled={killing && killTarget?.pid === p.pid}
 											>
-										</button>
-									</td>
-								</tr>
-							{/each}
-							{#if displayList.length === 0}
-								<tr>
-									<td colspan="8" class="px-3 py-8 text-center text-sm text-[var(--color-fg-subtle)]"
-										>{m.processes_empty_state()}</td
-									>
-								</tr>
-							{/if}
+												<svg
+													width="14"
+													height="14"
+													viewBox="0 0 24 24"
+													fill="none"
+													stroke="currentColor"
+													stroke-width="2"><path d="M18 6 6 18M6 6l12 12" /></svg
+												>
+											</button>
+										</td>
+									</tr>
+								{/each}
+								{#if displayList.length === 0}
+									<tr>
+										<td
+											colspan="8"
+											class="px-3 py-8 text-center text-sm text-[var(--color-fg-subtle)]"
+											>{m.processes_empty_state()}</td
+										>
+									</tr>
+								{/if}
 							{/if}
 						</tbody>
 					</table>
@@ -658,4 +694,3 @@
 		background-repeat: no-repeat;
 	}
 </style>
-

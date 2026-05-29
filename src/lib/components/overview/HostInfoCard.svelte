@@ -23,9 +23,7 @@
 	});
 
 	let liveUptime = $derived(
-		info && fetchedAt > 0
-			? info.description.uptime_secs + Math.floor((now - fetchedAt) / 1000)
-			: 0
+		info && fetchedAt > 0 ? info.description.uptime_secs + Math.floor((now - fetchedAt) / 1000) : 0
 	);
 
 	let osLabel = $derived.by(() => {
@@ -53,32 +51,15 @@
 	{@render memoryCell()}
 </div>
 
-{#snippet cell(label: string, value: string, sub?: string, tooltip?: string)}
-	<div class="flex flex-col gap-1.5 bg-[var(--color-surface)] px-4 py-3.5">
-		<span class="font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)]">
-			{label}
-		</span>
-		<span
-			class="truncate font-mono text-[13px] font-medium text-[var(--color-fg)]"
-			title={tooltip ?? value}
-		>
-			{value}
-		</span>
-		{#if sub}
-			<span class="truncate font-mono text-[11px] text-[var(--color-fg-subtle)]">
-				{sub}
-			</span>
-		{/if}
-	</div>
-{/snippet}
-
 {#snippet hostnameCell()}
 	<div class="relative flex flex-col gap-1.5 overflow-hidden bg-[var(--color-surface)] px-4 py-3.5">
 		<IconServer
 			class="pointer-events-none absolute right-2 top-1/2 size-16 -translate-y-1/2 opacity-[0.15]"
 			stroke-width="1"
 		/>
-		<span class="relative font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)]">
+		<span
+			class="relative font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)]"
+		>
 			hostname
 		</span>
 		<span
@@ -101,7 +82,9 @@
 			class="pointer-events-none absolute right-2 top-1/2 size-16 -translate-y-1/2 opacity-[0.15]"
 			stroke-width="1"
 		/>
-		<span class="relative font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)]">
+		<span
+			class="relative font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)]"
+		>
 			memory
 		</span>
 		<span class="relative truncate font-mono text-[13px] font-medium text-[var(--color-fg)]">

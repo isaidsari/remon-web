@@ -14,17 +14,28 @@
 	// Static switch: paraglide messages are tree-shaken, so dynamic key lookup would include all messages.
 	function sectionLabel(name: string): string {
 		switch (name) {
-			case 'overview': return m.section_overview();
-			case 'metrics': return m.section_metrics();
-			case 'services': return m.section_services();
-			case 'probes': return m.section_probes();
-			case 'docker': return m.section_docker();
-			case 'settings': return m.section_settings();
-			case 'notifications': return m.section_notifications();
-			case 'config': return m.section_config();
-			case 'alerts': return m.section_alerts();
-			case 'processes': return m.section_processes();
-			default: return name;
+			case 'overview':
+				return m.section_overview();
+			case 'metrics':
+				return m.section_metrics();
+			case 'services':
+				return m.section_services();
+			case 'probes':
+				return m.section_probes();
+			case 'docker':
+				return m.section_docker();
+			case 'settings':
+				return m.section_settings();
+			case 'notifications':
+				return m.section_notifications();
+			case 'config':
+				return m.section_config();
+			case 'alerts':
+				return m.section_alerts();
+			case 'processes':
+				return m.section_processes();
+			default:
+				return name;
 		}
 	}
 
@@ -65,7 +76,9 @@
 			</button>
 		{/if}
 		<a href="/servers" class="group flex shrink-0 items-baseline gap-1.5">
-			<span class="font-mono text-[14px] font-semibold tracking-[0.02em] text-[var(--color-fg)] transition-colors group-hover:text-[var(--color-accent)]">
+			<span
+				class="font-mono text-[14px] font-semibold tracking-[0.02em] text-[var(--color-fg)] transition-colors group-hover:text-[var(--color-accent)]"
+			>
 				remon
 			</span>
 			<span
@@ -100,7 +113,13 @@
 
 	<div class="ml-2 flex shrink-0 items-center gap-2">
 		{#if vault.isOpen}
-			<Button variant="ghost" size="sm" onclick={lock} aria-label={m.common_lock()} class="max-sm:w-7 max-sm:px-0">
+			<Button
+				variant="ghost"
+				size="sm"
+				onclick={lock}
+				aria-label={m.common_lock()}
+				class="max-sm:w-7 max-sm:px-0"
+			>
 				<IconLock class="size-[13px]" stroke-width="1.9" />
 				<span class="hidden sm:inline">{m.common_lock()}</span>
 			</Button>

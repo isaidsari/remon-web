@@ -1,5 +1,6 @@
 import { vault } from '$lib/vault/store.svelte';
 import type { ServerProfile, VaultData } from '$lib/types/profile';
+import type { DashboardLayout } from '$lib/types/dashboard';
 
 function uuid(): string {
 	if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
@@ -50,6 +51,13 @@ export const profiles = {
 	async update(id: string, patch: Partial<Omit<ServerProfile, 'id' | 'createdAt'>>): Promise<void> {
 		const cur = snapshot();
 		const next = cur.servers.map((s) => (s.id === id ? { ...s, ...patch } : s));
+		await persist({ ...cur, servers: next });
+	},
+
+	/** Persist a server's customizable dashboard layout. */
+	async setDashboard(id: string, dashboard: DashboardLayout): Promise<void> {
+		const cur = snapshot();
+		const next = cur.servers.map((s) => (s.id === id ? { ...s, dashboard } : s));
 		await persist({ ...cur, servers: next });
 	},
 

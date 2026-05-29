@@ -32,24 +32,30 @@
 
 	function defaultLabel(t: LiveTone): string {
 		switch (t) {
-			case 'online': return m.livebadge_online();
-			case 'connecting': return m.livebadge_connecting();
-			case 'warning': return m.livebadge_degraded();
-			case 'offline': return m.livebadge_offline();
-			case 'idle': return m.livebadge_idle();
+			case 'online':
+				return m.livebadge_online();
+			case 'connecting':
+				return m.livebadge_connecting();
+			case 'warning':
+				return m.livebadge_degraded();
+			case 'offline':
+				return m.livebadge_offline();
+			case 'idle':
+				return m.livebadge_idle();
 		}
 	}
 </script>
 
 <span
-	class={cn(
-		'inline-flex items-center gap-1.5 text-[11px] text-[var(--color-fg-muted)]',
-		klass
-	)}
+	class={cn('inline-flex items-center gap-1.5 text-[11px] text-[var(--color-fg-muted)]', klass)}
 	title={!showLabel ? defaultLabel(tone) : undefined}
 >
 	<span
-		class={cn('relative inline-block h-1.5 w-1.5 shrink-0 rounded-full', dotBg[tone], live && 'live-pulse')}
+		class={cn(
+			'relative inline-block h-1.5 w-1.5 shrink-0 rounded-full',
+			dotBg[tone],
+			live && 'live-pulse'
+		)}
 		style={live ? `--pulse-color: ${pulseColor[tone]}` : undefined}
 		aria-hidden="true"
 	></span>

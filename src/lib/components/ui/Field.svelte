@@ -25,10 +25,7 @@
 
 <div class={cn('flex flex-col gap-1.5', klass)}>
 	{#if label}
-		<label
-			for={htmlFor}
-			class="text-xs font-medium text-[var(--color-fg-muted)] tracking-wide"
-		>
+		<label for={htmlFor} class="text-xs font-medium text-[var(--color-fg-muted)] tracking-wide">
 			{label}
 			{#if required}<span class="text-[var(--color-danger)]">*</span>{/if}
 		</label>

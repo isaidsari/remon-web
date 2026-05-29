@@ -4,7 +4,6 @@
 	import { page } from '$app/state';
 	import { profiles } from '$lib/stores/profiles.svelte';
 	import { connections } from '$lib/stores/connections.svelte';
-	import LiveBadge from '$lib/components/ui/LiveBadge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import { cn } from '$lib/utils/cn';
@@ -116,9 +115,7 @@
 				? 'connecting'
 				: 'offline'
 	);
-	let connectionLive = $derived(
-		conn?.isAuthenticated === true && conn.live.status === 'open'
-	);
+	let connectionLive = $derived(conn?.isAuthenticated === true && conn.live.status === 'open');
 
 	// Auto-close on route change so the drawer doesn't linger after a nav item tap.
 	$effect(() => {
@@ -172,7 +169,9 @@
 
 			<div class="mb-6 px-2">
 				<div class="flex items-center gap-2">
-					<h2 class="min-w-0 flex-1 truncate text-[15px] font-semibold tracking-tight leading-tight">
+					<h2
+						class="min-w-0 flex-1 truncate text-[15px] font-semibold tracking-tight leading-tight"
+					>
 						{profile.name}
 					</h2>
 					<span
@@ -245,7 +244,6 @@
 					{/if}
 				{/each}
 			</nav>
-
 		</aside>
 
 		<main class="overflow-x-hidden">

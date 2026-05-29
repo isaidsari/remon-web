@@ -6,12 +6,7 @@
 		invalid?: boolean;
 	}
 
-	let {
-		invalid = false,
-		class: klass = '',
-		value = $bindable(''),
-		...rest
-	}: Props = $props();
+	let { invalid = false, class: klass = '', value = $bindable(''), ...rest }: Props = $props();
 </script>
 
 <input
@@ -22,7 +17,8 @@
 		'focus:bg-[var(--color-surface-3)] focus:shadow-[inset_0_0_0_1px_var(--color-accent)] focus:outline-none',
 		'disabled:opacity-50 disabled:cursor-not-allowed',
 		'hover:shadow-[inset_0_0_0_1px_var(--color-border-strong)]',
-		invalid && 'shadow-[inset_0_0_0_1px_var(--color-danger)] focus:shadow-[inset_0_0_0_1px_var(--color-danger)]',
+		invalid &&
+			'shadow-[inset_0_0_0_1px_var(--color-danger)] focus:shadow-[inset_0_0_0_1px_var(--color-danger)]',
 		klass
 	)}
 	{...rest}

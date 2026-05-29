@@ -1,6 +1,5 @@
 import type { RawStats } from '$lib/utils/dockerStats';
 import type {
-	AlertEventDto,
 	AlertRuleDto,
 	BatchMetricsQuery,
 	BatchMetricsResponse,
@@ -290,57 +289,49 @@ export class ApiClient {
 	}
 
 	startService(name: string): Promise<ServiceActionResponse> {
-		return this.request<ServiceActionResponse>(
-			`/services/${encodeURIComponent(name)}/start`,
-			{ method: 'POST' }
-		);
+		return this.request<ServiceActionResponse>(`/services/${encodeURIComponent(name)}/start`, {
+			method: 'POST'
+		});
 	}
 	stopService(name: string): Promise<ServiceActionResponse> {
-		return this.request<ServiceActionResponse>(
-			`/services/${encodeURIComponent(name)}/stop`,
-			{ method: 'POST' }
-		);
+		return this.request<ServiceActionResponse>(`/services/${encodeURIComponent(name)}/stop`, {
+			method: 'POST'
+		});
 	}
 	restartService(name: string): Promise<ServiceActionResponse> {
-		return this.request<ServiceActionResponse>(
-			`/services/${encodeURIComponent(name)}/restart`,
-			{ method: 'POST' }
-		);
+		return this.request<ServiceActionResponse>(`/services/${encodeURIComponent(name)}/restart`, {
+			method: 'POST'
+		});
 	}
 	reloadService(name: string): Promise<ServiceActionResponse> {
-		return this.request<ServiceActionResponse>(
-			`/services/${encodeURIComponent(name)}/reload`,
-			{ method: 'POST' }
-		);
+		return this.request<ServiceActionResponse>(`/services/${encodeURIComponent(name)}/reload`, {
+			method: 'POST'
+		});
 	}
 
 	enableService(name: string): Promise<ServiceActionResponse> {
-		return this.request<ServiceActionResponse>(
-			`/services/${encodeURIComponent(name)}/enable`,
-			{ method: 'PUT' }
-		);
+		return this.request<ServiceActionResponse>(`/services/${encodeURIComponent(name)}/enable`, {
+			method: 'PUT'
+		});
 	}
 	disableService(name: string): Promise<ServiceActionResponse> {
-		return this.request<ServiceActionResponse>(
-			`/services/${encodeURIComponent(name)}/disable`,
-			{ method: 'PUT' }
-		);
+		return this.request<ServiceActionResponse>(`/services/${encodeURIComponent(name)}/disable`, {
+			method: 'PUT'
+		});
 	}
 
 	listTimers(): Promise<ListTimersResponse> {
 		return this.request<ListTimersResponse>('/timers');
 	}
 	enableTimer(name: string): Promise<ServiceActionResponse> {
-		return this.request<ServiceActionResponse>(
-			`/timers/${encodeURIComponent(name)}/enable`,
-			{ method: 'PUT' }
-		);
+		return this.request<ServiceActionResponse>(`/timers/${encodeURIComponent(name)}/enable`, {
+			method: 'PUT'
+		});
 	}
 	disableTimer(name: string): Promise<ServiceActionResponse> {
-		return this.request<ServiceActionResponse>(
-			`/timers/${encodeURIComponent(name)}/disable`,
-			{ method: 'PUT' }
-		);
+		return this.request<ServiceActionResponse>(`/timers/${encodeURIComponent(name)}/disable`, {
+			method: 'PUT'
+		});
 	}
 
 	listCronJobs(): Promise<ListCronJobsResponse> {
@@ -354,10 +345,9 @@ export class ApiClient {
 		return this.request<ProbeDetail>(`/probes/${encodeURIComponent(name)}`);
 	}
 	getProbeHistory(name: string, limit?: number, offset?: number): Promise<ProbeHistoryResponse> {
-		return this.request<ProbeHistoryResponse>(
-			`/probes/${encodeURIComponent(name)}/history`,
-			{ query: { limit, offset } }
-		);
+		return this.request<ProbeHistoryResponse>(`/probes/${encodeURIComponent(name)}/history`, {
+			query: { limit, offset }
+		});
 	}
 	getProbeMetricHistory(
 		probe: string,
@@ -378,7 +368,11 @@ export class ApiClient {
 	}
 
 	killProcess(pid: number, signal: 9 | 15 = 15): Promise<void> {
-		return this.request<void>(`/processes/${pid}`, { method: 'DELETE', parse: 'none', query: { signal } });
+		return this.request<void>(`/processes/${pid}`, {
+			method: 'DELETE',
+			parse: 'none',
+			query: { signal }
+		});
 	}
 
 	dockerStatus(): Promise<DockerStatusResponse> {
@@ -454,7 +448,11 @@ export class ApiClient {
 	}
 
 	setFcmToken(token: string | null): Promise<void> {
-		return this.request<void>('/me/fcm-token', { method: 'PATCH', body: { fcm_token: token }, parse: 'none' });
+		return this.request<void>('/me/fcm-token', {
+			method: 'PATCH',
+			body: { fcm_token: token },
+			parse: 'none'
+		});
 	}
 
 	getVapidPublicKey(): Promise<{ public_key: string }> {
@@ -536,8 +534,14 @@ export class ApiClient {
 		return this.request<ListAlertEventsResponse>('/alerts/events', { query: { limit, offset } });
 	}
 
-	alertEventsForRule(id: number, limit?: number, offset?: number): Promise<ListAlertEventsResponse> {
-		return this.request<ListAlertEventsResponse>(`/alerts/${id}/events`, { query: { limit, offset } });
+	alertEventsForRule(
+		id: number,
+		limit?: number,
+		offset?: number
+	): Promise<ListAlertEventsResponse> {
+		return this.request<ListAlertEventsResponse>(`/alerts/${id}/events`, {
+			query: { limit, offset }
+		});
 	}
 
 	alertsSchema(): Promise<AlertsSchemaResponse> {

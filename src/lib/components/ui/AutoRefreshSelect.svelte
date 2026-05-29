@@ -31,7 +31,6 @@
 		if (next instanceof Node && root?.contains(next)) return;
 		open = false;
 	}
-
 </script>
 
 <div
@@ -61,7 +60,10 @@
 		<span class="min-w-0 flex-1 truncate font-mono text-xs tabular-nums text-[var(--color-fg)]">
 			{selected?.label}
 		</span>
-		<IconChevronDown class={cn('size-3.5 shrink-0 text-[var(--color-fg-subtle)] transition', open && 'rotate-180')} stroke-width="2" />
+		<IconChevronDown
+			class={cn('size-3.5 shrink-0 text-[var(--color-fg-subtle)] transition', open && 'rotate-180')}
+			stroke-width="2"
+		/>
 	</button>
 
 	{#if open}

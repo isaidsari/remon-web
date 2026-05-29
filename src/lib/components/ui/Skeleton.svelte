@@ -20,11 +20,4 @@
 	);
 </script>
 
-<div
-	class={cn(
-		'animate-pulse bg-[var(--color-surface-3)]',
-		roundedClass,
-		klass
-	)}
-	{style}
-></div>
+<div class={cn('animate-pulse bg-[var(--color-surface-3)]', roundedClass, klass)} {style}></div>

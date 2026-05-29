@@ -13,14 +13,22 @@
 
 	function stateLabel(s: ServiceState): string {
 		switch (s) {
-			case 'running': return m.badge_state_running();
-			case 'stopped': return m.badge_state_stopped();
-			case 'starting': return m.badge_state_starting();
-			case 'stopping': return m.badge_state_stopping();
-			case 'paused': return m.badge_state_paused();
-			case 'failed': return m.badge_state_failed();
-			case 'reloading': return m.badge_state_reloading();
-			case 'unknown': return m.badge_state_unknown();
+			case 'running':
+				return m.badge_state_running();
+			case 'stopped':
+				return m.badge_state_stopped();
+			case 'starting':
+				return m.badge_state_starting();
+			case 'stopping':
+				return m.badge_state_stopping();
+			case 'paused':
+				return m.badge_state_paused();
+			case 'failed':
+				return m.badge_state_failed();
+			case 'reloading':
+				return m.badge_state_reloading();
+			case 'unknown':
+				return m.badge_state_unknown();
 		}
 	}
 

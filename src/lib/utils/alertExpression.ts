@@ -147,7 +147,13 @@ export const ALERT_TEMPLATES: AlertTemplate[] = [
 		id: 'cpu-high',
 		title: 'CPU usage high',
 		summary: 'Fires when overall CPU stays above the threshold.',
-		parts: { namespace: 'cpu', field: 'usage_percent', labels: {}, comparator: '>', threshold: '80' },
+		parts: {
+			namespace: 'cpu',
+			field: 'usage_percent',
+			labels: {},
+			comparator: '>',
+			threshold: '80'
+		},
 		severity: 'warn',
 		for_duration_secs: 60
 	},
@@ -155,7 +161,13 @@ export const ALERT_TEMPLATES: AlertTemplate[] = [
 		id: 'mem-pressure',
 		title: 'Memory pressure',
 		summary: 'Fires when little memory remains available.',
-		parts: { namespace: 'memory', field: 'available_bytes', labels: {}, comparator: '<', threshold: '524288000' },
+		parts: {
+			namespace: 'memory',
+			field: 'available_bytes',
+			labels: {},
+			comparator: '<',
+			threshold: '524288000'
+		},
 		severity: 'warn',
 		for_duration_secs: 60
 	},
@@ -163,7 +175,13 @@ export const ALERT_TEMPLATES: AlertTemplate[] = [
 		id: 'disk-full',
 		title: 'Disk filling up',
 		summary: 'Per-mount alert; pick a mount and threshold (bytes used).',
-		parts: { namespace: 'disk', field: 'used_bytes', labels: { mount_point: '' }, comparator: '>', threshold: '750000000000' },
+		parts: {
+			namespace: 'disk',
+			field: 'used_bytes',
+			labels: { mount_point: '' },
+			comparator: '>',
+			threshold: '750000000000'
+		},
 		severity: 'crit',
 		for_duration_secs: 300
 	},
@@ -171,7 +189,13 @@ export const ALERT_TEMPLATES: AlertTemplate[] = [
 		id: 'inode-full',
 		title: 'Inode usage high (Linux)',
 		summary: 'Files can outrun bytes on busy mounts.',
-		parts: { namespace: 'disk', field: 'inode_used_percent', labels: { mount_point: '' }, comparator: '>', threshold: '90' },
+		parts: {
+			namespace: 'disk',
+			field: 'inode_used_percent',
+			labels: { mount_point: '' },
+			comparator: '>',
+			threshold: '90'
+		},
 		severity: 'warn',
 		for_duration_secs: 60
 	},
@@ -179,7 +203,13 @@ export const ALERT_TEMPLATES: AlertTemplate[] = [
 		id: 'swap-active',
 		title: 'Swap activity',
 		summary: 'Pages swapping in indicates thrashing.',
-		parts: { namespace: 'memory', field: 'swap_in_pages_per_sec', labels: {}, comparator: '>', threshold: '100' },
+		parts: {
+			namespace: 'memory',
+			field: 'swap_in_pages_per_sec',
+			labels: {},
+			comparator: '>',
+			threshold: '100'
+		},
 		severity: 'warn',
 		for_duration_secs: 30
 	},

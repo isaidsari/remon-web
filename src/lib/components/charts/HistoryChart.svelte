@@ -14,19 +14,18 @@
 	import type { ECharts, EChartsCoreOption, LinearGradientObject } from 'echarts/core';
 	import { loadEcharts } from '$lib/charts/echarts-lazy';
 	import { chartPalette } from '$lib/charts/chart-theme';
-	import { m } from '$lib/paraglide/messages';
 
 	interface Props {
 		series: Series[];
 		height?: number;
 		yMin?: number;
 		yMax?: number;
+		/** Let the y-axis fit the data range instead of anchoring at zero — surfaces small changes on a large baseline. */
+		relativeScale?: boolean;
 		valueFormatter?: (v: number | null) => string;
 		axisLabel?: string;
 		/** Same string on every chart on the page to sync crosshair hover. */
 		group?: string;
-		/** Suppress the small "drag to zoom · double-click to reset" caption. */
-		hideZoomHint?: boolean;
 		class?: string;
 	}
 
@@ -35,10 +34,10 @@
 		height = 280,
 		yMin,
 		yMax,
+		relativeScale = false,
 		valueFormatter,
 		axisLabel,
 		group,
-		hideZoomHint = false,
 		class: klass = ''
 	}: Props = $props();
 
@@ -135,6 +134,8 @@
 				type: 'value',
 				name: axisLabel,
 				nameTextStyle: { color: palette.axisText, fontSize: 10 },
+				// scale:true frees the axis from the zero baseline so small deltas are visible.
+				scale: relativeScale,
 				min: yMin ?? undefined,
 				max: yMax ?? undefined,
 				axisLine: { show: false },
@@ -146,13 +147,15 @@
 				},
 				splitLine: { lineStyle: { color: palette.gridLine } }
 			},
-			// Wheel zoom only here — drag-to-zoom is wired via the brush
-			// component below so the cursor stays in brush mode permanently.
+			// Drag-to-zoom is the only zoom gesture (wired via the brush below).
+			// Wheel zoom is off so scrolling the page over a chart never
+			// hijacks into a zoom. The inside dataZoom stays mounted only so
+			// brushEnd can dispatch a dataZoom action into it.
 			dataZoom: [
 				{
 					type: 'inside',
 					filterMode: 'none',
-					zoomOnMouseWheel: true,
+					zoomOnMouseWheel: false,
 					moveOnMouseMove: false,
 					moveOnMouseWheel: false
 				}
@@ -220,7 +223,19 @@
 				enableBrushCursor();
 			});
 
-			chart.getZr().on('dblclick', resetZoom);
+			// Double-tap / double-click to reset. zrender's 'dblclick' doesn't
+			// fire on touch, so detect two quick taps via 'click' instead —
+			// works the same on mouse and touch.
+			let lastTap = 0;
+			chart.getZr().on('click', () => {
+				const now = Date.now();
+				if (now - lastTap < 320) {
+					resetZoom();
+					lastTap = 0;
+				} else {
+					lastTap = now;
+				}
+			});
 			enableBrushCursor();
 
 			if (group) {
@@ -251,12 +266,9 @@
 </script>
 
 <div class={klass}>
-	<div bind:this={container} style="width: 100%; height: {height}px;"></div>
-	{#if !hideZoomHint}
-		<p
-			class="mt-0.5 hidden truncate text-right font-mono text-[10px] text-[var(--color-fg-faint)] select-none sm:block"
-		>
-			{m.chart_zoom_hint()}
-		</p>
-	{/if}
+	<!-- height={0} opts into a fill-parent container so the chart can size to a flex/grid cell. -->
+	<div
+		bind:this={container}
+		style="width: 100%; height: {height > 0 ? `${height}px` : '100%'};"
+	></div>
 </div>
