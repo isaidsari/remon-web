@@ -875,6 +875,7 @@
 	"settings_autounlock_enable_dialog_description": "confirm with your master password. it's used only to derive the device key locally — never sent to any server.",
 	"settings_autounlock_enable_dialog_button": "turn on",
 	"settings_autounlock_wrong_password": "wrong master password",
+	"settings_autounlock_setup_failed": "couldn't set up auto-unlock on this device — try again",
 	"settings_autounlock_disable_dialog_title": "turn off auto-unlock?",
 	"settings_autounlock_disable_dialog_description": "next launches will prompt for the master password again. the device key in this browser is deleted.",
 	"settings_autounlock_disable_dialog_confirm": "turn off",

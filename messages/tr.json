@@ -875,6 +875,7 @@
 	"settings_autounlock_enable_dialog_description": "onaylamak için ana parolanı gir. parola yalnızca cihaz anahtarına ulaşmak için kullanılır, sunucuya gönderilmez.",
 	"settings_autounlock_enable_dialog_button": "aç",
 	"settings_autounlock_wrong_password": "yanlış ana parola",
+	"settings_autounlock_setup_failed": "bu cihazda otomatik açma kurulamadı — tekrar deneyin",
 	"settings_autounlock_disable_dialog_title": "otomatik açmayı kapat?",
 	"settings_autounlock_disable_dialog_description": "sonraki açılışlarda ana parolayı tekrar girersiniz. bu tarayıcıdaki cihaz anahtarı silinir.",
 	"settings_autounlock_disable_dialog_confirm": "kapat",

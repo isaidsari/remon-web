@@ -43,11 +43,11 @@
 	const NO_CHROME_ROUTES = ['/setup', '/unlock'];
 
 	let path = $derived(page.url.pathname);
-	let showChrome = $derived(!NO_CHROME_ROUTES.some((p) => path.startsWith(p)));
-
-	let routeNeedsVault = $derived(!NO_CHROME_ROUTES.some((p) => path.startsWith(p)));
+	// Setup/unlock are the only chrome-less, vault-independent routes.
+	let isProtectedRoute = $derived(!NO_CHROME_ROUTES.some((p) => path.startsWith(p)));
+	let showChrome = $derived(isProtectedRoute);
 	// Suppress content until vault matches — prevents a locked-state flash before redirect.
-	let showContent = $derived(!routeNeedsVault || vault.isOpen);
+	let showContent = $derived(!isProtectedRoute || vault.isOpen);
 
 	$effect(() => {
 		const state = vault.state;

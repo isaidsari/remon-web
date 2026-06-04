@@ -90,6 +90,11 @@
 
 	let dirty = $derived(Object.keys(diff).length > 0);
 
+	// Surface the empty-name error inline on the field.
+	let serverNameError = $derived(
+		form && !form.server_name.trim() ? m.config_validation_server_name_empty() : null
+	);
+
 	// Docker collector is compiled out on servers built --no-default-features;
 	// the API then reports interval 0. Hide the field and skip its validation.
 	let dockerEnabled = $derived(original ? original.collector_docker_interval_ms !== 0 : false);
@@ -191,6 +196,7 @@
 					<Field
 						label={m.config_field_server_name_label()}
 						hint={m.config_field_server_name_hint()}
+						error={serverNameError}
 						for="server-name"
 					>
 						<Input

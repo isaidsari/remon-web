@@ -193,7 +193,7 @@
 			toast.success(m.settings_toast_renamed());
 			await fetchSessions();
 		} catch (e) {
-			editingId = null;
+			// Keep edit mode open on failure so the user can retry.
 			toast.error(m.settings_toast_rename_failed(), {
 				description: e instanceof ApiError ? e.userMessage : String(e)
 			});
@@ -285,29 +285,24 @@
 		if (!autoUnlockPwd || autoUnlockBusy) return;
 		autoUnlockBusy = true;
 		autoUnlockError = null;
+		// unlock()'s GCM tag check validates the password; a trustDevice() throw
+		// is a device-key/storage problem, not a bad password — classify apart.
+		let unlocked = false;
 		try {
-			// Verify the password by attempting a fresh unlock with it — the
-			// store ignores re-unlock when already open, so we delegate to
-			// trustDevice which derives an extractable key from the same
-			// password and will throw if the derivation produces a key that
-			// can't decrypt the vault. We sanity-check by trying to read the
-			// vault data after deriving — if password is wrong, encrypt/decrypt
-			// would mismatch. Simplest: derive extractable + wrap; on success,
-			// password was correct (otherwise wrap succeeds but auto-unlock
-			// would fail on next launch). To catch wrong passwords *now*, we
-			// also test-decrypt against the current vault blob.
-			//
-			// vault.trustDevice doesn't verify — so we do a quick unlock probe:
-			// if vault is open, calling unlock again with wrong password throws
-			// because decryptJson tag check fails.
 			await vault.unlock(autoUnlockPwd);
+			unlocked = true;
 			await vault.trustDevice(autoUnlockPwd);
 			autoUnlockModalOpen = false;
 			autoUnlockPwd = '';
 			toast.success(m.settings_autounlock_toast_enabled());
-		} catch {
-			autoUnlockError = m.settings_autounlock_wrong_password();
+		} catch (err) {
 			autoUnlockPwd = '';
+			if (!unlocked) {
+				autoUnlockError = m.settings_autounlock_wrong_password();
+			} else {
+				console.error('auto-unlock device setup failed', err);
+				autoUnlockError = m.settings_autounlock_setup_failed();
+			}
 		} finally {
 			autoUnlockBusy = false;
 		}
