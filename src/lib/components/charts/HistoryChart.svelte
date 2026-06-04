@@ -14,6 +14,7 @@
 	import type { ECharts, EChartsCoreOption, LinearGradientObject } from 'echarts/core';
 	import { loadEcharts } from '$lib/charts/echarts-lazy';
 	import { chartPalette } from '$lib/charts/chart-theme';
+	import { rgbAt } from '$lib/charts/color';
 
 	interface Props {
 		series: Series[];
@@ -44,14 +45,6 @@
 	let container: HTMLDivElement | null = $state(null);
 	let chart: ECharts | null = null;
 	let observer: ResizeObserver | null = null;
-
-	function rgbAt(c: string, alpha: number): string {
-		if (c.startsWith('rgb(')) return c.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
-		if (c.startsWith('rgba(')) return c.replace(/, *[0-9.]+\)$/, `, ${alpha})`);
-		if (c.startsWith('hsl(')) return c.replace('hsl(', 'hsla(').replace(')', ` / ${alpha})`);
-		if (c.startsWith('hsla(')) return c.replace(/\/ *[0-9.]+\)$/, `/ ${alpha})`);
-		return c;
-	}
 
 	function gradientFor(c: string): LinearGradientObject {
 		return {
