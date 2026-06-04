@@ -14,6 +14,7 @@
 	import { toast } from '$lib/stores/toast.svelte';
 	import { ApiError } from '$lib/api/error';
 	import { fmtBytes, fmtNumber, fmtPercent, fmtRelative } from '$lib/utils/format';
+	import { formatLabelKey as formatLabelKeyBase } from '$lib/utils/probeMetrics';
 	import { cn } from '$lib/utils/cn';
 	import { m } from '$lib/paraglide/messages';
 	import IconChevronDown from '~icons/lucide/chevron-down';
@@ -216,16 +217,9 @@
 		return JSON.stringify(obj);
 	}
 
+	// Localized wrapper over the shared formatter; blank label-set renders as "none".
 	function formatLabelKey(key: string): string {
-		if (key === '{}' || key === '') return m.probes_metric_labels_none();
-		try {
-			const obj = JSON.parse(key) as Record<string, string>;
-			const entries = Object.entries(obj);
-			if (entries.length === 0) return m.probes_metric_labels_none();
-			return entries.map(([k, v]) => `${k}=${v}`).join(' · ');
-		} catch {
-			return key;
-		}
+		return formatLabelKeyBase(key) || m.probes_metric_labels_none();
 	}
 
 	// Unit-aware value formatting. The probe API gives us free-form unit
@@ -709,7 +703,8 @@
 							<dl
 								class="divide-y divide-[var(--color-border)] border-t border-[var(--color-border)]"
 							>
-								{#each g.entries as entry, i (formatLabels(entry.labels) + ':' + i)}
+								<!-- index in key: a script can emit duplicate label-sets, so labelKey alone isn't unique -->
+								{#each g.entries as entry, i (labelKey(entry.labels ?? {}) + ':' + i)}
 									<div class="flex items-baseline justify-between gap-3 px-3 py-1.5">
 										<dt
 											class="min-w-0 flex-1 truncate font-mono text-[11px] text-[var(--color-fg-subtle)]"
@@ -869,7 +864,7 @@
 							<span
 								class="max-w-[60vw] truncate font-mono text-[10px] text-[var(--color-fg-subtle)] sm:max-w-[28ch]"
 							>
-								{formatLabelKey(groups[0].key)}
+								{formatLabelKey(groups[0].key)} ({groups[0].points.length})
 							</span>
 						{/if}
 					</div>
