@@ -175,10 +175,13 @@
 		if (initialCollapseDone || processes.length === 0) return;
 		untrack(() => {
 			const byPid = new Set(processes.map((p) => p.pid));
+			// Precompute parent pids so the has-children test is O(1), not O(n²).
+			const parentPids = new Set<number>();
+			for (const p of processes) if (p.parent_pid != null) parentPids.add(p.parent_pid);
 			const seen = new SvelteSet<number>();
 			for (const p of processes) {
 				const isRoot = p.parent_pid == null || !byPid.has(p.parent_pid);
-				const hasChildren = processes.some((q) => q.parent_pid === p.pid);
+				const hasChildren = parentPids.has(p.pid);
 				if (hasChildren && !isRoot) seen.add(p.pid);
 			}
 			if (byPid.has(2)) seen.add(2); // kernel thread root — noisy, default closed
@@ -240,11 +243,39 @@
 			}));
 		}
 
+		// Tree + search: keep ancestors of each match (so it stays nested) and
+		// ignore the collapsed set so matches are visible.
+		const needle = q.trim().toLowerCase();
+		const searching = needle.length > 0;
+		let working: ProcessInfo[];
+		if (searching) {
+			const allByPid = new Map<number, ProcessInfo>();
+			for (const p of processes) allByPid.set(p.pid, p);
+			const matches = (p: ProcessInfo) =>
+				p.name.toLowerCase().includes(needle) ||
+				(p.user ?? '').toLowerCase().includes(needle) ||
+				String(p.pid).includes(needle);
+			const included = new Set<number>();
+			for (const p of processes) {
+				if (!matches(p)) continue;
+				// Walk up the ancestor chain, stopping at a shared ancestor.
+				let cur: ProcessInfo | undefined = p;
+				while (cur && !included.has(cur.pid)) {
+					included.add(cur.pid);
+					const pp: number | null = cur.parent_pid;
+					cur = pp != null && pp !== cur.pid ? allByPid.get(pp) : undefined;
+				}
+			}
+			working = processes.filter((p) => included.has(p.pid));
+		} else {
+			working = processes;
+		}
+
 		const byPid = new Map<number, ProcessInfo>();
 		const childrenOf = new Map<number, ProcessInfo[]>();
-		for (const p of filtered) byPid.set(p.pid, p);
+		for (const p of working) byPid.set(p.pid, p);
 		const roots: ProcessInfo[] = [];
-		for (const p of filtered) {
+		for (const p of working) {
 			const pp = p.parent_pid;
 			if (pp != null && pp !== p.pid && byPid.has(pp)) {
 				const arr = childrenOf.get(pp);
@@ -288,7 +319,7 @@
 				descendantCount: r.count,
 				subtreeCpu: r.cpu
 			});
-			if (children.length > 0 && !collapsed.has(p.pid)) {
+			if (children.length > 0 && (searching || !collapsed.has(p.pid))) {
 				for (const c of children) visit(c, depth + 1);
 			}
 		};
@@ -545,6 +576,7 @@
 															type="button"
 															onclick={() => toggleCollapse(p.pid)}
 															class="mt-[2px] inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)]"
+															aria-expanded={!isCollapsed}
 															aria-label={isCollapsed
 																? m.processes_aria_expand()
 																: m.processes_aria_collapse()}
