@@ -31,6 +31,52 @@
 		if (next instanceof Node && root?.contains(next)) return;
 		open = false;
 	}
+
+	let triggerEl = $state<HTMLButtonElement | null>(null);
+	let listEl = $state<HTMLDivElement | null>(null);
+
+	function optionButtons(): HTMLButtonElement[] {
+		return listEl ? Array.from(listEl.querySelectorAll<HTMLButtonElement>('[role="option"]')) : [];
+	}
+
+	function focusSelectedOption() {
+		const btns = optionButtons();
+		const i = options.findIndex((o) => o.value === value);
+		btns[i >= 0 ? i : 0]?.focus();
+	}
+
+	function onTriggerKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape') {
+			open = false;
+		} else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+			e.preventDefault();
+			open = true;
+			queueMicrotask(focusSelectedOption);
+		}
+	}
+
+	function onListKeydown(e: KeyboardEvent) {
+		const btns = optionButtons();
+		if (btns.length === 0) return;
+		const cur = btns.indexOf(document.activeElement as HTMLButtonElement);
+		if (e.key === 'ArrowDown') {
+			e.preventDefault();
+			btns[cur < 0 ? 0 : (cur + 1) % btns.length].focus();
+		} else if (e.key === 'ArrowUp') {
+			e.preventDefault();
+			btns[cur <= 0 ? btns.length - 1 : cur - 1].focus();
+		} else if (e.key === 'Home') {
+			e.preventDefault();
+			btns[0].focus();
+		} else if (e.key === 'End') {
+			e.preventDefault();
+			btns[btns.length - 1].focus();
+		} else if (e.key === 'Escape') {
+			e.preventDefault();
+			open = false;
+			triggerEl?.focus();
+		}
+	}
 </script>
 
 <div
@@ -43,6 +89,7 @@
 	onfocusout={onFocusOut}
 >
 	<button
+		bind:this={triggerEl}
 		type="button"
 		class="inline-flex h-full min-w-0 flex-1 items-center gap-2 rounded-[calc(var(--radius-input)-1px)] px-2 text-left transition hover:bg-[var(--color-surface-2)] focus-visible:outline-none"
 		aria-label={m.chart_autorefresh_aria()}
@@ -50,9 +97,7 @@
 		aria-expanded={open}
 		title={m.chart_autorefresh_title()}
 		onclick={() => (open = !open)}
-		onkeydown={(e) => {
-			if (e.key === 'Escape') open = false;
-		}}
+		onkeydown={onTriggerKeydown}
 	>
 		<span class="shrink-0 text-[11px] tracking-[0.06em] text-[var(--color-fg-muted)]">
 			{label}
@@ -68,6 +113,7 @@
 
 	{#if open}
 		<div
+			bind:this={listEl}
 			class="absolute right-0 top-[calc(100%+4px)] z-50 min-w-full overflow-hidden rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5 shadow-[0_12px_32px_rgba(0,0,0,0.35)]"
 			role="listbox"
 			aria-label={m.chart_autorefresh_aria()}
@@ -77,6 +123,7 @@
 					type="button"
 					role="option"
 					aria-selected={option.value === value}
+					onkeydown={onListKeydown}
 					class={cn(
 						'flex h-7 w-full items-center rounded-md px-2 font-mono text-xs tabular-nums whitespace-nowrap transition',
 						option.value === value

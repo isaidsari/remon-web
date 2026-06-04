@@ -23,9 +23,31 @@
 		class: klass = '',
 		buttonClass = ''
 	}: Props<T> = $props();
+
+	let tablistEl: HTMLElement | null = $state(null);
+
+	// Arrow/Home/End navigation per the ARIA tabs pattern (activation follows focus).
+	function onKeydown(e: KeyboardEvent) {
+		if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+		e.preventDefault();
+		const idx = options.findIndex((o) => o.value === value);
+		if (idx < 0) return;
+		const last = options.length - 1;
+		const next =
+			e.key === 'Home'
+				? 0
+				: e.key === 'End'
+					? last
+					: e.key === 'ArrowLeft'
+						? (idx - 1 + options.length) % options.length
+						: (idx + 1) % options.length;
+		onSelect(options[next].value);
+		tablistEl?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus();
+	}
 </script>
 
 <div
+	bind:this={tablistEl}
 	class={cn(
 		'inline-flex items-center rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5',
 		klass
@@ -38,7 +60,9 @@
 			type="button"
 			role="tab"
 			aria-selected={value === option.value}
+			tabindex={value === option.value ? 0 : -1}
 			onclick={() => onSelect(option.value)}
+			onkeydown={onKeydown}
 			class={cn(
 				'rounded-md px-3 py-1.5 text-xs font-medium whitespace-nowrap transition',
 				value === option.value
