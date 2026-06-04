@@ -16,8 +16,9 @@ export interface ParsedExpression {
 	threshold: string;
 }
 
+// Threshold: int/decimal/scientific (1e9, 1.5e-3) so byte rules pretty-print.
 const EXPR_RE =
-	/^\s*([a-z][a-z0-9_]*)\.([a-z][a-z0-9_]*)(\{[^}]*\})?\s*(>=|<=|==|!=|>|<)\s*(-?\d+(?:\.\d+)?)\s*$/;
+	/^\s*([a-z][a-z0-9_]*)\.([a-z][a-z0-9_]*)(\{[^}]*\})?\s*(>=|<=|==|!=|>|<)\s*(-?(?:\d+(?:\.\d+)?|\.\d+)(?:[eE][+-]?\d+)?)\s*$/;
 
 /** Best-effort parse. Returns null when the input doesn't match the grammar
  *  the resolver expects; caller should fall back to "raw" mode. */

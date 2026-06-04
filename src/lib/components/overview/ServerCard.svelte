@@ -42,7 +42,9 @@
 	let memPct = $derived.by(() => {
 		const m = live.memory;
 		if (!m) return null;
-		return m.total_bytes > 0 ? (m.used_bytes / m.total_bytes) * 100 : 0;
+		// active = total - available (htop-style), matching KPI/livestats — not "used".
+		const active = Math.max(0, m.total_bytes - m.available_bytes);
+		return m.total_bytes > 0 ? (active / m.total_bytes) * 100 : 0;
 	});
 	let diskPct = $derived.by(() => {
 		const ds = live.disks;

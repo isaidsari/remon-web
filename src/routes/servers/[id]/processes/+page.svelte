@@ -167,6 +167,9 @@
 		searchTimer = setTimeout(() => untrack(() => fetchProcesses(true)), 300);
 	}
 
+	// Cancel a pending debounced search on unmount.
+	$effect(() => () => clearTimeout(searchTimer));
+
 	// One-shot seed: collapse non-root parents so the initial tree isn't a 500-row dump.
 	$effect(() => {
 		if (initialCollapseDone || processes.length === 0) return;
@@ -320,12 +323,13 @@
 	}
 
 	async function confirmKill() {
-		if (!killTarget) return;
+		// conn can go null if the user navigates away while the modal is open.
+		if (!killTarget || !conn) return;
 		killing = true;
 		const { pid } = killTarget;
 		const sig = killSignal;
 		try {
-			await conn!.client.killProcess(pid, sig);
+			await conn.client.killProcess(pid, sig);
 			toast.success(m.processes_toast_killed({ pid, signal: sig }));
 			killTarget = null;
 			fetchProcesses();

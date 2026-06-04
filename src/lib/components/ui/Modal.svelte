@@ -8,6 +8,8 @@
 		onClose?: () => void;
 		title?: string;
 		description?: string;
+		/** Accessible name when no visible `title` is rendered. */
+		ariaLabel?: string;
 		closeOnBackdrop?: boolean;
 		closeOnEscape?: boolean;
 		width?: 'sm' | 'md' | 'lg';
@@ -21,6 +23,7 @@
 		onClose,
 		title,
 		description,
+		ariaLabel,
 		closeOnBackdrop = true,
 		closeOnEscape = true,
 		width = 'md',
@@ -28,6 +31,16 @@
 		footer,
 		class: klass = ''
 	}: Props = $props();
+
+	let dialogEl = $state<HTMLElement | null>(null);
+
+	function focusable(container: HTMLElement): HTMLElement[] {
+		const sel =
+			'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+		return Array.from(container.querySelectorAll<HTMLElement>(sel)).filter(
+			(el) => el.offsetParent !== null
+		);
+	}
 
 	const widthCls: Record<NonNullable<Props['width']>, string> = {
 		sm: 'max-w-sm',
@@ -37,18 +50,46 @@
 
 	$effect(() => {
 		if (!open) return;
+		// Remember what had focus so we can hand it back on close.
+		const restoreTo = document.activeElement as HTMLElement | null;
+
 		const onKey = (e: KeyboardEvent) => {
 			if (closeOnEscape && e.key === 'Escape') {
 				e.preventDefault();
 				onClose?.();
+				return;
+			}
+			// Trap Tab within the dialog so keyboard focus can't escape behind it.
+			if (e.key === 'Tab' && dialogEl) {
+				const items = focusable(dialogEl);
+				if (items.length === 0) {
+					e.preventDefault();
+					dialogEl.focus();
+					return;
+				}
+				const first = items[0];
+				const last = items[items.length - 1];
+				const active = document.activeElement;
+				if (e.shiftKey && (active === first || !dialogEl.contains(active))) {
+					e.preventDefault();
+					last.focus();
+				} else if (!e.shiftKey && (active === last || !dialogEl.contains(active))) {
+					e.preventDefault();
+					first.focus();
+				}
 			}
 		};
 		window.addEventListener('keydown', onKey);
 		const prev = document.body.style.overflow;
 		document.body.style.overflow = 'hidden';
+
+		// Focus the dialog itself, not the first control, so we don't auto-arm a button.
+		queueMicrotask(() => dialogEl?.focus({ preventScroll: true }));
+
 		return () => {
 			window.removeEventListener('keydown', onKey);
 			document.body.style.overflow = prev;
+			restoreTo?.focus?.({ preventScroll: true });
 		};
 	});
 </script>
@@ -66,9 +107,12 @@
 		></div>
 
 		<div
+			bind:this={dialogEl}
 			role="dialog"
+			tabindex="-1"
 			aria-modal="true"
 			aria-labelledby={title ? 'modal-title' : undefined}
+			aria-label={title ? undefined : (ariaLabel ?? 'Dialog')}
 			aria-describedby={description ? 'modal-desc' : undefined}
 			class={cn(
 				'relative flex max-h-[min(90vh,calc(100dvh-2rem))] w-full flex-col overflow-hidden rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl',
