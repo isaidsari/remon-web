@@ -415,7 +415,11 @@ export class ApiClient {
 	}
 
 	inspectContainer(id: string): Promise<ContainerInspectInfo> {
-		return this.request<ContainerInspectInfo>(`/docker/containers/${id}/inspect`);
+		// Bypass the GET cache: re-fetched right after lifecycle actions, where a
+		// stale "running/stopped" would be wrong.
+		return this.request<ContainerInspectInfo>(`/docker/containers/${id}/inspect`, {
+			bypassCache: true
+		});
 	}
 
 	containerLogs(id: string, q: GetContainerLogsRequest = {}): Promise<GetContainerLogsResponse> {
@@ -425,7 +429,9 @@ export class ApiClient {
 	}
 
 	containerStats(id: string): Promise<RawStats> {
-		return this.request<RawStats>(`/docker/containers/${id}/stats`);
+		// Bypass the GET cache: polled every couple seconds; stale samples would
+		// trip the panel's staleness indicator.
+		return this.request<RawStats>(`/docker/containers/${id}/stats`, { bypassCache: true });
 	}
 
 	pruneContainers(): Promise<PruneResult> {

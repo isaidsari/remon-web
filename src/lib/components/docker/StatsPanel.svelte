@@ -137,7 +137,9 @@
 				>{t.statspanel_label_network()}</span
 			>
 			<span class="text-xl font-semibold tabular-nums" style="color: rgb(52, 211, 153)">
-				{fmtMaybeBps((m.netRxBps ?? 0) + (m.netTxBps ?? 0))}
+				{fmtMaybeBps(
+					m.netRxBps === null && m.netTxBps === null ? null : (m.netRxBps ?? 0) + (m.netTxBps ?? 0)
+				)}
 			</span>
 			{#if m.netRxBps !== null && m.netTxBps !== null}
 				<span class="font-mono text-[11px] text-[var(--color-fg-subtle)]">
@@ -151,7 +153,11 @@
 				>{t.statspanel_label_block_io()}</span
 			>
 			<span class="text-xl font-semibold tabular-nums" style="color: rgb(251, 191, 36)">
-				{fmtMaybeBps((m.blkReadBps ?? 0) + (m.blkWriteBps ?? 0))}
+				{fmtMaybeBps(
+					m.blkReadBps === null && m.blkWriteBps === null
+						? null
+						: (m.blkReadBps ?? 0) + (m.blkWriteBps ?? 0)
+				)}
 			</span>
 			{#if m.blkReadBps !== null && m.blkWriteBps !== null}
 				<span class="font-mono text-[11px] text-[var(--color-fg-subtle)]">
