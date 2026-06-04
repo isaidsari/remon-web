@@ -44,7 +44,8 @@ function cpuPercent(curr: RawCpu | undefined, prev: RawCpu | undefined): number 
 	const sysDelta = (curr.system_cpu_usage ?? 0) - (prev.system_cpu_usage ?? 0);
 	const onlineCpus = curr.online_cpus ?? 0;
 	if (sysDelta <= 0 || cpuDelta < 0 || onlineCpus <= 0) return null;
-	return (cpuDelta / sysDelta) * onlineCpus * 100;
+	// Cap at 100% per online core so a tiny sysDelta can't yield an absurd percentage.
+	return Math.min((cpuDelta / sysDelta) * onlineCpus * 100, onlineCpus * 100);
 }
 
 function netTotals(net: Record<string, RawNetwork> | undefined): { rx: number; tx: number } {

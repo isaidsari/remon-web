@@ -46,6 +46,23 @@
 	let observer: ResizeObserver | null = null;
 
 	function rgbAt(c: string, alpha: number): string {
+		if (c.startsWith('#')) {
+			let hex = c.slice(1);
+			// Expand shorthand (#abc / #abcf) to full form.
+			if (hex.length === 3 || hex.length === 4)
+				hex = hex
+					.split('')
+					.map((ch) => ch + ch)
+					.join('');
+			if (hex.length === 6 || hex.length === 8) {
+				const r = parseInt(hex.slice(0, 2), 16);
+				const g = parseInt(hex.slice(2, 4), 16);
+				const b = parseInt(hex.slice(4, 6), 16);
+				if (Number.isFinite(r) && Number.isFinite(g) && Number.isFinite(b))
+					return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+			}
+			return c;
+		}
 		if (c.startsWith('rgb(')) return c.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
 		if (c.startsWith('rgba(')) return c.replace(/, *[0-9.]+\)$/, `, ${alpha})`);
 		if (c.startsWith('hsl(')) return c.replace('hsl(', 'hsla(').replace(')', ` / ${alpha})`);
@@ -164,13 +181,17 @@
 	onMount(() => {
 		// Track unmount so a slow dynamic import doesn't init a disposed container.
 		let cancelled = false;
-		void loadEcharts().then((echarts) => {
-			if (cancelled || !container) return;
-			chart = echarts.init(container, undefined, { renderer: 'canvas' });
-			chart.setOption(buildOption());
-			observer = new ResizeObserver(() => chart?.resize());
-			observer.observe(container);
-		});
+		void loadEcharts()
+			.then((echarts) => {
+				if (cancelled || !container) return;
+				chart = echarts.init(container, undefined, { renderer: 'canvas' });
+				chart.setOption(buildOption());
+				observer = new ResizeObserver(() => chart?.resize());
+				observer.observe(container);
+			})
+			.catch(() => {
+				/* echarts import failed; the chart just stays unrendered */
+			});
 		return () => {
 			cancelled = true;
 			observer?.disconnect();

@@ -204,47 +204,51 @@
 	onMount(() => {
 		// Track unmount so a slow dynamic import doesn't init a disposed container.
 		let cancelled = false;
-		void loadEcharts().then((echarts) => {
-			if (cancelled || !container) return;
-			chart = echarts.init(container, undefined, { renderer: 'canvas' });
-			chart.setOption(buildOption());
+		void loadEcharts()
+			.then((echarts) => {
+				if (cancelled || !container) return;
+				chart = echarts.init(container, undefined, { renderer: 'canvas' });
+				chart.setOption(buildOption());
 
-			// brushEnd carries the selected coordRange in axis units; feed it
-			// straight into the inside-dataZoom and then drop the brush rect
-			// so the chart isn't decorated with the selection afterwards.
-			chart.on('brushEnd', (params: unknown) => {
-				const p = params as { areas?: Array<{ coordRange?: [number, number] }> };
-				const range = p.areas?.[0]?.coordRange;
-				if (!range) return;
-				const [startValue, endValue] = range;
-				chart?.dispatchAction({ type: 'dataZoom', startValue, endValue });
-				clearBrush();
-				// Re-arm brush cursor so the next drag also zooms.
+				// brushEnd carries the selected coordRange in axis units; feed it
+				// straight into the inside-dataZoom and then drop the brush rect
+				// so the chart isn't decorated with the selection afterwards.
+				chart.on('brushEnd', (params: unknown) => {
+					const p = params as { areas?: Array<{ coordRange?: [number, number] }> };
+					const range = p.areas?.[0]?.coordRange;
+					if (!range) return;
+					const [startValue, endValue] = range;
+					chart?.dispatchAction({ type: 'dataZoom', startValue, endValue });
+					clearBrush();
+					// Re-arm brush cursor so the next drag also zooms.
+					enableBrushCursor();
+				});
+
+				// Double-tap / double-click to reset. zrender's 'dblclick' doesn't
+				// fire on touch, so detect two quick taps via 'click' instead —
+				// works the same on mouse and touch.
+				let lastTap = 0;
+				chart.getZr().on('click', () => {
+					const now = Date.now();
+					if (now - lastTap < 320) {
+						resetZoom();
+						lastTap = 0;
+					} else {
+						lastTap = now;
+					}
+				});
 				enableBrushCursor();
-			});
 
-			// Double-tap / double-click to reset. zrender's 'dblclick' doesn't
-			// fire on touch, so detect two quick taps via 'click' instead —
-			// works the same on mouse and touch.
-			let lastTap = 0;
-			chart.getZr().on('click', () => {
-				const now = Date.now();
-				if (now - lastTap < 320) {
-					resetZoom();
-					lastTap = 0;
-				} else {
-					lastTap = now;
+				if (group) {
+					chart.group = group;
+					echarts.connect(group);
 				}
+				observer = new ResizeObserver(() => chart?.resize());
+				observer.observe(container);
+			})
+			.catch(() => {
+				/* echarts import failed; the chart just stays unrendered */
 			});
-			enableBrushCursor();
-
-			if (group) {
-				chart.group = group;
-				echarts.connect(group);
-			}
-			observer = new ResizeObserver(() => chart?.resize());
-			observer.observe(container);
-		});
 		return () => {
 			cancelled = true;
 			observer?.disconnect();
