@@ -65,9 +65,14 @@
 					else pushLine(data, 'log');
 				},
 				onError: (err) => {
-					if (status !== 'reconnecting') pendingSince = Date.now();
+					const msg = err instanceof Error ? err.message : String(err);
+					// Log the disconnect once per episode (onError fires on every retry).
+					if (status !== 'reconnecting') {
+						pendingSince = Date.now();
+						pushLine(`${m.log_status_reconnecting()}${msg ? `: ${msg}` : ''}`, 'error');
+					}
 					status = 'reconnecting';
-					lastError = err instanceof Error ? err.message : String(err);
+					lastError = msg;
 				},
 				onClose: () => {
 					status = 'closed';

@@ -84,6 +84,8 @@
 
 {#if $needRefresh}
 	<div
+		role="status"
+		aria-live="polite"
 		class="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-4 py-2.5 text-sm shadow-lg"
 	>
 		<span class="text-[var(--color-fg-muted)]">Update available</span>

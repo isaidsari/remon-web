@@ -30,6 +30,8 @@
 	// '' = auto (widget falls back to the most-populated label-set).
 	let labelSel = $state('');
 	let viz = $state<'scalar' | 'chart'>('chart');
+	// Unit captured at pick time; history API doesn't echo it back, so keep it in form state.
+	let unitSel = $state<string | undefined>(undefined);
 
 	// Probe picker data
 	let probeList = $state<ProbeListEntry[]>([]);
@@ -48,18 +50,19 @@
 	});
 
 	function seed() {
-		if (!initial) {
-			kind = 'live-kpi';
-			liveSource = 'cpu';
-			histResource = 'cpu';
-			histRange = '1h';
-			summary = 'host';
-			probe = '';
-			metric = '';
-			labelSel = '';
-			viz = 'chart';
-			return;
-		}
+		// Reset every field first so stale values can't leak across widget kinds.
+		kind = 'live-kpi';
+		liveSource = 'cpu';
+		histResource = 'cpu';
+		histRange = '1h';
+		summary = 'host';
+		probe = '';
+		metric = '';
+		labelSel = '';
+		viz = 'chart';
+		unitSel = undefined;
+		metricsForProbe = [];
+		if (!initial) return;
 		kind = initial.kind;
 		if (initial.kind === 'live-kpi') liveSource = initial.source;
 		else if (initial.kind === 'history-chart') {
@@ -71,6 +74,7 @@
 			metric = initial.metric;
 			labelSel = initial.labelKey ?? '';
 			viz = initial.viz;
+			unitSel = initial.unit;
 			void loadMetrics(initial.probe);
 		}
 	}
@@ -109,12 +113,15 @@
 		probe = name;
 		metric = '';
 		labelSel = '';
+		unitSel = undefined;
 		void loadMetrics(name);
 	}
 
 	function onMetricChange(name: string) {
 		metric = name;
 		labelSel = '';
+		// Capture the unit now, while we still have the probe's metric list.
+		unitSel = metricsForProbe.find((mt) => mt.name === name)?.unit;
 	}
 
 	// Unique metric names for the metric dropdown.
@@ -125,7 +132,6 @@
 		labelEntries.map((mt) => ({ key: labelKey(mt.labels ?? {}), label: formatLabels(mt.labels) }))
 	);
 	let showLabelPicker = $derived(labelOptions.length > 1);
-	let selectedMetricUnit = $derived(metricsForProbe.find((mt) => mt.name === metric)?.unit);
 
 	let canSave = $derived(kind !== 'probe-metric' || (probe !== '' && metric !== ''));
 
@@ -142,7 +148,7 @@
 					kind: 'probe-metric',
 					probe,
 					metric,
-					unit: selectedMetricUnit,
+					unit: unitSel,
 					labelKey: labelSel || undefined,
 					viz
 				};
