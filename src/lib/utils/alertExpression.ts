@@ -187,6 +187,20 @@ export const ALERT_TEMPLATES: AlertTemplate[] = [
 		for_duration_secs: 300
 	},
 	{
+		id: 'disk-percent',
+		title: 'Disk usage high (%)',
+		summary: 'Per-mount percentage alert; easier to tune than raw bytes.',
+		parts: {
+			namespace: 'disk',
+			field: 'used_percent',
+			labels: { mount_point: '' },
+			comparator: '>',
+			threshold: '90'
+		},
+		severity: 'warn',
+		for_duration_secs: 300
+	},
+	{
 		id: 'inode-full',
 		title: 'Inode usage high (Linux)',
 		summary: 'Files can outrun bytes on busy mounts.',

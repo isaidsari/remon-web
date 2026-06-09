@@ -45,10 +45,17 @@
 		});
 	});
 
+	interface TestResult {
+		ok: boolean;
+		message: string;
+		ts: number;
+	}
+
 	let channels = $state<NotificationChannelResponse[]>([]);
 	let busy = $state(false);
 	let testing = $state<number | null>(null);
 	let acting = $state<string | null>(null);
+	let testResults = $state(new Map<number, TestResult>());
 
 	async function fetchAll() {
 		if (!conn?.isAuthenticated) return;
@@ -73,9 +80,19 @@
 		try {
 			const res = await conn!.client.testChannel(ch.id);
 			toast.success(m.notifications_toast_test_sent({ count: res.delivered }));
+			testResults = new Map(testResults).set(ch.id, {
+				ok: true,
+				message: m.notifications_test_result_ok({ count: res.delivered }),
+				ts: Math.floor(Date.now() / 1000)
+			});
 		} catch (e) {
-			if (e instanceof ApiError)
-				toast.error(m.notifications_toast_test_failed(), { description: e.userMessage });
+			const msg = e instanceof ApiError ? e.userMessage : String(e);
+			toast.error(m.notifications_toast_test_failed(), { description: msg });
+			testResults = new Map(testResults).set(ch.id, {
+				ok: false,
+				message: msg,
+				ts: Math.floor(Date.now() / 1000)
+			});
 		} finally {
 			testing = null;
 		}
@@ -312,6 +329,19 @@
 										>{m.notifications_updated_suffix({ when: fmtRelative(ch.updated_at) })}</span
 									>
 								</p>
+								{#if testResults.get(ch.id)}
+									{@const tr = testResults.get(ch.id)!}
+									<p
+										class={cn(
+											'mt-1 text-[11px]',
+											tr.ok ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'
+										)}
+									>
+										{tr.ok ? '✓' : '✗'}
+										{tr.message}
+										<span class="ml-1 text-[var(--color-fg-faint)]">{fmtRelative(tr.ts)}</span>
+									</p>
+								{/if}
 							</div>
 
 							<div class="flex shrink-0 items-center gap-2">

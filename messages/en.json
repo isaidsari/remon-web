@@ -702,6 +702,7 @@
 	"notifications_toast_load_failed": "failed to load channels",
 	"notifications_toast_test_sent": "test sent · {count} delivered",
 	"notifications_toast_test_failed": "test failed",
+	"notifications_test_result_ok": "{count} delivered",
 	"notifications_toast_update_failed": "update failed",
 	"notifications_toast_deleted": "\"{name}\" deleted",
 	"notifications_toast_delete_failed": "delete failed",

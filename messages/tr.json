@@ -703,6 +703,7 @@
 	"notifications_toast_load_failed": "kanallar yüklenemedi",
 	"notifications_toast_test_sent": "test gönderildi · {count} iletildi",
 	"notifications_toast_test_failed": "test başarısız",
+	"notifications_test_result_ok": "{count} iletildi",
 	"notifications_toast_update_failed": "güncelleme başarısız",
 	"notifications_toast_deleted": "\"{name}\" silindi",
 	"notifications_toast_delete_failed": "silme başarısız",
