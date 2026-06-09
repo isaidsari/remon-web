@@ -317,6 +317,71 @@
 			threshold: want === 'up' ? '1' : '0'
 		};
 	}
+
+	type ValidationResult = { level: 'ok' | 'error'; hint: string };
+
+	let rawValidation = $derived.by((): ValidationResult | null => {
+		if (mode !== 'raw' || !expression.trim() || !schema) return null;
+		const parsed = parseExpression(expression);
+		if (!parsed) return { level: 'error', hint: m.alerts_editor_expr_bad_format() };
+		const ns = schema.namespaces.find((n) => n.name === parsed.namespace);
+		if (!ns)
+			return { level: 'error', hint: m.alerts_editor_expr_unknown_ns({ ns: parsed.namespace }) };
+		if (!ns.dynamic_metrics) {
+			const metric = ns.metrics.find((mm) => mm.name === parsed.field);
+			if (!metric) {
+				const close = ns.metrics
+					.map((mm) => mm.name)
+					.filter(
+						(f) =>
+							f.includes(parsed.field) ||
+							parsed.field.includes(f) ||
+							levenshtein(f, parsed.field) <= 2
+					);
+				const base = m.alerts_editor_expr_unknown_field({
+					field: parsed.field,
+					ns: parsed.namespace
+				});
+				const hint =
+					close.length > 0
+						? `${base} — ${m.alerts_editor_expr_did_you_mean({ suggestions: close.join(', ') })}`
+						: base;
+				return { level: 'error', hint };
+			}
+		}
+		return { level: 'ok', hint: m.alerts_editor_expr_ok() };
+	});
+
+	let builderValidation = $derived.by((): ValidationResult | null => {
+		if (mode !== 'builder') return null;
+		if (!builder.namespace || !builder.field) return null;
+		if (builder.threshold.trim() === '')
+			return { level: 'error', hint: m.alerts_editor_builder_missing_threshold() };
+		const requiredEmpty = currentLabels
+			.filter((l) => l.required && !(builder.labels[l.name] ?? '').trim())
+			.map((l) => l.name);
+		if (requiredEmpty.length > 0)
+			return {
+				level: 'error',
+				hint: m.alerts_editor_builder_missing_label({ label: requiredEmpty[0] })
+			};
+		return null;
+	});
+
+	function levenshtein(a: string, b: string): number {
+		const m = a.length,
+			n = b.length;
+		const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
+			Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+		);
+		for (let i = 1; i <= m; i++)
+			for (let j = 1; j <= n; j++)
+				dp[i][j] =
+					a[i - 1] === b[j - 1]
+						? dp[i - 1][j - 1]
+						: 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+		return dp[m][n];
+	}
 </script>
 
 <div class="flex flex-col gap-5">
@@ -618,18 +683,35 @@
 			</div>
 			<code class="block font-mono text-[12px] text-[var(--color-fg)]">{expression || '—'}</code>
 		</div>
+		{#if builderValidation}
+			<p class="text-[11px] text-[var(--color-danger)]">{builderValidation.hint}</p>
+		{/if}
 	{:else}
 		<Field label={m.alerts_form_expression_label()} required>
 			<Input
 				bind:value={expression}
 				placeholder="cpu.usage_percent > 80"
 				class="font-mono text-[12px]"
+				invalid={rawValidation?.level === 'error'}
 			/>
-			<p class="mt-1 text-[11px] leading-relaxed text-[var(--color-fg-muted)]">
-				{m.alerts_editor_raw_help_prefix()}
-				<code class="font-mono">namespace.field&#123;label="value"&#125; comparator number</code>.
-				{m.alerts_editor_raw_help_suffix()}
-			</p>
+			{#if rawValidation}
+				<p
+					class={cn(
+						'mt-1 text-[11px]',
+						rawValidation.level === 'error'
+							? 'text-[var(--color-danger)]'
+							: 'text-[var(--color-success)]'
+					)}
+				>
+					{rawValidation.hint}
+				</p>
+			{:else}
+				<p class="mt-1 text-[11px] leading-relaxed text-[var(--color-fg-muted)]">
+					{m.alerts_editor_raw_help_prefix()}
+					<code class="font-mono">namespace.field&#123;label="value"&#125; comparator number</code>.
+					{m.alerts_editor_raw_help_suffix()}
+				</p>
+			{/if}
 		</Field>
 	{/if}
 
