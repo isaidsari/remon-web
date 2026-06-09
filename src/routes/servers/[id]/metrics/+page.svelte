@@ -28,7 +28,8 @@
 		DiskHistoryResponse,
 		MemoryHistoryResponse,
 		NetworkHistoryResponse,
-		PressureHistoryResponse
+		PressureHistoryResponse,
+		SmartResponse
 	} from '$lib/types/api';
 
 	let id = $derived(page.params.id ?? '');
@@ -80,6 +81,7 @@
 	let pressureIo = $state<PressureHistoryResponse | null>(null);
 	let components = $state<ComponentsHistoryResponse | null>(null);
 	let resolution = $state<string | null>(null);
+	let smart = $state<SmartResponse | null>(null);
 
 	let cancelCtrl: AbortController | null = null;
 
@@ -152,6 +154,14 @@
 			void profile?.id;
 			fetchAll();
 		}
+	});
+
+	$effect(() => {
+		if (!conn?.isAuthenticated || smart !== null) return;
+		conn.client
+			.systemSmart()
+			.then((r) => (smart = r))
+			.catch(() => null);
 	});
 
 	function latestByKey<T extends { timestamp: number }>(
@@ -805,6 +815,168 @@
 
 				{#if components && components.points.length > 0}
 					<ComponentsCard data={components} />
+				{/if}
+
+				{#if smart !== null}
+					<Card class="xl:col-span-2" padding="none">
+						<div class="px-4 py-3 border-b border-[var(--color-border)]">
+							<h2 class="text-sm font-medium text-[var(--color-fg)]">
+								{m.metrics_smart_title()}
+							</h2>
+						</div>
+						{#if !smart.available}
+							<p class="px-4 py-4 text-sm text-[var(--color-fg-muted)]">
+								{m.metrics_smart_unavailable()}
+							</p>
+						{:else if smart.devices.length === 0}
+							<p class="px-4 py-4 text-sm text-[var(--color-fg-subtle)]">
+								{m.metrics_smart_no_devices()}
+							</p>
+						{:else}
+							{@const isNvme = smart.devices.some(
+								(d) => d.percentage_used != null || d.available_spare_percent != null
+							)}
+							{@const isAta = smart.devices.some((d) => d.reallocated_sectors != null)}
+							<div class="overflow-x-auto">
+								<table class="w-full text-sm">
+									<thead
+										class="bg-[var(--color-surface-2)] text-xs tracking-wide text-[var(--color-fg-muted)]"
+									>
+										<tr>
+											<th class="px-3 py-2 text-left font-medium">{m.metrics_smart_col_device()}</th
+											>
+											<th class="px-3 py-2 text-left font-medium">{m.metrics_smart_col_model()}</th>
+											<th class="px-3 py-2 text-left font-medium">{m.metrics_smart_col_health()}</th
+											>
+											<th class="px-3 py-2 text-right font-medium">{m.metrics_smart_col_temp()}</th>
+											<th class="px-3 py-2 text-right font-medium">{m.metrics_smart_col_hours()}</th
+											>
+											{#if isAta}
+												<th class="px-3 py-2 text-right font-medium"
+													>{m.metrics_smart_col_reallocated()}</th
+												>
+												<th class="px-3 py-2 text-right font-medium"
+													>{m.metrics_smart_col_pending()}</th
+												>
+												<th class="px-3 py-2 text-right font-medium"
+													>{m.metrics_smart_col_uncorrectable()}</th
+												>
+											{/if}
+											{#if isNvme}
+												<th class="px-3 py-2 text-right font-medium"
+													>{m.metrics_smart_col_nvme_used()}</th
+												>
+												<th class="px-3 py-2 text-right font-medium"
+													>{m.metrics_smart_col_spare()}</th
+												>
+												<th class="px-3 py-2 text-right font-medium"
+													>{m.metrics_smart_col_media_errors()}</th
+												>
+											{/if}
+										</tr>
+									</thead>
+									<tbody>
+										{#each smart.devices as dev (dev.device)}
+											{@const failed = dev.health_passed === false}
+											<tr
+												class={cn(
+													'border-t border-[var(--color-border)]',
+													failed && 'bg-[var(--color-danger)]/5'
+												)}
+											>
+												<td class="px-3 py-2.5 font-mono text-xs text-[var(--color-fg)]"
+													>{dev.device}</td
+												>
+												<td class="px-3 py-2.5 text-xs text-[var(--color-fg-muted)]"
+													>{dev.model ?? '—'}</td
+												>
+												<td class="px-3 py-2.5">
+													{#if dev.health_passed === true}
+														<span
+															class="inline-flex items-center rounded-full bg-[var(--color-success)]/10 px-2 py-0.5 font-mono text-[10px] text-[var(--color-success)]"
+														>
+															{m.metrics_smart_health_passed()}
+														</span>
+													{:else if dev.health_passed === false}
+														<span
+															class="inline-flex items-center rounded-full bg-[var(--color-danger)]/10 px-2 py-0.5 font-mono text-[10px] font-medium text-[var(--color-danger)]"
+														>
+															{m.metrics_smart_health_failed()}
+														</span>
+													{:else}
+														<span class="font-mono text-[11px] text-[var(--color-fg-subtle)]"
+															>{m.metrics_smart_health_unknown()}</span
+														>
+													{/if}
+												</td>
+												<td class="px-3 py-2.5 text-right font-mono text-xs tabular-nums">
+													{dev.temperature_c != null ? `${dev.temperature_c.toFixed(0)} °C` : '—'}
+												</td>
+												<td
+													class="px-3 py-2.5 text-right font-mono text-xs tabular-nums text-[var(--color-fg-muted)]"
+												>
+													{dev.power_on_hours != null
+														? `${dev.power_on_hours.toLocaleString()} h`
+														: '—'}
+												</td>
+												{#if isAta}
+													<td
+														class={cn(
+															'px-3 py-2.5 text-right font-mono text-xs tabular-nums',
+															(dev.reallocated_sectors ?? 0) > 0 && 'text-[var(--color-warning)]'
+														)}
+													>
+														{dev.reallocated_sectors ?? '—'}
+													</td>
+													<td
+														class={cn(
+															'px-3 py-2.5 text-right font-mono text-xs tabular-nums',
+															(dev.pending_sectors ?? 0) > 0 && 'text-[var(--color-warning)]'
+														)}
+													>
+														{dev.pending_sectors ?? '—'}
+													</td>
+													<td
+														class={cn(
+															'px-3 py-2.5 text-right font-mono text-xs tabular-nums',
+															(dev.uncorrectable_sectors ?? 0) > 0 && 'text-[var(--color-danger)]'
+														)}
+													>
+														{dev.uncorrectable_sectors ?? '—'}
+													</td>
+												{/if}
+												{#if isNvme}
+													<td
+														class={cn(
+															'px-3 py-2.5 text-right font-mono text-xs tabular-nums',
+															(dev.percentage_used ?? 0) >= 90 && 'text-[var(--color-warning)]'
+														)}
+													>
+														{dev.percentage_used != null ? `${dev.percentage_used}%` : '—'}
+													</td>
+													<td
+														class="px-3 py-2.5 text-right font-mono text-xs tabular-nums text-[var(--color-fg-muted)]"
+													>
+														{dev.available_spare_percent != null
+															? `${dev.available_spare_percent}%`
+															: '—'}
+													</td>
+													<td
+														class={cn(
+															'px-3 py-2.5 text-right font-mono text-xs tabular-nums',
+															(dev.media_errors ?? 0) > 0 && 'text-[var(--color-danger)]'
+														)}
+													>
+														{dev.media_errors ?? '—'}
+													</td>
+												{/if}
+											</tr>
+										{/each}
+									</tbody>
+								</table>
+							</div>
+						{/if}
+					</Card>
 				{/if}
 
 				{#if memoryPressureSeries.length > 0}

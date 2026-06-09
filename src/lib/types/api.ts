@@ -323,6 +323,52 @@ export interface SystemInfoResponse {
 	hardware: HardwareInfo;
 }
 
+export interface SmartDeviceDto {
+	device: string;
+	model: string | null;
+	serial: string | null;
+	/** smartctl's overall verdict. false is the headline alarm. */
+	health_passed: boolean | null;
+	temperature_c: number | null;
+	power_on_hours: number | null;
+	power_cycles: number | null;
+	/** ATA attr 5 — sectors remapped to spares. */
+	reallocated_sectors: number | null;
+	/** ATA attr 197 — sectors awaiting remap. */
+	pending_sectors: number | null;
+	/** ATA attr 198 — sectors unreadable even offline. */
+	uncorrectable_sectors: number | null;
+	/** ATA attr 199 — interface CRC errors; usually cabling. */
+	udma_crc_errors: number | null;
+	/** NVMe wear indicator 0-100+. */
+	percentage_used: number | null;
+	available_spare_percent: number | null;
+	media_errors: number | null;
+	timestamp: number;
+}
+
+export interface SmartResponse {
+	/** False until collector has confirmed a working smartctl. */
+	available: boolean;
+	devices: SmartDeviceDto[];
+}
+
+export interface SummaryResponse {
+	server_name: string;
+	hostname: string;
+	os: string;
+	version: string;
+	uptime_secs: number;
+	stats_timestamp: number | null;
+	cpu_usage_percent: number | null;
+	memory_used_bytes: number | null;
+	memory_total_bytes: number | null;
+	disk_max_used_percent: number | null;
+	disk_max_mount: string | null;
+	alerts_pending: number;
+	alerts_firing: number;
+}
+
 export type ServiceState =
 	| 'running'
 	| 'stopped'

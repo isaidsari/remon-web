@@ -50,6 +50,8 @@ import type {
 	ServiceDto,
 	SilenceAlertRequest,
 	SystemInfoResponse,
+	SmartResponse,
+	SummaryResponse,
 	TestChannelResponse,
 	TokenResponse,
 	UpdateAlertRuleRequest,
@@ -278,6 +280,14 @@ export class ApiClient {
 
 	systemInfo(): Promise<SystemInfoResponse> {
 		return this.request<SystemInfoResponse>('/system/info');
+	}
+
+	systemSmart(): Promise<SmartResponse> {
+		return this.request<SmartResponse>('/system/smart');
+	}
+
+	summary(): Promise<SummaryResponse> {
+		return this.request<SummaryResponse>('/summary');
 	}
 
 	listServices(q: ListServicesQuery = {}): Promise<ListServicesResponse> {
