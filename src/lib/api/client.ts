@@ -360,7 +360,7 @@ export class ApiClient {
 		);
 	}
 	reloadProbes(): Promise<ReloadProbesResponse> {
-		return this.request<ReloadProbesResponse>('/admin/probes/reload', { method: 'POST' });
+		return this.request<ReloadProbesResponse>('/probes/reload', { method: 'POST' });
 	}
 
 	processes(query?: Record<string, unknown>): Promise<GetProcessesResponse> {
