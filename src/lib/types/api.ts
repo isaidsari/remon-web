@@ -27,6 +27,50 @@ export type ApiErrorCode =
 	| 'DATABASE_ERROR'
 	| 'INTERNAL_ERROR';
 
+/** `GET /health` — liveness. Plain `{ status: 'ok' }`; the process is up and routing. */
+export interface HealthResponse {
+	status: 'ok';
+}
+
+/** `GET /ready` — readiness. 200 with `status: 'ready'` once a DB round-trip
+ *  succeeds; the server returns 503 (→ throws here) with `status: 'not_ready'`
+ *  and `failed_check: 'db'` while the pool can't serve queries. */
+export interface ReadyResponse {
+	status: 'ready' | 'not_ready';
+	/** Present only on the 503 path. */
+	failed_check?: string;
+}
+
+export type LogLevel = 'error' | 'warn' | 'info' | 'debug' | 'trace';
+
+export interface LogsQuery {
+	/** Unix seconds; defaults to `end - 24h`. */
+	start?: number;
+	/** Unix seconds; defaults to now. */
+	end?: number;
+	/** Minimum severity to include. Defaults to `trace` (everything persisted). */
+	level?: LogLevel;
+	/** Hard cap on entries. Defaults to 500, max 5000. */
+	limit?: number;
+}
+
+export interface LogEntry {
+	id: number;
+	/** Unix seconds, captured at the emission call site. */
+	timestamp: number;
+	level: LogLevel;
+	/** Emitting app id (the daemon's identifier). */
+	source: string;
+	/** Rust module path of the emitting call site. */
+	target: string;
+	message: string;
+}
+
+/** `GET /logs` — daemon's own application log. Entries are newest-first. */
+export interface LogsResponse {
+	entries: LogEntry[];
+}
+
 export interface PairingInitiateResponse {
 	message: string;
 	/** Unix epoch (seconds) at which the pairing window expires. */
@@ -89,7 +133,6 @@ export interface ConfigResponse {
 	server_name: string;
 	collector_stats_interval_ms: number;
 	collector_processes_interval_ms: number;
-	collector_docker_interval_ms: number;
 	rollup_tick_interval_ms: number;
 	retention_tick_interval_ms: number;
 }
@@ -98,7 +141,6 @@ export interface UpdateConfigRequest {
 	server_name?: string;
 	collector_stats_interval_ms?: number;
 	collector_processes_interval_ms?: number;
-	collector_docker_interval_ms?: number;
 	rollup_tick_interval_ms?: number;
 	retention_tick_interval_ms?: number;
 }

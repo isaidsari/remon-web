@@ -35,7 +35,6 @@
 		server_name: string;
 		stats_ms: number;
 		processes_ms: number;
-		docker_ms: number;
 		rollup_ms: number;
 		retention_ms: number;
 	};
@@ -45,7 +44,6 @@
 			server_name: c.server_name,
 			stats_ms: c.collector_stats_interval_ms,
 			processes_ms: c.collector_processes_interval_ms,
-			docker_ms: c.collector_docker_interval_ms,
 			rollup_ms: c.rollup_tick_interval_ms,
 			retention_ms: c.retention_tick_interval_ms
 		};
@@ -79,8 +77,6 @@
 			d.collector_stats_interval_ms = form.stats_ms;
 		if (form.processes_ms !== original.collector_processes_interval_ms)
 			d.collector_processes_interval_ms = form.processes_ms;
-		if (form.docker_ms !== original.collector_docker_interval_ms)
-			d.collector_docker_interval_ms = form.docker_ms;
 		if (form.rollup_ms !== original.rollup_tick_interval_ms)
 			d.rollup_tick_interval_ms = form.rollup_ms;
 		if (form.retention_ms !== original.retention_tick_interval_ms)
@@ -95,10 +91,6 @@
 		form && !form.server_name.trim() ? m.config_validation_server_name_empty() : null
 	);
 
-	// Docker collector is compiled out on servers built --no-default-features;
-	// the API then reports interval 0. Hide the field and skip its validation.
-	let dockerEnabled = $derived(original ? original.collector_docker_interval_ms !== 0 : false);
-
 	// Server enforces >= 1000 ms for collector intervals (sub-second sampling
 	// collides with second-resolution metric PKs). Mirror that floor here.
 	const MIN_INTERVAL_MS = 1000;
@@ -109,9 +101,6 @@
 		const intervals: [string, number][] = [
 			[m.config_interval_label_stats(), form.stats_ms],
 			[m.config_interval_label_processes(), form.processes_ms],
-			...(dockerEnabled
-				? [[m.config_interval_label_docker(), form.docker_ms] as [string, number]]
-				: []),
 			[m.config_interval_label_rollup(), form.rollup_ms],
 			[m.config_interval_label_retention(), form.retention_ms]
 		];
@@ -227,15 +216,6 @@
 							form.processes_ms,
 							(v) => (form!.processes_ms = v)
 						)}
-						{#if dockerEnabled}
-							{@render intervalField(
-								m.config_interval_label_docker(),
-								m.config_interval_hint_docker(),
-								'docker',
-								form.docker_ms,
-								(v) => (form!.docker_ms = v)
-							)}
-						{/if}
 					</div>
 				</Card>
 

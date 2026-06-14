@@ -18,6 +18,10 @@ import type {
 	GetContainerLogsResponse,
 	GetProcessesResponse,
 	AlertsSchemaResponse,
+	HealthResponse,
+	ReadyResponse,
+	LogsQuery,
+	LogsResponse,
 	ListAlertEventsResponse,
 	ListAlertRulesResponse,
 	ListAlertStateResponse,
@@ -190,12 +194,15 @@ export class ApiClient {
 		return url.toString();
 	}
 
-	health(): Promise<string> {
-		return this.request<string>('/health', { auth: false, parse: 'text' });
+	/** Liveness probe. Resolves when the process is up and routing. */
+	health(): Promise<HealthResponse> {
+		return this.request<HealthResponse>('/health', { auth: false });
 	}
 
-	hello(): Promise<string> {
-		return this.request<string>('/hello', { auth: false, parse: 'text' });
+	/** Readiness probe. Resolves with `status: 'ready'` once the DB answers;
+	 *  rejects (503) while the pool can't serve queries. */
+	ready(): Promise<ReadyResponse> {
+		return this.request<ReadyResponse>('/ready', { auth: false });
 	}
 
 	pairInitiate(): Promise<PairingInitiateResponse> {
@@ -288,6 +295,11 @@ export class ApiClient {
 
 	summary(): Promise<SummaryResponse> {
 		return this.request<SummaryResponse>('/summary');
+	}
+
+	/** The daemon's own application log (newest-first). */
+	logs(q: LogsQuery = {}): Promise<LogsResponse> {
+		return this.request<LogsResponse>('/logs', { query: { ...q } });
 	}
 
 	listServices(q: ListServicesQuery = {}): Promise<ListServicesResponse> {
