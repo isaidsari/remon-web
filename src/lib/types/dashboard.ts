@@ -4,7 +4,12 @@ import type { RangeKey } from '$lib/components/charts/range';
 // grid. Persisted inside the (encrypted) vault on each ServerProfile, so it
 // travels with profile export/import and needs no backend support.
 
-export type WidgetKind = 'live-kpi' | 'history-chart' | 'probe-metric' | 'status-summary';
+export type WidgetKind =
+	| 'live-kpi'
+	| 'history-chart'
+	| 'probe-metric'
+	| 'status-summary'
+	| 'memory-detail';
 
 /** Built-in live SSE KPI sources — map straight onto LiveStats aggregates. */
 export type LiveKpiSource = 'cpu' | 'memory' | 'disk-io' | 'network';
@@ -43,11 +48,19 @@ export interface StatusSummaryConfig {
 	summary: StatusSummaryKind;
 }
 
+/** Live memory breakdown card: active/cache/free segmented bar + swap bar.
+ *  Config-less — reads the live SSE memory snapshot. Ports the old fixed
+ *  overview's memory card, which the KPI/history widgets can't reproduce. */
+export interface MemoryDetailConfig {
+	kind: 'memory-detail';
+}
+
 export type WidgetConfig =
 	| LiveKpiConfig
 	| HistoryChartConfig
 	| ProbeMetricConfig
-	| StatusSummaryConfig;
+	| StatusSummaryConfig
+	| MemoryDetailConfig;
 
 export interface Widget {
 	id: string;

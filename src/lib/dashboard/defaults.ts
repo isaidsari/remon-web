@@ -66,6 +66,9 @@ function normalizeConfig(input: unknown): WidgetConfig | null {
 	if (input.kind === 'status-summary' && isStringIn(input.summary, STATUS_SUMMARIES)) {
 		return { kind: 'status-summary', summary: input.summary };
 	}
+	if (input.kind === 'memory-detail') {
+		return { kind: 'memory-detail' };
+	}
 	if (
 		input.kind !== 'probe-metric' ||
 		typeof input.probe !== 'string' ||

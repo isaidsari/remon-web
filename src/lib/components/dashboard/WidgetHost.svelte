@@ -5,6 +5,7 @@
 	import HistoryChartWidget from './widgets/HistoryChartWidget.svelte';
 	import ProbeMetricWidget from './widgets/ProbeMetricWidget.svelte';
 	import StatusSummaryWidget from './widgets/StatusSummaryWidget.svelte';
+	import MemoryDetailWidget from './widgets/MemoryDetailWidget.svelte';
 
 	interface Props {
 		widget: Widget;
@@ -23,4 +24,6 @@
 	<ProbeMetricWidget {conn} {config} />
 {:else if config.kind === 'status-summary'}
 	<StatusSummaryWidget {conn} {config} />
+{:else if config.kind === 'memory-detail'}
+	<MemoryDetailWidget {conn} />
 {/if}

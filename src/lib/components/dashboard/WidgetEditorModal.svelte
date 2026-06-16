@@ -143,6 +143,8 @@
 				return { kind: 'history-chart', resource: histResource, range: histRange };
 			case 'status-summary':
 				return { kind: 'status-summary', summary };
+			case 'memory-detail':
+				return { kind: 'memory-detail' };
 			case 'probe-metric':
 				return {
 					kind: 'probe-metric',
@@ -164,7 +166,8 @@
 		{ value: 'live-kpi', label: () => m.dashboard_widget_live_kpi() },
 		{ value: 'history-chart', label: () => m.dashboard_widget_history_chart() },
 		{ value: 'probe-metric', label: () => m.dashboard_widget_probe_metric() },
-		{ value: 'status-summary', label: () => m.dashboard_widget_status_summary() }
+		{ value: 'status-summary', label: () => m.dashboard_widget_status_summary() },
+		{ value: 'memory-detail', label: () => m.dashboard_widget_memory_detail() }
 	];
 
 	const selectCls =
@@ -240,7 +243,7 @@
 					<option value="alerts">{m.section_alerts()}</option>
 				</select>
 			</Field>
-		{:else}
+		{:else if kind === 'probe-metric'}
 			<Field label={m.dashboard_field_probe()}>
 				<select
 					class={selectCls}

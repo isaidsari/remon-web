@@ -33,6 +33,12 @@ export const WIDGET_META: Record<WidgetKind, WidgetMeta> = {
 		label: () => m.dashboard_widget_status_summary(),
 		defaultSize: { w: 4, h: 2 },
 		needsLive: false
+	},
+	'memory-detail': {
+		kind: 'memory-detail',
+		label: () => m.dashboard_widget_memory_detail(),
+		defaultSize: { w: 4, h: 3 },
+		needsLive: true
 	}
 };
 
