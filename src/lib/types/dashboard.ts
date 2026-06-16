@@ -10,7 +10,8 @@ export type WidgetKind =
 	| 'probe-metric'
 	| 'status-summary'
 	| 'memory-detail'
-	| 'cpu-detail';
+	| 'cpu-detail'
+	| 'pressure';
 
 /** Built-in live SSE KPI sources — map straight onto LiveStats aggregates. */
 export type LiveKpiSource = 'cpu' | 'memory' | 'disk-io' | 'network';
@@ -62,13 +63,20 @@ export interface CpuDetailConfig {
 	kind: 'cpu-detail';
 }
 
+/** Live PSI card: CPU / memory / I/O some-pressure (avg10/60/300). Config-less,
+ *  reads the live SSE pressure snapshot. Empty on non-Linux / pre-4.20 kernels. */
+export interface PressureConfig {
+	kind: 'pressure';
+}
+
 export type WidgetConfig =
 	| LiveKpiConfig
 	| HistoryChartConfig
 	| ProbeMetricConfig
 	| StatusSummaryConfig
 	| MemoryDetailConfig
-	| CpuDetailConfig;
+	| CpuDetailConfig
+	| PressureConfig;
 
 export interface Widget {
 	id: string;

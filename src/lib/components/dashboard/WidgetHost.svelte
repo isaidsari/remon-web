@@ -7,6 +7,7 @@
 	import StatusSummaryWidget from './widgets/StatusSummaryWidget.svelte';
 	import MemoryDetailWidget from './widgets/MemoryDetailWidget.svelte';
 	import CpuDetailWidget from './widgets/CpuDetailWidget.svelte';
+	import PressureDetailWidget from './widgets/PressureDetailWidget.svelte';
 
 	interface Props {
 		widget: Widget;
@@ -29,4 +30,6 @@
 	<MemoryDetailWidget {conn} />
 {:else if config.kind === 'cpu-detail'}
 	<CpuDetailWidget {conn} />
+{:else if config.kind === 'pressure'}
+	<PressureDetailWidget {conn} />
 {/if}

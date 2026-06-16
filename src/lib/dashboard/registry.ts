@@ -45,6 +45,12 @@ export const WIDGET_META: Record<WidgetKind, WidgetMeta> = {
 		label: () => m.dashboard_widget_cpu_detail(),
 		defaultSize: { w: 6, h: 4 },
 		needsLive: true
+	},
+	pressure: {
+		kind: 'pressure',
+		label: () => m.dashboard_widget_pressure(),
+		defaultSize: { w: 6, h: 2 },
+		needsLive: true
 	}
 };
 

@@ -72,6 +72,9 @@ function normalizeConfig(input: unknown): WidgetConfig | null {
 	if (input.kind === 'cpu-detail') {
 		return { kind: 'cpu-detail' };
 	}
+	if (input.kind === 'pressure') {
+		return { kind: 'pressure' };
+	}
 	if (
 		input.kind !== 'probe-metric' ||
 		typeof input.probe !== 'string' ||
