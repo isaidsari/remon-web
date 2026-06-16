@@ -145,6 +145,8 @@
 				return { kind: 'status-summary', summary };
 			case 'memory-detail':
 				return { kind: 'memory-detail' };
+			case 'cpu-detail':
+				return { kind: 'cpu-detail' };
 			case 'probe-metric':
 				return {
 					kind: 'probe-metric',
@@ -167,7 +169,8 @@
 		{ value: 'history-chart', label: () => m.dashboard_widget_history_chart() },
 		{ value: 'probe-metric', label: () => m.dashboard_widget_probe_metric() },
 		{ value: 'status-summary', label: () => m.dashboard_widget_status_summary() },
-		{ value: 'memory-detail', label: () => m.dashboard_widget_memory_detail() }
+		{ value: 'memory-detail', label: () => m.dashboard_widget_memory_detail() },
+		{ value: 'cpu-detail', label: () => m.dashboard_widget_cpu_detail() }
 	];
 
 	const selectCls =

@@ -20,6 +20,7 @@
 	"dashboard_widget_probe_metric": "probe metric",
 	"dashboard_widget_status_summary": "status summary",
 	"dashboard_widget_memory_detail": "memory breakdown",
+	"dashboard_widget_cpu_detail": "cpu detail",
 	"dashboard_summary_active": "active",
 	"dashboard_summary_firing": "firing",
 	"dashboard_summary_host": "host",

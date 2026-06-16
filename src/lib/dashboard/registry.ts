@@ -39,6 +39,12 @@ export const WIDGET_META: Record<WidgetKind, WidgetMeta> = {
 		label: () => m.dashboard_widget_memory_detail(),
 		defaultSize: { w: 4, h: 3 },
 		needsLive: true
+	},
+	'cpu-detail': {
+		kind: 'cpu-detail',
+		label: () => m.dashboard_widget_cpu_detail(),
+		defaultSize: { w: 6, h: 4 },
+		needsLive: true
 	}
 };
 

@@ -9,7 +9,8 @@ export type WidgetKind =
 	| 'history-chart'
 	| 'probe-metric'
 	| 'status-summary'
-	| 'memory-detail';
+	| 'memory-detail'
+	| 'cpu-detail';
 
 /** Built-in live SSE KPI sources — map straight onto LiveStats aggregates. */
 export type LiveKpiSource = 'cpu' | 'memory' | 'disk-io' | 'network';
@@ -55,12 +56,19 @@ export interface MemoryDetailConfig {
 	kind: 'memory-detail';
 }
 
+/** Live CPU detail card: load avg + steal/iowait/user/kernel + per-core
+ *  heatmap. Config-less — reads the live SSE CpuStats snapshot. */
+export interface CpuDetailConfig {
+	kind: 'cpu-detail';
+}
+
 export type WidgetConfig =
 	| LiveKpiConfig
 	| HistoryChartConfig
 	| ProbeMetricConfig
 	| StatusSummaryConfig
-	| MemoryDetailConfig;
+	| MemoryDetailConfig
+	| CpuDetailConfig;
 
 export interface Widget {
 	id: string;

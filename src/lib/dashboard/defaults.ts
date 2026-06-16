@@ -69,6 +69,9 @@ function normalizeConfig(input: unknown): WidgetConfig | null {
 	if (input.kind === 'memory-detail') {
 		return { kind: 'memory-detail' };
 	}
+	if (input.kind === 'cpu-detail') {
+		return { kind: 'cpu-detail' };
+	}
 	if (
 		input.kind !== 'probe-metric' ||
 		typeof input.probe !== 'string' ||

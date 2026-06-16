@@ -6,6 +6,7 @@
 	import ProbeMetricWidget from './widgets/ProbeMetricWidget.svelte';
 	import StatusSummaryWidget from './widgets/StatusSummaryWidget.svelte';
 	import MemoryDetailWidget from './widgets/MemoryDetailWidget.svelte';
+	import CpuDetailWidget from './widgets/CpuDetailWidget.svelte';
 
 	interface Props {
 		widget: Widget;
@@ -26,4 +27,6 @@
 	<StatusSummaryWidget {conn} {config} />
 {:else if config.kind === 'memory-detail'}
 	<MemoryDetailWidget {conn} />
+{:else if config.kind === 'cpu-detail'}
+	<CpuDetailWidget {conn} />
 {/if}
