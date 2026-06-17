@@ -75,6 +75,9 @@ function normalizeConfig(input: unknown): WidgetConfig | null {
 	if (input.kind === 'pressure') {
 		return { kind: 'pressure' };
 	}
+	if (input.kind === 'network-detail') {
+		return { kind: 'network-detail' };
+	}
 	if (
 		input.kind !== 'probe-metric' ||
 		typeof input.probe !== 'string' ||

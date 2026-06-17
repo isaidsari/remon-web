@@ -51,6 +51,12 @@ export const WIDGET_META: Record<WidgetKind, WidgetMeta> = {
 		label: () => m.dashboard_widget_pressure(),
 		defaultSize: { w: 6, h: 2 },
 		needsLive: true
+	},
+	'network-detail': {
+		kind: 'network-detail',
+		label: () => m.dashboard_widget_network_detail(),
+		defaultSize: { w: 4, h: 3 },
+		needsLive: true
 	}
 };
 

@@ -11,7 +11,8 @@ export type WidgetKind =
 	| 'status-summary'
 	| 'memory-detail'
 	| 'cpu-detail'
-	| 'pressure';
+	| 'pressure'
+	| 'network-detail';
 
 /** Built-in live SSE KPI sources — map straight onto LiveStats aggregates. */
 export type LiveKpiSource = 'cpu' | 'memory' | 'disk-io' | 'network';
@@ -69,6 +70,13 @@ export interface PressureConfig {
 	kind: 'pressure';
 }
 
+/** Live network detail card: per-interface rx/tx rates + totals-since-boot,
+ *  physical NICs leading with container/virtual links collapsed. Config-less,
+ *  reads the live SSE network snapshot. */
+export interface NetworkDetailConfig {
+	kind: 'network-detail';
+}
+
 export type WidgetConfig =
 	| LiveKpiConfig
 	| HistoryChartConfig
@@ -76,7 +84,8 @@ export type WidgetConfig =
 	| StatusSummaryConfig
 	| MemoryDetailConfig
 	| CpuDetailConfig
-	| PressureConfig;
+	| PressureConfig
+	| NetworkDetailConfig;
 
 export interface Widget {
 	id: string;

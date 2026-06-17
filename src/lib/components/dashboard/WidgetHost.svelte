@@ -8,6 +8,7 @@
 	import MemoryDetailWidget from './widgets/MemoryDetailWidget.svelte';
 	import CpuDetailWidget from './widgets/CpuDetailWidget.svelte';
 	import PressureDetailWidget from './widgets/PressureDetailWidget.svelte';
+	import NetworkDetailWidget from './widgets/NetworkDetailWidget.svelte';
 
 	interface Props {
 		widget: Widget;
@@ -32,4 +33,6 @@
 	<CpuDetailWidget {conn} />
 {:else if config.kind === 'pressure'}
 	<PressureDetailWidget {conn} />
+{:else if config.kind === 'network-detail'}
+	<NetworkDetailWidget {conn} />
 {/if}
