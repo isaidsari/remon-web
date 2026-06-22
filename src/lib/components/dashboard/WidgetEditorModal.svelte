@@ -151,6 +151,8 @@
 				return { kind: 'pressure' };
 			case 'network-detail':
 				return { kind: 'network-detail' };
+			case 'disk-detail':
+				return { kind: 'disk-detail' };
 			case 'probe-metric':
 				return {
 					kind: 'probe-metric',
@@ -176,7 +178,8 @@
 		{ value: 'memory-detail', label: () => m.dashboard_widget_memory_detail() },
 		{ value: 'cpu-detail', label: () => m.dashboard_widget_cpu_detail() },
 		{ value: 'pressure', label: () => m.dashboard_widget_pressure() },
-		{ value: 'network-detail', label: () => m.dashboard_widget_network_detail() }
+		{ value: 'network-detail', label: () => m.dashboard_widget_network_detail() },
+		{ value: 'disk-detail', label: () => m.dashboard_widget_disk_detail() }
 	];
 
 	const selectCls =

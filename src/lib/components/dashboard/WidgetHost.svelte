@@ -9,6 +9,7 @@
 	import CpuDetailWidget from './widgets/CpuDetailWidget.svelte';
 	import PressureDetailWidget from './widgets/PressureDetailWidget.svelte';
 	import NetworkDetailWidget from './widgets/NetworkDetailWidget.svelte';
+	import DiskDetailWidget from './widgets/DiskDetailWidget.svelte';
 
 	interface Props {
 		widget: Widget;
@@ -35,4 +36,6 @@
 	<PressureDetailWidget {conn} />
 {:else if config.kind === 'network-detail'}
 	<NetworkDetailWidget {conn} />
+{:else if config.kind === 'disk-detail'}
+	<DiskDetailWidget {conn} />
 {/if}

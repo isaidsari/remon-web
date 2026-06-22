@@ -57,6 +57,12 @@ export const WIDGET_META: Record<WidgetKind, WidgetMeta> = {
 		label: () => m.dashboard_widget_network_detail(),
 		defaultSize: { w: 4, h: 3 },
 		needsLive: true
+	},
+	'disk-detail': {
+		kind: 'disk-detail',
+		label: () => m.dashboard_widget_disk_detail(),
+		defaultSize: { w: 4, h: 3 },
+		needsLive: true
 	}
 };
 

@@ -12,7 +12,8 @@ export type WidgetKind =
 	| 'memory-detail'
 	| 'cpu-detail'
 	| 'pressure'
-	| 'network-detail';
+	| 'network-detail'
+	| 'disk-detail';
 
 /** Built-in live SSE KPI sources — map straight onto LiveStats aggregates. */
 export type LiveKpiSource = 'cpu' | 'memory' | 'disk-io' | 'network';
@@ -77,6 +78,13 @@ export interface NetworkDetailConfig {
 	kind: 'network-detail';
 }
 
+/** Live storage detail card: per-mount used/total + usage bar and R/W rates,
+ *  host mounts leading with container-overlay mounts collapsed. Config-less,
+ *  reads the live SSE disk snapshot. */
+export interface DiskDetailConfig {
+	kind: 'disk-detail';
+}
+
 export type WidgetConfig =
 	| LiveKpiConfig
 	| HistoryChartConfig
@@ -85,7 +93,8 @@ export type WidgetConfig =
 	| MemoryDetailConfig
 	| CpuDetailConfig
 	| PressureConfig
-	| NetworkDetailConfig;
+	| NetworkDetailConfig
+	| DiskDetailConfig;
 
 export interface Widget {
 	id: string;

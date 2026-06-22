@@ -23,6 +23,7 @@
 	"dashboard_widget_cpu_detail": "cpu detail",
 	"dashboard_widget_pressure": "pressure (PSI)",
 	"dashboard_widget_network_detail": "network detail",
+	"dashboard_widget_disk_detail": "storage detail",
 	"dashboard_summary_active": "active",
 	"dashboard_summary_firing": "firing",
 	"dashboard_summary_host": "host",

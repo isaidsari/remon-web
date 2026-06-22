@@ -23,6 +23,7 @@
 	"dashboard_widget_cpu_detail": "cpu detayı",
 	"dashboard_widget_pressure": "basınç (PSI)",
 	"dashboard_widget_network_detail": "ağ detayı",
+	"dashboard_widget_disk_detail": "depolama detayı",
 	"dashboard_summary_active": "aktif",
 	"dashboard_summary_firing": "tetikte",
 	"dashboard_summary_host": "ana makine",
