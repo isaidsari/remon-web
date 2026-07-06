@@ -17,6 +17,7 @@
 	import IconList from '~icons/lucide/list';
 	import IconActivity from '~icons/lucide/activity';
 	import IconStethoscope from '~icons/lucide/stethoscope';
+	import IconHeartPulse from '~icons/lucide/heart-pulse';
 	import IconContainer from '~icons/lucide/container';
 	import IconTriangleAlert from '~icons/lucide/triangle-alert';
 	import IconBell from '~icons/lucide/bell';
@@ -57,6 +58,7 @@
 		{ href: '/processes', label: m.section_processes(), icon: IconList, enabled: true },
 		{ href: '/services', label: m.section_services(), icon: IconActivity, enabled: true },
 		{ href: '/probes', label: m.section_probes(), icon: IconStethoscope, enabled: true },
+		{ href: '/heartbeats', label: m.section_heartbeats(), icon: IconHeartPulse, enabled: true },
 		{ href: '/docker', label: m.section_docker(), icon: IconContainer, enabled: true },
 		{ href: '/alerts', label: m.section_alerts(), icon: IconTriangleAlert, enabled: true },
 		{ href: '/notifications', label: m.section_notifications(), icon: IconBell, enabled: true },
@@ -85,6 +87,9 @@
 				break;
 			case '/probes':
 				void c.listProbes().catch(() => {});
+				break;
+			case '/heartbeats':
+				void c.listHeartbeats().catch(() => {});
 				break;
 			case '/docker':
 				void c.dockerStatus().catch(() => {});

@@ -22,6 +22,8 @@
 				return m.section_services();
 			case 'probes':
 				return m.section_probes();
+			case 'heartbeats':
+				return m.section_heartbeats();
 			case 'docker':
 				return m.section_docker();
 			case 'settings':
