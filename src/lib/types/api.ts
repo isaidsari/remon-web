@@ -16,6 +16,7 @@ export type ApiErrorCode =
 	| 'DEVICE_INACTIVE'
 	| 'NOT_FOUND'
 	| 'ALREADY_EXISTS'
+	| 'CONFLICT'
 	| 'PAIRING_EXPIRED'
 	| 'PROCESS_KILL_FAILED'
 	| 'DOCKER_ERROR'
@@ -555,6 +556,97 @@ export interface ProbeMetricRangeQuery {
 	resolution?: string;
 	/** Canonical JSON labels filter, e.g. '{"mount_point":"/"}'. */
 	labels?: string;
+}
+
+// ===== Heartbeats (push dead-man's-switch checks) =====
+
+/** Derived check state, in precedence order. `late` = period elapsed but
+ *  still inside grace; `waiting` = never pinged, first window still open. */
+export type HeartbeatState = 'disabled' | 'paused' | 'failed' | 'down' | 'waiting' | 'late' | 'up';
+
+/** Operator pauses always outrank service-announced ones. */
+export type PauseOrigin = 'operator' | 'service';
+
+export type HeartbeatPingKind = 'success' | 'fail' | 'pause' | 'resume';
+
+export interface HeartbeatCheckDto {
+	id: number;
+	name: string;
+	description: string | null;
+	period_secs: number;
+	grace_secs: number;
+	enabled: boolean;
+	/** Derived server-side at read time — same function the alert resolver uses. */
+	state: HeartbeatState;
+	last_ping_at: number | null;
+	last_fail_at: number | null;
+	/** When the check flips to `down`, absent further pings or pauses. */
+	deadline_at: number;
+	paused: boolean;
+	/** Pause detail is present only while a pause is active. `null` end = indefinite. */
+	paused_until: number | null;
+	pause_origin: PauseOrigin | null;
+	pause_reason: string | null;
+	created_at: number;
+	updated_at: number;
+}
+
+export interface ListHeartbeatsResponse {
+	checks: HeartbeatCheckDto[];
+}
+
+export interface CreateHeartbeatRequest {
+	name: string;
+	description?: string;
+	period_secs: number;
+	/** Server default: 300. */
+	grace_secs?: number;
+	enabled?: boolean;
+	/** Create under an indefinite operator pause so wiring the pinger up can take its time. */
+	paused?: boolean;
+}
+
+/** The check fields flattened together with the one-shot slug. */
+export interface CreateHeartbeatResponse extends HeartbeatCheckDto {
+	/** Shown exactly once — stored hashed server-side, never retrievable again. */
+	slug: string;
+	/** Server-relative ping URL; prepend the profile base URL. */
+	ping_path: string;
+}
+
+export interface UpdateHeartbeatRequest {
+	name?: string;
+	/** Omit = leave as-is; explicit `null` clears. */
+	description?: string | null;
+	period_secs?: number;
+	grace_secs?: number;
+	enabled?: boolean;
+}
+
+/** Neither field = indefinite (operator-only power). Mutually exclusive. */
+export interface PauseHeartbeatRequest {
+	until?: number;
+	duration_secs?: number;
+	reason?: string;
+}
+
+export interface HeartbeatSlugDto {
+	slug: string;
+	ping_path: string;
+}
+
+export interface HeartbeatPingDto {
+	received_at: number;
+	kind: HeartbeatPingKind;
+	exit_code: number | null;
+	source_ip: string | null;
+	user_agent: string | null;
+	/** Captured only on fail / nonzero-exit reports, truncated to 4 KiB. */
+	body: string | null;
+}
+
+export interface ListHeartbeatPingsResponse {
+	pings: HeartbeatPingDto[];
 }
 
 export interface ReloadFailure {

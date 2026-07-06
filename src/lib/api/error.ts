@@ -111,6 +111,8 @@ function humanize(code: ApiErrorCode, fallback: string): string {
 			return 'Pairing code expired or wrong. Restart the pairing flow.';
 		case 'ALREADY_EXISTS':
 			return 'A pairing window is already open. Wait for it to expire or finish it.';
+		case 'CONFLICT':
+			return fallback || 'The request conflicts with the current state.';
 		case 'DOCKER_UNAVAILABLE':
 			return 'Docker is not available on this server.';
 		case 'FORBIDDEN':

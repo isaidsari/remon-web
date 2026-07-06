@@ -17,6 +17,14 @@ import type {
 	GetContainerLogsRequest,
 	GetContainerLogsResponse,
 	GetProcessesResponse,
+	CreateHeartbeatRequest,
+	CreateHeartbeatResponse,
+	HeartbeatCheckDto,
+	HeartbeatSlugDto,
+	ListHeartbeatPingsResponse,
+	ListHeartbeatsResponse,
+	PauseHeartbeatRequest,
+	UpdateHeartbeatRequest,
 	AlertsSchemaResponse,
 	HealthResponse,
 	ReadyResponse,
@@ -383,6 +391,43 @@ export class ApiClient {
 	}
 	reloadProbes(): Promise<ReloadProbesResponse> {
 		return this.request<ReloadProbesResponse>('/probes/reload', { method: 'POST' });
+	}
+
+	listHeartbeats(): Promise<ListHeartbeatsResponse> {
+		return this.request<ListHeartbeatsResponse>('/heartbeats');
+	}
+	getHeartbeat(id: number): Promise<HeartbeatCheckDto> {
+		return this.request<HeartbeatCheckDto>(`/heartbeats/${id}`);
+	}
+	/** Response carries the capability slug ONCE — surface it immediately. */
+	createHeartbeat(req: CreateHeartbeatRequest): Promise<CreateHeartbeatResponse> {
+		return this.request<CreateHeartbeatResponse>('/heartbeats', { method: 'POST', body: req });
+	}
+	updateHeartbeat(id: number, req: UpdateHeartbeatRequest): Promise<HeartbeatCheckDto> {
+		return this.request<HeartbeatCheckDto>(`/heartbeats/${id}`, { method: 'PUT', body: req });
+	}
+	deleteHeartbeat(id: number): Promise<void> {
+		return this.request<void>(`/heartbeats/${id}`, { method: 'DELETE', parse: 'none' });
+	}
+	/** Empty body = indefinite operator pause. Overrides any service pause. */
+	pauseHeartbeat(id: number, req: PauseHeartbeatRequest = {}): Promise<HeartbeatCheckDto> {
+		return this.request<HeartbeatCheckDto>(`/heartbeats/${id}/pause`, {
+			method: 'POST',
+			body: req
+		});
+	}
+	/** Idempotent; resume grants one fresh period+grace before the check can go down. */
+	resumeHeartbeat(id: number): Promise<void> {
+		return this.request<void>(`/heartbeats/${id}/pause`, { method: 'DELETE', parse: 'none' });
+	}
+	/** Old ping URL 404s from this response on; the new slug is shown once. */
+	rotateHeartbeatSlug(id: number): Promise<HeartbeatSlugDto> {
+		return this.request<HeartbeatSlugDto>(`/heartbeats/${id}/rotate-slug`, { method: 'POST' });
+	}
+	heartbeatPings(id: number, limit?: number, offset?: number): Promise<ListHeartbeatPingsResponse> {
+		return this.request<ListHeartbeatPingsResponse>(`/heartbeats/${id}/pings`, {
+			query: { limit, offset }
+		});
 	}
 
 	processes(query?: Record<string, unknown>): Promise<GetProcessesResponse> {
