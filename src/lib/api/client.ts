@@ -1,6 +1,7 @@
 import type { RawStats } from '$lib/utils/dockerStats';
 import type {
 	AlertRuleDto,
+	AssistantAskResponse,
 	BatchMetricsQuery,
 	BatchMetricsResponse,
 	ComponentsHistoryResponse,
@@ -653,6 +654,21 @@ export class ApiClient {
 	testChannel(id: number): Promise<TestChannelResponse> {
 		return this.request<TestChannelResponse>(`/notifications/channels/${id}/test`, {
 			method: 'POST'
+		});
+	}
+
+	/**
+	 * Ask the read-only operator assistant a natural-language question. The
+	 * daemon runs a tool-use loop over its own telemetry and returns an answer;
+	 * the provider api_key stays server-side. The loop can take a while, so this
+	 * uses a longer timeout than the default request.
+	 */
+	ask(question: string, opts?: { signal?: AbortSignal }): Promise<AssistantAskResponse> {
+		return this.request<AssistantAskResponse>('/assistant', {
+			method: 'POST',
+			body: { question },
+			signal: opts?.signal,
+			timeoutMs: 90_000
 		});
 	}
 

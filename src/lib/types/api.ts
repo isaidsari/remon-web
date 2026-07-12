@@ -1070,3 +1070,27 @@ export interface UpdateChannelRequest {
 export interface TestChannelResponse {
 	delivered: number;
 }
+
+// ===== Assistant =====
+
+export interface AssistantAskRequest {
+	question: string;
+}
+
+/**
+ * A write-action the assistant drafted but did not perform. The client renders
+ * it for confirmation and, only on confirm, calls `method path` (with `body`)
+ * against the normal REST API.
+ */
+export interface ProposedAction {
+	kind: string;
+	summary: string;
+	method: 'POST' | 'PUT' | 'DELETE';
+	path: string;
+	body?: unknown | null;
+}
+
+export interface AssistantAskResponse {
+	answer: string;
+	proposals: ProposedAction[];
+}
