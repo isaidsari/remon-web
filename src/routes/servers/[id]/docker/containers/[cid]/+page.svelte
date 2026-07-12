@@ -7,6 +7,7 @@
 	import StateBadge from '$lib/components/docker/StateBadge.svelte';
 	import LogStream from '$lib/components/common/LogStream.svelte';
 	import StatsPanel from '$lib/components/docker/StatsPanel.svelte';
+	import ContainerHistory from '$lib/components/docker/ContainerHistory.svelte';
 	import Terminal from '$lib/components/docker/Terminal.svelte';
 	import Banner from '$lib/components/ui/Banner.svelte';
 	import { profiles } from '$lib/stores/profiles.svelte';
@@ -375,6 +376,9 @@
 			{#if conn?.isAuthenticated}
 				<div class="mt-4">
 					<StatsPanel {conn} containerId={cid} paused={!running} />
+				</div>
+				<div class="mt-4">
+					<ContainerHistory {conn} name={inspect?.name ?? ''} paused={!running} />
 				</div>
 			{/if}
 

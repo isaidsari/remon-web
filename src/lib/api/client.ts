@@ -13,6 +13,7 @@ import type {
 	DeviceLoginRequest,
 	DiskHistoryResponse,
 	DockerActionResponse,
+	DockerHistoryResponse,
 	DockerStatusResponse,
 	GetContainerLogsRequest,
 	GetContainerLogsResponse,
@@ -274,6 +275,12 @@ export class ApiClient {
 
 	networkHistory(q: MetricsRangeQuery = {}): Promise<NetworkHistoryResponse> {
 		return this.request<NetworkHistoryResponse>('/metrics/network', { query: { ...q } });
+	}
+
+	dockerHistory(container: string, q: MetricsRangeQuery = {}): Promise<DockerHistoryResponse> {
+		return this.request<DockerHistoryResponse>(`/metrics/docker/${encodeURIComponent(container)}`, {
+			query: { ...q }
+		});
 	}
 
 	pressureHistory(

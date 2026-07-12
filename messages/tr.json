@@ -690,6 +690,8 @@
 	"docker_container_section_ports": "portlar",
 	"docker_container_section_networks": "ağlar",
 	"docker_container_section_logs": "günlükler",
+	"docker_container_history_title": "kaynak geçmişi",
+	"docker_container_history_empty": "henüz geçmiş yok; collector'ın birkaç tick birikmesi gerekiyor",
 	"docker_container_section_console": "konsol",
 	"docker_container_field_status": "durum",
 	"docker_container_field_started": "başlatıldı",

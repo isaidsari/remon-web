@@ -257,6 +257,25 @@ export interface NetworkHistoryResponse {
 	points: NetworkPoint[];
 }
 
+export interface DockerPoint {
+	timestamp: number;
+	cpu_percent: number;
+	memory_used_bytes: number;
+	/** 0 when the container has no memory limit. */
+	memory_limit_bytes: number;
+	/** Byte counters below are cumulative since the container started. */
+	network_rx_bytes: number;
+	network_tx_bytes: number;
+	block_read_bytes: number;
+	block_write_bytes: number;
+	pids: number;
+}
+
+export interface DockerHistoryResponse {
+	resolution: MetricsResolution;
+	points: DockerPoint[];
+}
+
 export type PressureResource = 'cpu' | 'memory' | 'io';
 
 export interface PressurePoint {

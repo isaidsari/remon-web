@@ -689,6 +689,8 @@
 	"docker_container_section_ports": "ports",
 	"docker_container_section_networks": "networks",
 	"docker_container_section_logs": "logs",
+	"docker_container_history_title": "resource history",
+	"docker_container_history_empty": "no history yet; the collector needs a few ticks to populate",
 	"docker_container_section_console": "console",
 	"docker_container_field_status": "status",
 	"docker_container_field_started": "started",
