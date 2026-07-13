@@ -1090,7 +1090,34 @@ export interface ProposedAction {
 	body?: unknown | null;
 }
 
+export interface AssistantHistoryTurn {
+	question: string;
+	answer: string;
+}
+
+/** Per-ask dev overrides — honored only when the server has [assistant] dev = true. */
+export interface AssistantDevOverrides {
+	system?: string;
+	model?: string;
+	max_steps?: number;
+	max_tokens?: number;
+	no_tools?: boolean;
+	trace?: boolean;
+}
+
+/** One loop-trace entry: a model turn (usage/ms) or a tool call (args/result/ms). */
+export interface AssistantTraceStep {
+	type: 'model' | 'tool';
+	step: number;
+	ms: number;
+	name?: string;
+	args?: unknown;
+	result_preview?: string;
+	usage?: Record<string, number>;
+}
+
 export interface AssistantAskResponse {
 	answer: string;
 	proposals: ProposedAction[];
+	trace?: AssistantTraceStep[];
 }

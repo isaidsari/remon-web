@@ -2,6 +2,8 @@ import type { RawStats } from '$lib/utils/dockerStats';
 import type {
 	AlertRuleDto,
 	AssistantAskResponse,
+	AssistantDevOverrides,
+	AssistantHistoryTurn,
 	BatchMetricsQuery,
 	BatchMetricsResponse,
 	ComponentsHistoryResponse,
@@ -663,12 +665,19 @@ export class ApiClient {
 	 * the provider api_key stays server-side. The loop can take a while, so this
 	 * uses a longer timeout than the default request.
 	 */
-	ask(question: string, opts?: { signal?: AbortSignal }): Promise<AssistantAskResponse> {
+	ask(
+		question: string,
+		opts?: {
+			signal?: AbortSignal;
+			history?: AssistantHistoryTurn[];
+			dev?: AssistantDevOverrides;
+		}
+	): Promise<AssistantAskResponse> {
 		return this.request<AssistantAskResponse>('/assistant', {
 			method: 'POST',
-			body: { question },
+			body: { question, history: opts?.history ?? [], dev: opts?.dev },
 			signal: opts?.signal,
-			timeoutMs: 90_000
+			timeoutMs: 150_000
 		});
 	}
 
