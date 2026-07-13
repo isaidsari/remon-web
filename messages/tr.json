@@ -1020,5 +1020,15 @@
 	"settings_autounlock_disable_dialog_description": "sonraki açılışlarda ana parolayı tekrar girersiniz. bu tarayıcıdaki cihaz anahtarı silinir.",
 	"settings_autounlock_disable_dialog_confirm": "kapat",
 	"settings_autounlock_toast_enabled": "otomatik aç açıldı",
-	"settings_autounlock_toast_disabled": "otomatik aç kapatıldı"
+	"settings_autounlock_toast_disabled": "otomatik aç kapatıldı",
+	"assistant_thinking": "düşünüyor",
+	"assistant_copy": "kopyala",
+	"assistant_copied": "kopyalandı",
+	"assistant_copy_failed": "kopyalanamadı",
+	"assistant_clear": "sohbeti temizle",
+	"assistant_dev": "dev modu",
+	"assistant_dev_system_placeholder": "system prompt override — boş bırakılırsa varsayılan kalır",
+	"assistant_dev_note": "sunucuda [assistant] dev = true gerektirir. cevaplar döngü izini içerir; auth ve salt-okunur tool sözleşmesi geçerli kalır.",
+	"assistant_trace": "iz",
+	"assistant_dev_model_placeholder": "model override — boş bırakılırsa yapılandırılan model (örn. claude-haiku-4-5)"
 }

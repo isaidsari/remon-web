@@ -1020,5 +1020,15 @@
 	"settings_autounlock_disable_dialog_description": "next launches will prompt for the master password again. the device key in this browser is deleted.",
 	"settings_autounlock_disable_dialog_confirm": "turn off",
 	"settings_autounlock_toast_enabled": "auto-unlock enabled",
-	"settings_autounlock_toast_disabled": "auto-unlock disabled"
+	"settings_autounlock_toast_disabled": "auto-unlock disabled",
+	"assistant_thinking": "thinking",
+	"assistant_copy": "copy",
+	"assistant_copied": "copied",
+	"assistant_copy_failed": "copy failed",
+	"assistant_clear": "clear conversation",
+	"assistant_dev": "dev mode",
+	"assistant_dev_system_placeholder": "system prompt override — empty keeps the built-in prompt",
+	"assistant_dev_note": "requires [assistant] dev = true on the server. answers include the loop trace; auth and read-only tools still apply.",
+	"assistant_trace": "trace",
+	"assistant_dev_model_placeholder": "model override — empty keeps the configured model (e.g. claude-haiku-4-5)"
 }
