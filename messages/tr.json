@@ -1030,5 +1030,10 @@
 	"assistant_dev_system_placeholder": "system prompt override — boş bırakılırsa varsayılan kalır",
 	"assistant_dev_note": "sunucuda [assistant] dev = true gerektirir. cevaplar döngü izini içerir; auth ve salt-okunur tool sözleşmesi geçerli kalır.",
 	"assistant_trace": "iz",
-	"assistant_dev_model_placeholder": "model override — boş bırakılırsa yapılandırılan model (örn. claude-haiku-4-5)"
+	"assistant_dev_model_placeholder": "model override — boş bırakılırsa yapılandırılan model (örn. claude-haiku-4-5)",
+	"assistant_stop": "durdur",
+	"assistant_action_payload": "istek gövdesi",
+	"assistant_action_invalid_path": "geçersiz aksiyon yolu — istek gönderilmedi.",
+	"assistant_clear_confirm_title": "sohbet temizlensin mi?",
+	"assistant_clear_confirm_description": "bu sohbeti sekmeden kaldırır. sunucuda uygulanmış aksiyonlar geri alınmaz."
 }

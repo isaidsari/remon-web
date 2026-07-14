@@ -6,13 +6,15 @@
 	import { profiles } from '$lib/stores/profiles.svelte';
 	import { connections } from '$lib/stores/connections.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
+	import { confirm as confirmDialog } from '$lib/stores/confirm.svelte';
 	import { ApiError } from '$lib/api/error';
 	import { cn } from '$lib/utils/cn';
 	import { m } from '$lib/paraglide/messages';
 	import type { ProposedAction, AssistantTraceStep } from '$lib/types/api';
 	import Markdown from '$lib/components/assistant/Markdown.svelte';
-	import IconSparkles from '~icons/lucide/sparkles';
+	import IconBotMessageSquare from '~icons/lucide/bot-message-square';
 	import IconArrowUp from '~icons/lucide/arrow-up';
+	import IconSquare from '~icons/lucide/square';
 	import IconZap from '~icons/lucide/zap';
 	import IconCheck from '~icons/lucide/check';
 	import IconX from '~icons/lucide/x';
@@ -52,6 +54,7 @@
 	let entries = $state<Entry[]>([]);
 	let question = $state('');
 	let textarea: HTMLTextAreaElement | null = $state(null);
+	let aborter: AbortController | null = null;
 
 	let busy = $derived(entries.some((e) => e.loading));
 
@@ -60,15 +63,36 @@
 	// proposal states normalized, so a restore never resurrects a spinner.
 	const storageKey = $derived(`remon.assistant.${id}`);
 
+	// Tolerates stale or foreign payloads (older Entry shapes, hand-edited
+	// storage): anything that doesn't look like a finished turn is dropped
+	// rather than crashing the render.
+	function readStoredEntries(key: string): Entry[] {
+		try {
+			const parsed: unknown = JSON.parse(sessionStorage.getItem(key) ?? '[]');
+			if (!Array.isArray(parsed)) return [];
+			return parsed
+				.filter(
+					(e): e is Entry =>
+						!!e &&
+						typeof e === 'object' &&
+						typeof (e as Entry).question === 'string' &&
+						typeof (e as Entry).answer === 'string'
+				)
+				.map((e) => ({
+					...e,
+					loading: false,
+					error: e.error ?? null,
+					proposals: Array.isArray(e.proposals) ? e.proposals : []
+				}));
+		} catch {
+			return [];
+		}
+	}
+
 	$effect(() => {
 		const key = storageKey;
 		untrack(() => {
-			try {
-				const raw = sessionStorage.getItem(key);
-				entries = raw ? (JSON.parse(raw) as Entry[]) : [];
-			} catch {
-				entries = [];
-			}
+			entries = readStoredEntries(key);
 		});
 	});
 
@@ -134,7 +158,14 @@
 		}
 	}
 
-	function clearConversation() {
+	async function clearConversation() {
+		const ok = await confirmDialog({
+			title: m.assistant_clear_confirm_title(),
+			description: m.assistant_clear_confirm_description(),
+			confirmLabel: m.assistant_clear(),
+			variant: 'warning'
+		});
+		if (!ok) return;
 		entries = [];
 		try {
 			sessionStorage.removeItem(storageKey);
@@ -157,7 +188,9 @@
 		question = '';
 		resizeTextarea();
 
-		const idx = entries.length;
+		// Mutate through the proxy the array hands back — not an index — so a
+		// clear() while the ask is in flight detaches this turn harmlessly
+		// instead of writing into whatever now occupies that slot.
 		entries.push({
 			question: text,
 			answer: '',
@@ -166,18 +199,21 @@
 			proposals: [],
 			startedAt: Date.now()
 		});
+		const entry = entries[entries.length - 1];
 		await scrollToEnd();
 
+		const ctrl = new AbortController();
+		aborter = ctrl;
 		try {
 			// Replay finished turns so follow-ups ("do all of those") resolve;
 			// the daemon is stateless and caps/clips what it accepts.
 			const history = entries
-				.slice(0, idx)
-				.filter((e) => !e.error && e.answer)
+				.filter((e) => e !== entry && !e.error && e.answer)
 				.slice(-12)
 				.map((e) => ({ question: e.question, answer: e.answer }));
 			const res = await conn.client.ask(text, {
 				history,
+				signal: ctrl.signal,
 				dev: devMode
 					? {
 							trace: true,
@@ -186,29 +222,51 @@
 						}
 					: undefined
 			});
-			entries[idx].answer = res.answer;
-			entries[idx].proposals = (res.proposals ?? []).map((p) => ({ ...p, state: 'pending' }));
-			entries[idx].trace = res.trace;
+			entry.answer = res.answer;
+			entry.proposals = (res.proposals ?? []).map((p) => ({ ...p, state: 'pending' }));
+			entry.trace = res.trace;
 		} catch (e) {
-			entries[idx].error = e instanceof ApiError ? e.userMessage : String(e);
+			// A stop is not a failure: drop the pending turn and hand the
+			// question back so it can be edited and re-sent.
+			if (ctrl.signal.aborted) {
+				const at = entries.indexOf(entry);
+				if (at !== -1) entries.splice(at, 1);
+				if (!question.trim()) {
+					question = text;
+					await tick();
+					resizeTextarea();
+				}
+				return;
+			}
+			entry.error = e instanceof ApiError ? e.userMessage : String(e);
 		} finally {
-			entries[idx].loading = false;
-			await scrollToEnd();
+			if (aborter === ctrl) aborter = null;
+			entry.loading = false;
 		}
+		await scrollToEnd();
 	}
+
+	const PROPOSAL_METHODS = new Set(['POST', 'PUT', 'DELETE']);
 
 	// The daemon never acts on its own: a proposal is applied only here, when
 	// the operator confirms, by calling the same REST endpoint any other UI
 	// control would. `path` may carry a query string (e.g. kill signal).
-	async function confirm(entryIdx: number, propIdx: number) {
+	async function applyProposal(entryIdx: number, propIdx: number) {
 		const p = entries[entryIdx].proposals[propIdx];
 		if (!conn?.isAuthenticated || p.state === 'applying' || p.state === 'done') return;
+		// Defense in depth: the daemon builds these paths from templates, but
+		// never let one retarget the confirm off this API — an absolute URL
+		// would override baseUrl in `new URL(...)` and leak the bearer token.
+		if (!PROPOSAL_METHODS.has(p.method) || !p.path.startsWith('/') || p.path.startsWith('//')) {
+			p.state = 'failed';
+			p.error = m.assistant_action_invalid_path();
+			return;
+		}
 		p.state = 'applying';
 		try {
 			await conn.client.request(p.path, {
 				method: p.method,
-				body: p.body ?? undefined,
-				bypassCache: true
+				body: p.body ?? undefined
 			});
 			p.state = 'done';
 			toast.success(m.assistant_toast_action_done(), { description: p.summary });
@@ -218,7 +276,7 @@
 		}
 	}
 
-	function dismiss(entryIdx: number, propIdx: number) {
+	function dismissProposal(entryIdx: number, propIdx: number) {
 		entries[entryIdx].proposals[propIdx].state = 'dismissed';
 	}
 
@@ -235,8 +293,10 @@
 	}
 
 	function onKeydown(e: KeyboardEvent) {
-		// Enter sends; Shift+Enter inserts a newline.
-		if (e.key === 'Enter' && !e.shiftKey) {
+		// Enter sends; Shift+Enter inserts a newline. Enter that commits an
+		// IME composition (Japanese, Chinese, …) must not send — isComposing
+		// flags it.
+		if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
 			e.preventDefault();
 			void ask(question);
 		}
@@ -245,54 +305,25 @@
 
 <div class="px-4 py-6 md:px-8 md:py-8">
 	<div class="mx-auto flex min-h-[calc(100vh-8rem)] max-w-3xl flex-col">
-		<header class="mb-6 flex items-start justify-between gap-3">
-			<div>
-				<h1 class="flex items-center gap-2 text-[24px] font-semibold tracking-tight">
-					<span
-						class="flex size-7 items-center justify-center rounded-lg bg-[color-mix(in_oklab,var(--color-accent)_16%,transparent)]"
-					>
-						<IconSparkles class="size-[18px] text-[var(--color-accent)]" />
-					</span>
-					{m.assistant_title()}
-				</h1>
-				<p class="mt-1.5 max-w-prose text-[12px] text-[var(--color-fg-subtle)]">
-					{m.assistant_intro()}
-				</p>
-			</div>
-			<div class="flex shrink-0 items-center gap-1">
-				<Button
-					size="icon"
-					variant="ghost"
-					class={devMode ? 'text-[var(--color-warning)]' : ''}
-					onclick={toggleDev}
-					aria-label={m.assistant_dev()}
-					title={m.assistant_dev()}
-				>
-					<IconWrench class="size-4" />
-				</Button>
-				{#if entries.length > 0}
-					<Button
-						size="icon"
-						variant="ghost"
-						onclick={clearConversation}
-						aria-label={m.assistant_clear()}
-						title={m.assistant_clear()}
-					>
-						<IconTrash class="size-4" />
-					</Button>
-				{/if}
-			</div>
+		<header class="mb-6">
+			<h1 class="text-[24px] font-semibold tracking-tight">{m.assistant_title()}</h1>
+			<p class="mt-1.5 max-w-prose text-[12px] text-[var(--color-fg-muted)]">
+				{m.assistant_intro()}
+			</p>
 		</header>
 
 		<!-- Conversation. Grows to fill height so the composer sits at the bottom
 		     on an empty screen and floats as history builds. -->
-		<div class="flex-1 space-y-6 pb-4">
+		<div class={cn('flex-1 pb-4', entries.length === 0 ? 'flex' : 'space-y-6')}>
 			{#if entries.length === 0}
-				<div
-					class="mt-4 rounded-[var(--radius-card)] bg-[var(--color-surface)] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_var(--color-border)]"
-				>
-					<p class="text-[13px] text-[var(--color-fg-muted)]">{m.assistant_empty_hint()}</p>
-					<div class="mt-3 flex flex-wrap gap-2">
+				<div class="m-auto flex w-full max-w-md flex-col items-center pb-16 text-center">
+					<span
+						class="flex size-11 items-center justify-center rounded-2xl bg-[color-mix(in_oklab,var(--color-accent)_14%,transparent)]"
+					>
+						<IconBotMessageSquare class="size-5 text-[var(--color-accent)]" />
+					</span>
+					<p class="mt-3 text-[13px] text-[var(--color-fg-muted)]">{m.assistant_empty_hint()}</p>
+					<div class="mt-4 flex flex-wrap justify-center gap-2">
 						{#each examples as ex (ex)}
 							<button
 								type="button"
@@ -327,7 +358,7 @@
 						<span
 							class="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_oklab,var(--color-accent)_16%,transparent)]"
 						>
-							<IconSparkles class="size-4 text-[var(--color-accent)]" />
+							<IconBotMessageSquare class="size-4 text-[var(--color-accent)]" />
 						</span>
 
 						<div class="min-w-0 flex-1 space-y-2.5">
@@ -427,13 +458,29 @@
 												</span>
 											</p>
 
+											{#if p.body != null}
+												<details class="mt-1.5">
+													<summary
+														class="cursor-pointer text-[11px] text-[var(--color-fg-subtle)] select-none"
+													>
+														{m.assistant_action_payload()}
+													</summary>
+													<pre
+														class="mt-1 max-h-40 overflow-auto rounded-lg bg-[var(--color-surface-2)] p-2 font-mono text-[10.5px] leading-relaxed break-all whitespace-pre-wrap text-[var(--color-fg-subtle)]">{JSON.stringify(
+															p.body,
+															null,
+															2
+														)}</pre>
+												</details>
+											{/if}
+
 											{#if p.state === 'pending'}
 												<div class="mt-2.5 flex gap-2">
-													<Button size="sm" variant="primary" onclick={() => confirm(i, pi)}>
+													<Button size="sm" variant="primary" onclick={() => applyProposal(i, pi)}>
 														<IconCheck class="size-3.5" />
 														{m.assistant_confirm()}
 													</Button>
-													<Button size="sm" variant="ghost" onclick={() => dismiss(i, pi)}>
+													<Button size="sm" variant="ghost" onclick={() => dismissProposal(i, pi)}>
 														{m.assistant_dismiss()}
 													</Button>
 												</div>
@@ -470,7 +517,9 @@
 			{/each}
 		</div>
 
-		<!-- Composer: sticks to the viewport bottom as the conversation scrolls. -->
+		<!-- Composer: sticks to the viewport bottom as the conversation scrolls.
+		     Conversation-level controls (dev, clear) live here rather than in the
+		     header so they stay reachable however long the thread grows. -->
 		<div class="sticky bottom-4 mt-2">
 			{#if devMode}
 				<div
@@ -498,11 +547,34 @@
 			{/if}
 			<div
 				class={cn(
-					'flex items-end gap-2 rounded-2xl bg-[var(--color-surface)]/95 p-2 backdrop-blur',
+					'flex items-end gap-1.5 rounded-2xl bg-[var(--color-surface)]/95 p-2 backdrop-blur',
 					'shadow-[0_1px_2px_rgba(0,0,0,0.2),0_0_0_1px_var(--color-border)] transition-shadow',
 					'focus-within:shadow-[0_1px_2px_rgba(0,0,0,0.2),0_0_0_1px_var(--color-accent)]'
 				)}
 			>
+				<Button
+					size="icon"
+					variant="ghost"
+					class={cn('size-9 shrink-0 rounded-xl', devMode && 'text-[var(--color-warning)]')}
+					onclick={toggleDev}
+					aria-label={m.assistant_dev()}
+					title={m.assistant_dev()}
+				>
+					<IconWrench class="size-4" />
+				</Button>
+				{#if entries.length > 0}
+					<Button
+						size="icon"
+						variant="ghost"
+						class="size-9 shrink-0 rounded-xl"
+						onclick={clearConversation}
+						disabled={busy}
+						aria-label={m.assistant_clear()}
+						title={m.assistant_clear()}
+					>
+						<IconTrash class="size-4" />
+					</Button>
+				{/if}
 				<textarea
 					bind:this={textarea}
 					bind:value={question}
@@ -516,18 +588,30 @@
 						'placeholder:text-[var(--color-fg-faint)] focus:outline-none disabled:opacity-50'
 					)}
 				></textarea>
-				<!-- No `loading` swap here: the icon flipping to a spinner mid-send
-				     reads as flicker. The thinking bubble already signals progress;
-				     the button just disables. -->
-				<Button
-					size="icon"
-					class="size-9 shrink-0 rounded-xl"
-					onclick={() => ask(question)}
-					disabled={!canSend}
-					aria-label={m.assistant_send()}
-				>
-					<IconArrowUp class="size-4" />
-				</Button>
+				<!-- While a question runs the send button becomes a stop control:
+				     same footprint, so nothing shifts — and the 150 s timeout is
+				     never a lock-out. -->
+				{#if busy}
+					<Button
+						size="icon"
+						class="size-9 shrink-0 rounded-xl"
+						onclick={() => aborter?.abort()}
+						aria-label={m.assistant_stop()}
+						title={m.assistant_stop()}
+					>
+						<IconSquare class="size-3 fill-current" />
+					</Button>
+				{:else}
+					<Button
+						size="icon"
+						class="size-9 shrink-0 rounded-xl"
+						onclick={() => ask(question)}
+						disabled={!canSend}
+						aria-label={m.assistant_send()}
+					>
+						<IconArrowUp class="size-4" />
+					</Button>
+				{/if}
 			</div>
 			<p class="mt-1.5 px-1 text-center text-[11px] text-[var(--color-fg-subtle)]">
 				{m.assistant_readonly_note()}

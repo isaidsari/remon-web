@@ -12,7 +12,7 @@
 
 	import { sidebar } from '$lib/stores/sidebar.svelte';
 	import IconChevronLeft from '~icons/lucide/chevron-left';
-	import IconSparkles from '~icons/lucide/sparkles';
+	import IconBotMessageSquare from '~icons/lucide/bot-message-square';
 	import IconLayoutDashboard from '~icons/lucide/layout-dashboard';
 	import IconLineChart from '~icons/lucide/line-chart';
 	import IconList from '~icons/lucide/list';
@@ -55,7 +55,7 @@
 
 	let nav = $derived<NavItem[]>([
 		{ href: '', label: m.section_overview(), icon: IconLayoutDashboard, enabled: true },
-		{ href: '/assistant', label: m.section_assistant(), icon: IconSparkles, enabled: true },
+		{ href: '/assistant', label: m.section_assistant(), icon: IconBotMessageSquare, enabled: true },
 		{ href: '/metrics', label: m.section_metrics(), icon: IconLineChart, enabled: true },
 		{ href: '/processes', label: m.section_processes(), icon: IconList, enabled: true },
 		{ href: '/services', label: m.section_services(), icon: IconActivity, enabled: true },

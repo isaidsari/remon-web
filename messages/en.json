@@ -1030,5 +1030,10 @@
 	"assistant_dev_system_placeholder": "system prompt override — empty keeps the built-in prompt",
 	"assistant_dev_note": "requires [assistant] dev = true on the server. answers include the loop trace; auth and read-only tools still apply.",
 	"assistant_trace": "trace",
-	"assistant_dev_model_placeholder": "model override — empty keeps the configured model (e.g. claude-haiku-4-5)"
+	"assistant_dev_model_placeholder": "model override — empty keeps the configured model (e.g. claude-haiku-4-5)",
+	"assistant_stop": "stop",
+	"assistant_action_payload": "request body",
+	"assistant_action_invalid_path": "invalid action path — nothing was sent.",
+	"assistant_clear_confirm_title": "clear conversation?",
+	"assistant_clear_confirm_description": "removes this conversation from the tab. actions already applied on the server are not undone."
 }
