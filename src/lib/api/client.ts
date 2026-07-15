@@ -6,6 +6,8 @@ import type {
 	AssistantHistoryTurn,
 	BatchMetricsQuery,
 	BatchMetricsResponse,
+	CaptureIncidentRequest,
+	CaptureIncidentResponse,
 	ComponentsHistoryResponse,
 	ConfigResponse,
 	ContainerInspectInfo,
@@ -629,6 +631,17 @@ export class ApiClient {
 
 	alertsSchema(): Promise<AlertsSchemaResponse> {
 		return this.request<AlertsSchemaResponse>('/alerts/schema');
+	}
+
+	/**
+	 * Freeze an incident snapshot right now ("record the box, now"). Alert
+	 * threshold crossings capture on their own; this is the manual trigger.
+	 */
+	captureIncident(req: CaptureIncidentRequest): Promise<CaptureIncidentResponse> {
+		return this.request<CaptureIncidentResponse>('/incidents/capture', {
+			method: 'POST',
+			body: req
+		});
 	}
 
 	listChannels(): Promise<ListChannelsResponse> {

@@ -1071,6 +1071,24 @@ export interface TestChannelResponse {
 	delivered: number;
 }
 
+// ===== Incidents =====
+
+/**
+ * Manual trigger of the incident flight recorder: freezes the current host
+ * context (vitals, top processes, recent errors) as a snapshot the assistant
+ * can read back later. Alert transitions capture on their own.
+ */
+export interface CaptureIncidentRequest {
+	/** Why this moment is worth recording (stored, clamped server-side). */
+	reason: string;
+	/** Defaults to `custom` on the server. */
+	category?: 'resource' | 'availability' | 'security' | 'custom';
+}
+
+export interface CaptureIncidentResponse {
+	id: number;
+}
+
 // ===== Assistant =====
 
 export interface AssistantAskRequest {
