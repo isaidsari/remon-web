@@ -790,6 +790,9 @@ export interface ProcessInfo {
 	name: string;
 	cmd: string[];
 	exe: string | null;
+	/** Current working directory. Disambiguates same-named processes; `null`
+	 *  for kernel threads or when unreadable (permissions). */
+	cwd: string | null;
 	user: string | null;
 	cpu_percent: number;
 	memory_bytes: number;
