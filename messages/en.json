@@ -1070,5 +1070,7 @@
 	"overview_health_firing": "{count} alerts firing",
 	"overview_health_pending": "{count} alerts pending",
 	"overview_quick_ask": "ask the assistant",
-	"overview_quick_aria": "quick access"
+	"overview_quick_aria": "quick access",
+	"update_available": "update ready",
+	"update_reload": "reload"
 }

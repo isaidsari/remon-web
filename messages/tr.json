@@ -1070,5 +1070,7 @@
 	"overview_health_firing": "{count} alarm aktif",
 	"overview_health_pending": "{count} alarm beklemede",
 	"overview_quick_ask": "asistana sor",
-	"overview_quick_aria": "hızlı erişim"
+	"overview_quick_aria": "hızlı erişim",
+	"update_available": "güncelleme hazır",
+	"update_reload": "yenile"
 }

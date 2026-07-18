@@ -12,10 +12,27 @@
 	import { loadEcharts } from '$lib/charts/echarts-lazy';
 	import { onMount } from 'svelte';
 	import { useRegisterSW } from 'virtual:pwa-register/svelte';
+	import { m } from '$lib/paraglide/messages';
 
 	let { children } = $props();
 
+	// A monitoring dashboard is exactly the kind of tab that stays open for
+	// weeks — without these checks a deployed update would never be noticed,
+	// since the browser only looks for a new SW on page load.
+	const SW_UPDATE_INTERVAL_MS = 60 * 60 * 1000;
+
 	const { needRefresh, updateServiceWorker } = useRegisterSW({
+		onRegisteredSW(_url, registration) {
+			if (!registration) return;
+			const check = () => {
+				if (navigator.onLine) void registration.update().catch(() => {});
+			};
+			setInterval(check, SW_UPDATE_INTERVAL_MS);
+			// Returning to a backgrounded tab is the natural "am I stale?" moment.
+			document.addEventListener('visibilitychange', () => {
+				if (document.visibilityState === 'visible') check();
+			});
+		},
 		onRegisterError(e) {
 			console.warn('SW registration failed', e);
 		}
@@ -88,18 +105,18 @@
 		aria-live="polite"
 		class="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-4 py-2.5 text-sm shadow-lg"
 	>
-		<span class="text-[var(--color-fg-muted)]">Update available</span>
+		<span class="text-[var(--color-fg-muted)]">{m.update_available()}</span>
 		<button
 			onclick={() => needRefresh.set(false)}
 			class="text-[var(--color-fg-subtle)] transition hover:text-[var(--color-fg)]"
 		>
-			Dismiss
+			{m.common_dismiss()}
 		</button>
 		<button
 			onclick={() => updateServiceWorker(true)}
-			class="rounded-md bg-[var(--color-accent)] px-3 py-1 text-xs font-medium text-white transition hover:opacity-90"
+			class="rounded-md bg-[var(--color-accent)] px-3 py-1 text-xs font-medium text-[var(--color-accent-fg)] transition hover:bg-[var(--color-accent-hover)]"
 		>
-			Reload
+			{m.update_reload()}
 		</button>
 	</div>
 {/if}
