@@ -153,6 +153,8 @@
 				return { kind: 'network-detail' };
 			case 'disk-detail':
 				return { kind: 'disk-detail' };
+			case 'alert-timeline':
+				return { kind: 'alert-timeline' };
 			case 'probe-metric':
 				return {
 					kind: 'probe-metric',
@@ -179,7 +181,8 @@
 		{ value: 'cpu-detail', label: () => m.dashboard_widget_cpu_detail() },
 		{ value: 'pressure', label: () => m.dashboard_widget_pressure() },
 		{ value: 'network-detail', label: () => m.dashboard_widget_network_detail() },
-		{ value: 'disk-detail', label: () => m.dashboard_widget_disk_detail() }
+		{ value: 'disk-detail', label: () => m.dashboard_widget_disk_detail() },
+		{ value: 'alert-timeline', label: () => m.dashboard_widget_alert_timeline() }
 	];
 
 	const selectCls =

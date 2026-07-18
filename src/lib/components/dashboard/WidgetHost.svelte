@@ -10,6 +10,7 @@
 	import PressureDetailWidget from './widgets/PressureDetailWidget.svelte';
 	import NetworkDetailWidget from './widgets/NetworkDetailWidget.svelte';
 	import DiskDetailWidget from './widgets/DiskDetailWidget.svelte';
+	import AlertTimelineWidget from './widgets/AlertTimelineWidget.svelte';
 
 	interface Props {
 		widget: Widget;
@@ -38,4 +39,6 @@
 	<NetworkDetailWidget {conn} />
 {:else if config.kind === 'disk-detail'}
 	<DiskDetailWidget {conn} />
+{:else if config.kind === 'alert-timeline'}
+	<AlertTimelineWidget {conn} />
 {/if}

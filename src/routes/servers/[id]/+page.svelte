@@ -10,6 +10,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import DashboardGrid from '$lib/components/dashboard/DashboardGrid.svelte';
 	import WidgetEditorModal from '$lib/components/dashboard/WidgetEditorModal.svelte';
+	import StatusBand from '$lib/components/overview/StatusBand.svelte';
 	import { defaultDashboard, normalizeDashboard, widgetId } from '$lib/dashboard/defaults';
 	import { layoutNeedsLive, WIDGET_META } from '$lib/dashboard/registry';
 	import type { DashboardLayout, WidgetConfig } from '$lib/types/dashboard';
@@ -228,6 +229,9 @@
 		{/if}
 
 		{#if conn?.isAuthenticated}
+			<div class="mb-4">
+				<StatusBand {conn} />
+			</div>
 			{#if editing && layout.widgets.length === 0}
 				<Card padding="lg" class="border-dashed text-center">
 					<p class="text-sm text-[var(--color-fg-muted)]">{m.dashboard_empty()}</p>

@@ -1059,5 +1059,16 @@
 	"assistant_clear_confirm_title": "sohbet temizlensin mi?",
 	"assistant_clear_confirm_description": "bu sohbeti sekmeden kaldırır. sunucuda uygulanmış aksiyonlar geri alınmaz.",
 	"assistant_action": "önerilen aksiyon",
-	"assistant_jump_latest": "son mesaja in"
+	"assistant_jump_latest": "son mesaja in",
+	"dashboard_widget_alert_timeline": "son olaylar",
+	"overview_events_title": "son olaylar",
+	"overview_events_all": "tümü",
+	"overview_events_empty": "alarm olayı yok — sular sakin.",
+	"overview_event_fired": "tetiklendi",
+	"overview_event_resolved": "çözüldü",
+	"overview_health_ok": "her şey yolunda",
+	"overview_health_firing": "{count} alarm aktif",
+	"overview_health_pending": "{count} alarm beklemede",
+	"overview_quick_ask": "asistana sor",
+	"overview_quick_aria": "hızlı erişim"
 }

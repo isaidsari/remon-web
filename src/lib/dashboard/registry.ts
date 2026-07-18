@@ -63,6 +63,12 @@ export const WIDGET_META: Record<WidgetKind, WidgetMeta> = {
 		label: () => m.dashboard_widget_disk_detail(),
 		defaultSize: { w: 4, h: 3 },
 		needsLive: true
+	},
+	'alert-timeline': {
+		kind: 'alert-timeline',
+		label: () => m.dashboard_widget_alert_timeline(),
+		defaultSize: { w: 4, h: 4 },
+		needsLive: false
 	}
 };
 

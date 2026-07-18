@@ -1059,5 +1059,16 @@
 	"assistant_clear_confirm_title": "clear conversation?",
 	"assistant_clear_confirm_description": "removes this conversation from the tab. actions already applied on the server are not undone.",
 	"assistant_action": "proposed action",
-	"assistant_jump_latest": "jump to latest"
+	"assistant_jump_latest": "jump to latest",
+	"dashboard_widget_alert_timeline": "recent events",
+	"overview_events_title": "recent events",
+	"overview_events_all": "all",
+	"overview_events_empty": "no alert events — calm waters.",
+	"overview_event_fired": "fired",
+	"overview_event_resolved": "resolved",
+	"overview_health_ok": "all clear",
+	"overview_health_firing": "{count} alerts firing",
+	"overview_health_pending": "{count} alerts pending",
+	"overview_quick_ask": "ask the assistant",
+	"overview_quick_aria": "quick access"
 }

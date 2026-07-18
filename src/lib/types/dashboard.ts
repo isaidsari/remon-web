@@ -13,7 +13,8 @@ export type WidgetKind =
 	| 'cpu-detail'
 	| 'pressure'
 	| 'network-detail'
-	| 'disk-detail';
+	| 'disk-detail'
+	| 'alert-timeline';
 
 /** Built-in live SSE KPI sources — map straight onto LiveStats aggregates. */
 export type LiveKpiSource = 'cpu' | 'memory' | 'disk-io' | 'network';
@@ -85,6 +86,12 @@ export interface DiskDetailConfig {
 	kind: 'disk-detail';
 }
 
+/** Recent alert fire/resolve feed ("what happened lately"). Config-less —
+ *  reads /alerts/events joined with rule names. */
+export interface AlertTimelineConfig {
+	kind: 'alert-timeline';
+}
+
 export type WidgetConfig =
 	| LiveKpiConfig
 	| HistoryChartConfig
@@ -94,7 +101,8 @@ export type WidgetConfig =
 	| CpuDetailConfig
 	| PressureConfig
 	| NetworkDetailConfig
-	| DiskDetailConfig;
+	| DiskDetailConfig
+	| AlertTimelineConfig;
 
 export interface Widget {
 	id: string;

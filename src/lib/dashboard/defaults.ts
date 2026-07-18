@@ -17,9 +17,10 @@ function widget(x: number, y: number, w: number, h: number, config: WidgetConfig
 }
 
 /**
- * The layout a fresh / migrated profile starts with — a close stand-in for the
- * old fixed overview: four live KPIs across the top, a host summary band, then
- * CPU / memory / disk / network history charts two-up.
+ * The layout a fresh / migrated profile starts with: four live KPIs across the
+ * top, the CPU story next to the recent-alerts feed, then memory/network
+ * two-up and disk beside the host identity card. (Health verdict and quick
+ * links live in the fixed StatusBand above the grid, not in a widget.)
  */
 export function defaultDashboard(): DashboardLayout {
 	return {
@@ -29,11 +30,12 @@ export function defaultDashboard(): DashboardLayout {
 			widget(3, 0, 3, 2, { kind: 'live-kpi', source: 'memory' }),
 			widget(6, 0, 3, 2, { kind: 'live-kpi', source: 'disk-io' }),
 			widget(9, 0, 3, 2, { kind: 'live-kpi', source: 'network' }),
-			widget(0, 2, 12, 2, { kind: 'status-summary', summary: 'host' }),
-			widget(0, 4, 6, 4, { kind: 'history-chart', resource: 'cpu', range: '1h' }),
-			widget(6, 4, 6, 4, { kind: 'history-chart', resource: 'memory', range: '1h' }),
-			widget(0, 8, 6, 4, { kind: 'history-chart', resource: 'disk', range: '1h' }),
-			widget(6, 8, 6, 4, { kind: 'history-chart', resource: 'network', range: '1h' })
+			widget(0, 2, 8, 4, { kind: 'history-chart', resource: 'cpu', range: '1h' }),
+			widget(8, 2, 4, 4, { kind: 'alert-timeline' }),
+			widget(0, 6, 6, 4, { kind: 'history-chart', resource: 'memory', range: '1h' }),
+			widget(6, 6, 6, 4, { kind: 'history-chart', resource: 'network', range: '1h' }),
+			widget(0, 10, 6, 4, { kind: 'history-chart', resource: 'disk', range: '1h' }),
+			widget(6, 10, 6, 4, { kind: 'status-summary', summary: 'host' })
 		]
 	};
 }
@@ -80,6 +82,9 @@ function normalizeConfig(input: unknown): WidgetConfig | null {
 	}
 	if (input.kind === 'disk-detail') {
 		return { kind: 'disk-detail' };
+	}
+	if (input.kind === 'alert-timeline') {
+		return { kind: 'alert-timeline' };
 	}
 	if (
 		input.kind !== 'probe-metric' ||
