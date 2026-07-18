@@ -457,9 +457,16 @@
 								role="status"
 								aria-label={m.assistant_thinking()}
 							>
-								<span class="think-meter text-[var(--color-accent)]" aria-hidden="true">
-									<i></i><i></i><i></i><i></i>
-								</span>
+								<svg
+									class="think-ekg text-[var(--color-accent)]"
+									width="44"
+									height="14"
+									viewBox="0 0 44 14"
+									fill="none"
+									aria-hidden="true"
+								>
+									<path d="M1 7 H12 L15.5 3 L20 11 L23.5 7 H43" />
+								</svg>
 								<span class="font-mono text-[11px] text-[var(--color-fg-subtle)] tabular-nums">
 									{m.assistant_thinking()}{elapsedSeconds(entry) >= 3
 										? ` · ${elapsedSeconds(entry)}s`
@@ -718,41 +725,38 @@
 </div>
 
 <style>
-	/* Thinking state as a live meter — the product's heartbeat/telemetry
-	   vernacular instead of generic chat dots. Bars rise from the baseline
-	   like an equalizer; reduced-motion (global kill) leaves them static. */
-	.think-meter {
-		display: inline-flex;
-		align-items: flex-end;
-		gap: 3px;
-		height: 14px;
+	/* Thinking state as an EKG sweep — the product's heartbeat vernacular
+	   (heartbeats section, live-pulse dots) instead of generic chat dots.
+	   The trace draws in from the left, then erases out, like a monitor
+	   sweep. Path length ≈ 50.3 → dash of 51. */
+	.think-ekg {
+		filter: drop-shadow(0 0 3px var(--color-accent-glow));
 	}
-	.think-meter i {
-		width: 3px;
-		height: 100%;
-		border-radius: 2px;
-		background: currentColor;
-		transform-origin: bottom;
-		animation: think-bar 900ms ease-in-out infinite;
+	.think-ekg path {
+		stroke: currentColor;
+		stroke-width: 1.5;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+		stroke-dasharray: 51;
+		animation: think-ekg-sweep 1800ms linear infinite;
 	}
-	.think-meter i:nth-child(2) {
-		animation-delay: 140ms;
-	}
-	.think-meter i:nth-child(3) {
-		animation-delay: 280ms;
-	}
-	.think-meter i:nth-child(4) {
-		animation-delay: 420ms;
-	}
-	@keyframes think-bar {
-		0%,
-		100% {
-			transform: scaleY(0.3);
-			opacity: 0.6;
+	@keyframes think-ekg-sweep {
+		0% {
+			stroke-dashoffset: 51;
 		}
-		50% {
-			transform: scaleY(1);
-			opacity: 1;
+		45%,
+		55% {
+			stroke-dashoffset: 0;
+		}
+		100% {
+			stroke-dashoffset: -51;
+		}
+	}
+	/* The global reduced-motion kill stops the animation; without it the
+	   dash offset must also go, or the frozen frame is an empty line. */
+	@media (prefers-reduced-motion: reduce) {
+		.think-ekg path {
+			stroke-dasharray: none;
 		}
 	}
 </style>
