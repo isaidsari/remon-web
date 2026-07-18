@@ -134,16 +134,47 @@ export interface ConfigResponse {
 	server_name: string;
 	collector_stats_interval_ms: number;
 	collector_processes_interval_ms: number;
+	collector_docker_interval_ms: number;
+	collector_smart_interval_ms: number;
 	rollup_tick_interval_ms: number;
 	retention_tick_interval_ms: number;
+	/** Unix seconds of the last persisted change. */
+	updated_at: number;
 }
 
 export interface UpdateConfigRequest {
 	server_name?: string;
 	collector_stats_interval_ms?: number;
 	collector_processes_interval_ms?: number;
+	collector_docker_interval_ms?: number;
+	collector_smart_interval_ms?: number;
 	rollup_tick_interval_ms?: number;
 	retention_tick_interval_ms?: number;
+}
+
+export interface RetentionPolicyDto {
+	resource: string;
+	resolution: string;
+	keep_seconds: number;
+}
+
+export interface RetentionResponse {
+	policies: RetentionPolicyDto[];
+}
+
+export interface UpdateRetentionRequest {
+	policies: RetentionPolicyDto[];
+}
+
+export interface ResolutionDto {
+	name: string;
+	interval_seconds: number;
+	rollup_from: string | null;
+	enabled: boolean;
+}
+
+export interface ResolutionsResponse {
+	resolutions: ResolutionDto[];
 }
 
 export type MetricsResolution = 'raw' | '1m' | '5m' | '1h';
@@ -381,6 +412,8 @@ export interface HardwareInfo {
 }
 
 export interface SystemInfoResponse {
+	/** Canonical name from server-side runtime config — prefer over the local alias. */
+	server_name: string;
 	description: SystemDescription;
 	hardware: HardwareInfo;
 }

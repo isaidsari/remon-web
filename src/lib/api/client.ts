@@ -64,6 +64,8 @@ import type {
 	PruneResult,
 	RefreshRequest,
 	ReloadProbesResponse,
+	ResolutionsResponse,
+	RetentionResponse,
 	ServiceActionResponse,
 	ServiceDto,
 	SilenceAlertRequest,
@@ -74,7 +76,8 @@ import type {
 	TokenResponse,
 	UpdateAlertRuleRequest,
 	UpdateChannelRequest,
-	UpdateConfigRequest
+	UpdateConfigRequest,
+	UpdateRetentionRequest
 } from '$lib/types/api';
 import { ApiError, errorFromResponse, errorFromThrown } from './error';
 
@@ -260,6 +263,25 @@ export class ApiClient {
 
 	patchConfig(req: UpdateConfigRequest): Promise<ConfigResponse> {
 		return this.request<ConfigResponse>('/config', { method: 'PATCH', body: req });
+	}
+
+	getRetention(): Promise<RetentionResponse> {
+		return this.request<RetentionResponse>('/config/retention');
+	}
+
+	patchRetention(req: UpdateRetentionRequest): Promise<RetentionResponse> {
+		return this.request<RetentionResponse>('/config/retention', { method: 'PATCH', body: req });
+	}
+
+	getResolutions(): Promise<ResolutionsResponse> {
+		return this.request<ResolutionsResponse>('/config/resolutions');
+	}
+
+	patchResolution(name: string, enabled: boolean): Promise<ResolutionsResponse> {
+		return this.request<ResolutionsResponse>(`/config/resolutions/${encodeURIComponent(name)}`, {
+			method: 'PATCH',
+			body: { enabled }
+		});
 	}
 
 	cpuHistory(q: MetricsRangeQuery = {}): Promise<CpuHistoryResponse> {
