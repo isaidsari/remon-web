@@ -34,6 +34,14 @@
 	let basePath = $derived(`/servers/${id}`);
 	let currentPath = $derived(page.url.pathname);
 
+	// The server-side name (`server_config.server_name`) is canonical; the
+	// profile name is only a local alias used until the first fetch lands.
+	let displayName = $derived(conn?.systemInfo?.data?.server_name ?? profile?.name ?? '');
+
+	$effect(() => {
+		if (conn?.isAuthenticated) void conn.fetchSystemInfo().catch(() => {});
+	});
+
 	// Restores default accent on unmount so other routes aren't tinted.
 	$effect(() => {
 		const hex = profile?.accent;
@@ -179,7 +187,7 @@
 					<h2
 						class="min-w-0 flex-1 truncate text-[15px] font-semibold tracking-tight leading-tight"
 					>
-						{profile.name}
+						{displayName}
 					</h2>
 					<span
 						class={cn(

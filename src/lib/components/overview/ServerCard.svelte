@@ -74,6 +74,8 @@
 
 	let sysInfo = $derived(conn.systemInfo?.data ?? null);
 	let sysFetchedAt = $derived(conn.systemInfo?.fetchedAt ?? 0);
+	// Canonical server-side name once known; local alias until then.
+	let displayName = $derived(sysInfo?.server_name ?? profile.name);
 	let now = $state(Date.now());
 	$effect(() => {
 		const t = setInterval(() => (now = Date.now()), 1000);
@@ -158,7 +160,7 @@
 	style={profile.accent
 		? `--card-border: ${profile.accent}; --card-border-strong: ${profile.accent}`
 		: ''}
-	aria-label={m.servercard_aria_open({ name: profile.name })}
+	aria-label={m.servercard_aria_open({ name: displayName })}
 >
 	<header class="flex items-start gap-3 px-4 pt-4">
 		<div class="min-w-0 flex-1">
@@ -172,7 +174,7 @@
 						class="size-4 shrink-0"
 					/>
 				{/if}
-				<span class="truncate">{profile.name}</span>
+				<span class="truncate">{displayName}</span>
 			</h3>
 			<p class="mt-1 truncate font-mono text-[11px] text-[var(--color-fg-muted)]">
 				{profile.baseUrl}

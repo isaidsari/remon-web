@@ -163,6 +163,7 @@
 				});
 				const conn = connections.connect(profile);
 				await conn.login();
+				await syncServerName(conn, profile.id, name.trim());
 				toast.success(m.pair_toast_paired_title(), {
 					description: m.pair_toast_paired_description({ name: profile.name })
 				});
@@ -188,6 +189,34 @@
 		pairingCode = '';
 		pairError = null;
 		await initiatePairing();
+	}
+
+	// Factory value of `server_config.server_name` (see 0001_schema.sql).
+	const DEFAULT_SERVER_NAME = 'My Server';
+
+	/**
+	 * Best-effort two-way name sync on a fresh pair: a factory-named server
+	 * adopts the name typed during pairing; a server that was already renamed
+	 * wins and overwrites the local alias. Failures are ignored — pairing
+	 * already succeeded and the config page can fix names later.
+	 */
+	async function syncServerName(
+		conn: ReturnType<typeof connections.connect>,
+		profileId: string,
+		typedName: string
+	) {
+		try {
+			const cfg = await conn.client.getConfig();
+			if (cfg.server_name === DEFAULT_SERVER_NAME) {
+				if (typedName && typedName !== DEFAULT_SERVER_NAME) {
+					await conn.client.patchConfig({ server_name: typedName });
+				}
+			} else if (cfg.server_name !== typedName) {
+				await profiles.update(profileId, { name: cfg.server_name });
+			}
+		} catch {
+			// non-fatal
+		}
 	}
 
 	let stepDots = $derived([
