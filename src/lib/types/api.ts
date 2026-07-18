@@ -1175,3 +1175,13 @@ export interface AssistantAskResponse {
 	proposals: ProposedAction[];
 	trace?: AssistantTraceStep[];
 }
+
+/**
+ * Progress frame from `POST /assistant/stream` (SSE event `step`): a model
+ * turn starting, or a tool call starting. Answer-text deltas arrive as the
+ * separate `delta` event; the terminal `done` carries a full
+ * {@link AssistantAskResponse}.
+ */
+export type AssistantStreamStep =
+	| { kind: 'model'; step: number }
+	| { kind: 'tool'; step: number; name: string };

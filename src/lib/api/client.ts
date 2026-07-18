@@ -4,6 +4,7 @@ import type {
 	AssistantAskResponse,
 	AssistantDevOverrides,
 	AssistantHistoryTurn,
+	AssistantStreamStep,
 	BatchMetricsQuery,
 	BatchMetricsResponse,
 	CaptureIncidentRequest,
@@ -79,9 +80,18 @@ import type {
 	UpdateConfigRequest,
 	UpdateRetentionRequest
 } from '$lib/types/api';
+import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { ApiError, errorFromResponse, errorFromThrown } from './error';
 
 export type AccessTokenProvider = () => string | null;
+
+/** The daemon predates `POST /assistant/stream` — fall back to plain `ask`. */
+export class StreamUnsupportedError extends Error {
+	constructor() {
+		super('assistant streaming not supported by this server');
+		this.name = 'StreamUnsupportedError';
+	}
+}
 
 interface RequestOptions {
 	method?: 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'PUT';
@@ -713,6 +723,117 @@ export class ApiClient {
 			body: { question, history: opts?.history ?? [], dev: opts?.dev },
 			signal: opts?.signal,
 			timeoutMs: 150_000
+		});
+	}
+
+	/**
+	 * Streaming variant of {@link ask}: `POST /assistant/stream` over SSE.
+	 * `onStep` fires as the loop advances (model turns, tool calls), `onDelta`
+	 * as answer text generates (native Anthropic hosts only). Resolves with the
+	 * authoritative final response from the `done` event — callers should
+	 * replace any accumulated deltas with it. Rejects with
+	 * {@link StreamUnsupportedError} on a daemon without the endpoint, so
+	 * callers can fall back to the buffered `ask`.
+	 */
+	askStream(
+		question: string,
+		opts: {
+			signal?: AbortSignal;
+			history?: AssistantHistoryTurn[];
+			dev?: AssistantDevOverrides;
+			onStep?: (step: AssistantStreamStep) => void;
+			onDelta?: (text: string) => void;
+		} = {}
+	): Promise<AssistantAskResponse> {
+		const token = this.getAccessToken();
+		if (!token) {
+			return Promise.reject(
+				new ApiError({
+					code: 'UNAUTHORIZED',
+					status: 0,
+					userMessage: 'Not signed in.',
+					serverMessage: 'no access token available'
+				})
+			);
+		}
+
+		return new Promise<AssistantAskResponse>((resolve, reject) => {
+			let settled = false;
+			const settle = (fn: () => void) => {
+				if (!settled) {
+					settled = true;
+					fn();
+				}
+			};
+
+			fetchEventSource(`${this.baseUrl}/assistant/stream`, {
+				method: 'POST',
+				headers: {
+					'content-type': 'application/json',
+					authorization: `Bearer ${token}`
+				},
+				body: JSON.stringify({ question, history: opts.history ?? [], dev: opts.dev }),
+				signal: opts.signal,
+				// An answer in flight should survive a backgrounded tab.
+				openWhenHidden: true,
+				async onopen(res) {
+					const ct = res.headers.get('content-type') ?? '';
+					if (res.ok && ct.includes('text/event-stream')) return;
+					// Older daemons don't have the route — signal the caller to
+					// fall back to the buffered ask.
+					if (res.status === 404 || res.status === 405) throw new StreamUnsupportedError();
+					throw await errorFromResponse(res);
+				},
+				onmessage(msg) {
+					if (!msg.data) return;
+					switch (msg.event) {
+						case 'step':
+							opts.onStep?.(JSON.parse(msg.data) as AssistantStreamStep);
+							break;
+						case 'delta': {
+							const { text } = JSON.parse(msg.data) as { text: string };
+							if (text) opts.onDelta?.(text);
+							break;
+						}
+						case 'done':
+							settle(() => resolve(JSON.parse(msg.data) as AssistantAskResponse));
+							break;
+						case 'error': {
+							const { message } = JSON.parse(msg.data) as { message: string };
+							settle(() =>
+								reject(
+									new ApiError({
+										code: 'INTERNAL_ERROR',
+										status: 0,
+										userMessage: message,
+										serverMessage: message
+									})
+								)
+							);
+							break;
+						}
+					}
+				},
+				// One-shot request: any transport error ends it — retrying would
+				// re-run the whole (paid) tool loop.
+				onerror(err) {
+					throw err;
+				}
+			}).then(
+				// Stream closed without a terminal event: surface it, never hang.
+				() =>
+					settle(() =>
+						reject(
+							new ApiError({
+								code: 'NETWORK',
+								status: 0,
+								userMessage: 'Assistant stream ended unexpectedly.',
+								serverMessage: 'stream closed before done/error event'
+							})
+						)
+					),
+				(err: unknown) => settle(() => reject(err))
+			);
 		});
 	}
 

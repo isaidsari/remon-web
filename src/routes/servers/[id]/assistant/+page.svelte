@@ -8,6 +8,7 @@
 	import { toast } from '$lib/stores/toast.svelte';
 	import { confirm as confirmDialog } from '$lib/stores/confirm.svelte';
 	import { ApiError } from '$lib/api/error';
+	import { StreamUnsupportedError } from '$lib/api/client';
 	import { cn } from '$lib/utils/cn';
 	import { m } from '$lib/paraglide/messages';
 	import type { ProposedAction, AssistantTraceStep } from '$lib/types/api';
@@ -53,6 +54,9 @@
 		proposals: Proposal[];
 		startedAt?: number;
 		trace?: AssistantTraceStep[];
+		/** Tool currently running on the server (streaming asks only) — shown
+		 * next to the thinking dots, never persisted past the turn. */
+		activity?: string | null;
 	}
 
 	let entries = $state<Entry[]>([]);
@@ -228,7 +232,7 @@
 				.filter((e) => e !== entry && !e.error && e.answer)
 				.slice(-12)
 				.map((e) => ({ question: e.question, answer: e.answer }));
-			const res = await conn.client.ask(text, {
+			const opts = {
 				history,
 				signal: ctrl.signal,
 				dev: devMode
@@ -238,7 +242,34 @@
 							model: devModel.trim() ? devModel.trim() : undefined
 						}
 					: undefined
-			});
+			};
+
+			// Streamed by default: tool activity + answer text render as the
+			// server works. Daemons without the stream route fall back to the
+			// buffered ask — same answer, just all at once.
+			let res;
+			try {
+				res = await conn.client.askStream(text, {
+					...opts,
+					onStep: (s) => {
+						if (s.kind === 'tool') {
+							entry.activity = s.name;
+							// Deltas so far belonged to a turn that went on to
+							// call tools — interim thinking, not the answer.
+							entry.answer = '';
+						} else {
+							entry.activity = null;
+						}
+					},
+					onDelta: (t) => {
+						entry.answer += t;
+						if (atBottom) void scrollToEnd(false);
+					}
+				});
+			} catch (e) {
+				if (!(e instanceof StreamUnsupportedError)) throw e;
+				res = await conn.client.ask(text, opts);
+			}
 			entry.answer = res.answer;
 			entry.proposals = (res.proposals ?? []).map((p) => ({ ...p, state: 'pending' }));
 			entry.trace = res.trace;
@@ -259,6 +290,7 @@
 		} finally {
 			if (aborter === ctrl) aborter = null;
 			entry.loading = false;
+			entry.activity = null;
 		}
 		// Reading back through the history is respected: only follow the
 		// answer down when the view is already pinned to the end.
@@ -452,23 +484,23 @@
 					     and code get the whole column, which matters on mobile -->
 					<div class="min-w-0 space-y-3">
 						{#if entry.loading}
+							{#if entry.answer}
+								<!-- Answer text streaming in — rendered live, replaced by
+								     the authoritative final answer on completion. -->
+								<div class="text-[13.5px] leading-relaxed">
+									<Markdown text={entry.answer} />
+								</div>
+							{/if}
 							<div
 								class="flex items-center gap-2.5 py-1"
 								role="status"
 								aria-label={m.assistant_thinking()}
 							>
-								<svg
-									class="think-ekg text-[var(--color-accent)]"
-									width="44"
-									height="14"
-									viewBox="0 0 44 14"
-									fill="none"
-									aria-hidden="true"
-								>
-									<path d="M1 7 H12 L15.5 3 L20 11 L23.5 7 H43" />
-								</svg>
+								<span class="think-dots text-[var(--color-accent)]" aria-hidden="true">
+									<i></i><i></i><i></i>
+								</span>
 								<span class="font-mono text-[11px] text-[var(--color-fg-subtle)] tabular-nums">
-									{m.assistant_thinking()}{elapsedSeconds(entry) >= 3
+									{entry.activity ?? m.assistant_thinking()}{elapsedSeconds(entry) >= 3
 										? ` · ${elapsedSeconds(entry)}s`
 										: ''}
 								</span>
@@ -725,38 +757,36 @@
 </div>
 
 <style>
-	/* Thinking state as an EKG sweep — the product's heartbeat vernacular
-	   (heartbeats section, live-pulse dots) instead of generic chat dots.
-	   The trace draws in from the left, then erases out, like a monitor
-	   sweep. Path length ≈ 50.3 → dash of 51. */
-	.think-ekg {
-		filter: drop-shadow(0 0 3px var(--color-accent-glow));
+	/* Classic thinking dots: a soft opacity/scale pulse rippling across three
+	   dots. The global reduced-motion kill leaves them static and visible. */
+	.think-dots {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
 	}
-	.think-ekg path {
-		stroke: currentColor;
-		stroke-width: 1.5;
-		stroke-linecap: round;
-		stroke-linejoin: round;
-		stroke-dasharray: 51;
-		animation: think-ekg-sweep 1800ms linear infinite;
+	.think-dots i {
+		width: 5px;
+		height: 5px;
+		border-radius: 9999px;
+		background: currentColor;
+		animation: think-dot 1200ms ease-in-out infinite;
 	}
-	@keyframes think-ekg-sweep {
-		0% {
-			stroke-dashoffset: 51;
-		}
-		45%,
-		55% {
-			stroke-dashoffset: 0;
-		}
+	.think-dots i:nth-child(2) {
+		animation-delay: 200ms;
+	}
+	.think-dots i:nth-child(3) {
+		animation-delay: 400ms;
+	}
+	@keyframes think-dot {
+		0%,
+		60%,
 		100% {
-			stroke-dashoffset: -51;
+			opacity: 0.35;
+			transform: scale(0.85);
 		}
-	}
-	/* The global reduced-motion kill stops the animation; without it the
-	   dash offset must also go, or the frozen frame is an empty line. */
-	@media (prefers-reduced-motion: reduce) {
-		.think-ekg path {
-			stroke-dasharray: none;
+		30% {
+			opacity: 1;
+			transform: scale(1);
 		}
 	}
 </style>
