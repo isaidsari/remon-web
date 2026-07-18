@@ -20,7 +20,12 @@
 	import type { ProcessInfo, ProcessState } from '$lib/types/api';
 
 	type DisplayRow = ProcessInfo & {
-		depth: number;
+		/** One flag per ancestor level, ending with this node's own slot:
+		 *  guides[i] (i < depth-1) = "the ancestor at that level has further
+		 *  siblings" → draw a │ pass-through; the last entry = "this node has
+		 *  a following sibling" → ├ vs └ on its own connector. Empty for
+		 *  roots and flat rows. */
+		guides: boolean[];
 		hasChildren: boolean;
 		descendantCount: number;
 		/** Sum of CPU% across this node and all descendants. Safe to add
@@ -236,7 +241,7 @@
 		if (viewMode === 'flat') {
 			return filtered.map((p) => ({
 				...p,
-				depth: 0,
+				guides: [],
 				hasChildren: false,
 				descendantCount: 0,
 				subtreeCpu: p.cpu_percent
@@ -309,21 +314,22 @@
 		};
 
 		const out: DisplayRow[] = [];
-		const visit = (p: ProcessInfo, depth: number) => {
+		const visit = (p: ProcessInfo, guides: boolean[]) => {
 			const children = childrenOf.get(p.pid) ?? [];
 			const r = computeRollup(p);
 			out.push({
 				...p,
-				depth,
+				guides,
 				hasChildren: children.length > 0,
 				descendantCount: r.count,
 				subtreeCpu: r.cpu
 			});
 			if (children.length > 0 && (searching || !collapsed.has(p.pid))) {
-				for (const c of children) visit(c, depth + 1);
+				children.forEach((c, i) => visit(c, [...guides, i < children.length - 1]));
 			}
 		};
-		for (const r of roots) visit(r, 0);
+		// Roots render without a connector column, so their guide list is empty.
+		for (const r of roots) visit(r, []);
 		return out;
 	});
 
@@ -565,17 +571,43 @@
 											class="px-3 py-2 text-right font-mono tabular-nums text-[var(--color-fg-muted)]"
 											>{p.pid}</td
 										>
-										<td class="px-3 py-2">
-											<div
-												class="proc-name-cell flex items-start gap-1.5"
-												style="--tree-depth: {p.depth}"
-											>
+										<td class="p-0">
+											<!-- Guides must span the full row height for continuous rails,
+											     so the cell drops its padding and the flex children stretch. -->
+											<div class="flex min-h-9 items-stretch pr-3 pl-3">
 												{#if viewMode === 'tree'}
+													{#each p.guides as g, gi (gi)}
+														<span
+															class="relative w-4 shrink-0 self-stretch md:w-5"
+															aria-hidden="true"
+														>
+															{#if gi < p.guides.length - 1}
+																<!-- Pass-through rail of an ancestor that continues below;
+																     -top-px bridges the row's hairline border. -->
+																{#if g}
+																	<span
+																		class="absolute -top-px bottom-0 left-1/2 w-px bg-[var(--color-border-strong)]"
+																	></span>
+																{/if}
+															{:else}
+																<!-- This node's connector: ├ when siblings follow, └ when last -->
+																<span
+																	class={cn(
+																		'absolute -top-px left-1/2 w-px bg-[var(--color-border-strong)]',
+																		g ? 'bottom-0' : 'h-[calc(50%+1px)]'
+																	)}
+																></span>
+																<span
+																	class="absolute top-1/2 left-1/2 h-px w-2 bg-[var(--color-border-strong)] md:w-2.5"
+																></span>
+															{/if}
+														</span>
+													{/each}
 													{#if p.hasChildren}
 														<button
 															type="button"
 															onclick={() => toggleCollapse(p.pid)}
-															class="mt-[2px] inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)]"
+															class="my-auto grid size-5 shrink-0 place-items-center rounded text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)]"
 															aria-expanded={!isCollapsed}
 															aria-label={isCollapsed
 																? m.processes_aria_expand()
@@ -585,41 +617,50 @@
 																width="12"
 																height="12"
 																viewBox="0 0 24 24"
-																fill="currentColor"
+																fill="none"
+																stroke="currentColor"
+																stroke-width="2"
+																stroke-linecap="round"
+																stroke-linejoin="round"
 																style="transform: rotate({isCollapsed
 																	? 0
-																	: 90}deg); transition: transform 100ms ease"
+																	: 90}deg); transition: transform var(--dur-fast) var(--ease-snap)"
 															>
-																<path d="M8 5l8 7-8 7z" />
+																<path d="m9 18 6-6-6-6" />
 															</svg>
 														</button>
 													{:else}
 														<span
-															class="mt-[2px] inline-flex h-5 w-5 shrink-0 items-center justify-center text-[var(--color-fg-subtle)]"
+															class="grid size-5 shrink-0 place-items-center self-center"
 															aria-hidden="true"
 														>
-															<span class="block h-1 w-1 rounded-full bg-current"></span>
+															<span class="block size-[3px] rounded-full bg-[var(--color-fg-faint)]"
+															></span>
 														</span>
 													{/if}
 												{/if}
-												<div class="flex min-w-0 flex-col">
-													<span class="font-medium text-[var(--color-fg)]">
+												<div
+													class="flex min-w-0 flex-1 items-baseline gap-2 self-center py-1.5 pl-1"
+													title={p.cmd.length > 0 ? p.cmd.join(' ') : undefined}
+												>
+													<span
+														class="max-w-[24ch] shrink-0 truncate font-medium text-[var(--color-fg)]"
+													>
 														{p.name}
-														{#if viewMode === 'tree' && p.hasChildren && isCollapsed}
-															<span
-																class="ml-1.5 font-mono text-[10px] font-normal text-[var(--color-fg-subtle)]"
-																title={m.processes_descendants_hidden({ count: p.descendantCount })}
-															>
-																+{p.descendantCount}
-															</span>
-														{/if}
 													</span>
-													{#if p.cmd && p.cmd.length > 1}
+													{#if viewMode === 'tree' && p.hasChildren && isCollapsed}
 														<span
-															class="truncate max-w-[40ch] font-mono text-[11px] text-[var(--color-fg-subtle)]"
-															title={p.cmd.join(' ')}
+															class="shrink-0 rounded-full bg-[var(--color-surface-2)] px-1.5 py-px font-mono text-[10px] text-[var(--color-fg-subtle)] shadow-[inset_0_0_0_1px_var(--color-border)]"
+															title={m.processes_descendants_hidden({ count: p.descendantCount })}
 														>
-															{p.cmd.slice(1).join(' ') || '—'}
+															+{p.descendantCount}
+														</span>
+													{/if}
+													{#if p.cmd.length > 1}
+														<span
+															class="min-w-0 flex-1 truncate font-mono text-[11px] text-[var(--color-fg-faint)]"
+														>
+															{p.cmd.slice(1).join(' ')}
 														</span>
 													{/if}
 												</div>
@@ -711,22 +752,3 @@
 		</button>
 	</th>
 {/snippet}
-
-<style>
-	/* Tree-view name cell: indent by depth, with one hairline guide per
-	 * ancestor level on the left edge. The repeating gradient draws a 1px
-	 * vertical line every 20px, clipped to `depth × 20px` so flat rows
-	 * (depth = 0) and root rows render with no visual cost. */
-	.proc-name-cell {
-		padding-left: calc(var(--tree-depth, 0) * 24px);
-		background-image: repeating-linear-gradient(
-			to right,
-			var(--color-fg-subtle) 0,
-			var(--color-fg-subtle) 1px,
-			transparent 1px,
-			transparent 24px
-		);
-		background-size: calc(var(--tree-depth, 0) * 24px) 100%;
-		background-repeat: no-repeat;
-	}
-</style>
