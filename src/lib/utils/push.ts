@@ -86,3 +86,52 @@ export async function unsubscribeLocal(): Promise<void> {
 	const sub = await getCurrentSubscription();
 	if (sub) await sub.unsubscribe();
 }
+
+const OWNER_KEY = 'remon.push.owner';
+
+export interface PushOwner {
+	serverId: string;
+	/** The subscription's endpoint at the time it was recorded — lets a
+	 *  caller confirm the live subscription still matches what's stored
+	 *  here, rather than trusting a serverId that could be stale. */
+	endpoint: string;
+}
+
+/**
+ * Every server profile mints its own VAPID keypair, but a browser allows
+ * exactly one PushManager subscription per service-worker registration —
+ * and remon-web registers one SW for the whole app, shared across every
+ * paired server. So "push is enabled" is a per-browser fact, not a
+ * per-server one: subscribing a second server silently invalidates (or
+ * outright fails to replace) the first. This records which paired server
+ * the current subscription actually belongs to, so each server's settings
+ * page can tell "enabled here" apart from "enabled for a different server".
+ */
+export function getPushOwner(): PushOwner | null {
+	try {
+		const raw = localStorage.getItem(OWNER_KEY);
+		if (!raw) return null;
+		const parsed = JSON.parse(raw) as Partial<PushOwner>;
+		return typeof parsed.serverId === 'string' && typeof parsed.endpoint === 'string'
+			? (parsed as PushOwner)
+			: null;
+	} catch {
+		return null;
+	}
+}
+
+export function setPushOwner(owner: PushOwner): void {
+	try {
+		localStorage.setItem(OWNER_KEY, JSON.stringify(owner));
+	} catch {
+		// non-fatal — worst case a later ownership check falls back to "other/unknown"
+	}
+}
+
+export function clearPushOwner(): void {
+	try {
+		localStorage.removeItem(OWNER_KEY);
+	} catch {
+		// nothing to clean up
+	}
+}

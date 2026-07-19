@@ -38,7 +38,10 @@
 		notificationPermission,
 		getCurrentSubscription,
 		subscribeToPush,
-		unsubscribeLocal
+		unsubscribeLocal,
+		getPushOwner,
+		setPushOwner,
+		clearPushOwner
 	} from '$lib/utils/push';
 	import IconCheck from '~icons/lucide/check';
 	import IconRotateCcw from '~icons/lucide/rotate-ccw';
@@ -201,7 +204,12 @@
 	}
 
 	let pushSupported = $state(false);
-	let pushSubscribed = $state(false);
+	/** 'none' — no active subscription in this browser. 'this' — the
+	 *  browser's one subscription belongs to this server. 'other' — it
+	 *  belongs to a different paired server (see push.ts: only one can be
+	 *  active at a time). */
+	let pushState = $state<'none' | 'this' | 'other'>('none');
+	let pushOtherName = $state<string | null>(null);
 	let pushBusy = $state(false);
 	let pushPermission = $state<NotificationPermission>('default');
 
@@ -213,10 +221,27 @@
 		pushSupported = true;
 		pushPermission = notificationPermission();
 		const sub = await getCurrentSubscription();
-		pushSubscribed = sub !== null;
+		if (!sub) {
+			pushState = 'none';
+			pushOtherName = null;
+			return;
+		}
+		const owner = getPushOwner();
+		if (owner && owner.serverId === id && owner.endpoint === sub.endpoint) {
+			pushState = 'this';
+			pushOtherName = null;
+		} else {
+			pushState = 'other';
+			pushOtherName = (owner && profiles.byId(owner.serverId)?.name) || null;
+		}
 	}
 
 	$effect(() => {
+		// `id` must be read synchronously here (not just inside the async
+		// function) so Svelte tracks it as a dependency — SvelteKit reuses
+		// this component across server switches, and without this the push
+		// status shown would stay frozen on whichever server loaded first.
+		void id;
 		void refreshPushState();
 	});
 
@@ -224,10 +249,30 @@
 		if (!conn?.isAuthenticated) return;
 		pushBusy = true;
 		try {
+			// Stealing the subscription from another paired server: best-effort
+			// tell IT to drop the row too, so it doesn't keep retrying a dead
+			// endpoint. Non-fatal if that server is unreachable right now —
+			// its own next failed send self-heals via the 410-Gone cleanup.
+			const prevOwner = getPushOwner();
+			if (pushState === 'other' && prevOwner && prevOwner.serverId !== id) {
+				const otherProfile = profiles.byId(prevOwner.serverId);
+				if (otherProfile) {
+					try {
+						await connections.connect(otherProfile).client.unsubscribePush();
+					} catch {
+						// unreachable/unauthenticated — the server-side row goes
+						// stale and self-heals on its next failed push attempt
+					}
+				}
+			}
+			if (pushState !== 'none') await unsubscribeLocal();
+
 			const { public_key } = await conn.client.getVapidPublicKey();
 			const payload = await subscribeToPush(public_key);
 			await conn.client.subscribePush(payload);
-			pushSubscribed = true;
+			setPushOwner({ serverId: id, endpoint: payload.endpoint });
+			pushState = 'this';
+			pushOtherName = null;
 			pushPermission = notificationPermission();
 			toast.success(m.settings_toast_push_enabled());
 		} catch (e) {
@@ -245,7 +290,8 @@
 			// Both steps needed: skipping either leaves a stale subscription on relay or server.
 			await unsubscribeLocal();
 			await conn.client.unsubscribePush();
-			pushSubscribed = false;
+			clearPushOwner();
+			pushState = 'none';
 			toast.info(m.settings_toast_push_disabled());
 		} catch (e) {
 			toast.error(m.settings_toast_push_disable_failed(), {
@@ -254,11 +300,6 @@
 		} finally {
 			pushBusy = false;
 		}
-	}
-
-	async function togglePush() {
-		if (pushSubscribed) await disablePush();
-		else await enablePush();
 	}
 
 	// ─── Auto-unlock (global, mirrors theme/language scope) ──────────────────
@@ -535,10 +576,18 @@
 					<span
 						class={cn(
 							'text-[11px]',
-							pushSubscribed ? 'text-[var(--color-success)]' : 'text-[var(--color-fg-subtle)]'
+							pushState === 'this'
+								? 'text-[var(--color-success)]'
+								: pushState === 'other'
+									? 'text-[var(--color-warning)]'
+									: 'text-[var(--color-fg-subtle)]'
 						)}
 					>
-						{pushSubscribed ? m.settings_push_status_enabled() : m.settings_push_status_disabled()}
+						{pushState === 'this'
+							? m.settings_push_status_enabled()
+							: pushState === 'other'
+								? m.settings_push_status_other()
+								: m.settings_push_status_disabled()}
 					</span>
 				{/if}
 			</div>
@@ -555,15 +604,25 @@
 					{m.settings_push_blocked()}
 				</p>
 			{:else}
+				{#if pushState === 'other'}
+					<p class="mb-3 max-w-md text-[12px] text-[var(--color-warning)]">
+						{pushOtherName
+							? m.settings_push_other_body_named({ name: pushOtherName })
+							: m.settings_push_other_body_unknown()}
+					</p>
+				{/if}
 				<Button
-					variant={pushSubscribed ? 'secondary' : 'primary'}
+					variant={pushState === 'this' ? 'secondary' : 'primary'}
 					size="sm"
-					onclick={togglePush}
+					onclick={pushState === 'this' ? disablePush : enablePush}
 					loading={pushBusy}
 				>
-					{#if pushSubscribed}
+					{#if pushState === 'this'}
 						<IconBellOff class="size-[13px]" stroke-width="2" />
 						{m.settings_push_disable()}
+					{:else if pushState === 'other'}
+						<IconBellRing class="size-[13px]" stroke-width="2" />
+						{m.settings_push_action_switch()}
 					{:else}
 						<IconBellRing class="size-[13px]" stroke-width="2" />
 						{m.settings_push_enable()}
