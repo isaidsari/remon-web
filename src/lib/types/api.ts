@@ -1125,6 +1125,55 @@ export interface CaptureIncidentResponse {
 	id: number;
 }
 
+// ===== Events (unified host-event timeline) =====
+
+/** Who a `GET /events` row was produced by. */
+export type EventSource = 'system' | 'operator' | 'agent';
+
+/** Severity of a timeline event; distinct from alert severity (warn|crit). */
+export type EventSeverity = 'info' | 'warn' | 'error';
+
+/** The authenticated device behind an `operator`-source event. */
+export interface EventActorDto {
+	device_id: string;
+	name?: string;
+}
+
+/**
+ * What the event points at, when it points at a concrete object —
+ * `{type:"alert_rule",id:"3"}`, `{type:"incident",id:"17"}`,
+ * `{type:"service",id:"nginx"}`, `{type:"process",id:"chrome"}`,
+ * `{type:"disk",id:"/dev/sda"}`.
+ */
+export interface EventRefDto {
+	type: string;
+	id: string;
+}
+
+/**
+ * One normalized timeline row unioned server-side from the host-event
+ * ledger, alert fire/resolve, and incident captures. `kind` is an open
+ * vocabulary (`boot`, `server_started`, `oom_kill`, `smart_health`,
+ * `service_action`, `alert_fired`, `incident_captured`, …).
+ */
+export interface EventDto {
+	ts: number;
+	source: EventSource;
+	kind: string;
+	severity: EventSeverity;
+	message: string;
+	actor?: EventActorDto;
+	ref?: EventRefDto;
+	details?: Record<string, unknown>;
+}
+
+export interface ListEventsResponse {
+	start: number;
+	end: number;
+	count: number;
+	events: EventDto[];
+}
+
 // ===== Assistant =====
 
 export interface AssistantAskRequest {

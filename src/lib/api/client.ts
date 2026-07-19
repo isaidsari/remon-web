@@ -41,6 +41,7 @@ import type {
 	ListAlertRulesResponse,
 	ListAlertStateResponse,
 	ListChannelsResponse,
+	ListEventsResponse,
 	ListContainersResponse,
 	ListCronJobsResponse,
 	ListImagesResponse,
@@ -663,6 +664,22 @@ export class ApiClient {
 
 	alertsSchema(): Promise<AlertsSchemaResponse> {
 		return this.request<AlertsSchemaResponse>('/alerts/schema');
+	}
+
+	/**
+	 * Unified host-event timeline — the ledger (boots, OOM kills, SMART
+	 * transitions, operator audit) unioned with alert fire/resolve and
+	 * incident captures. `kinds`/`sources` are CSV allowlists; range and
+	 * limit mirror the metrics endpoints (default last 24h, cap 1000).
+	 */
+	events(params?: {
+		start?: number;
+		end?: number;
+		kinds?: string;
+		sources?: string;
+		limit?: number;
+	}): Promise<ListEventsResponse> {
+		return this.request<ListEventsResponse>('/events', { query: { ...params } });
 	}
 
 	/**
