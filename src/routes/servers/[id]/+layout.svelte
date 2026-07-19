@@ -21,6 +21,7 @@
 	import IconHeartPulse from '~icons/lucide/heart-pulse';
 	import IconContainer from '~icons/lucide/container';
 	import IconTriangleAlert from '~icons/lucide/triangle-alert';
+	import IconScrollText from '~icons/lucide/scroll-text';
 	import IconBell from '~icons/lucide/bell';
 	import IconSettings from '~icons/lucide/settings';
 	import IconSlidersHorizontal from '~icons/lucide/sliders-horizontal';
@@ -71,6 +72,7 @@
 		{ href: '/heartbeats', label: m.section_heartbeats(), icon: IconHeartPulse, enabled: true },
 		{ href: '/docker', label: m.section_docker(), icon: IconContainer, enabled: true },
 		{ href: '/alerts', label: m.section_alerts(), icon: IconTriangleAlert, enabled: true },
+		{ href: '/events', label: m.section_events(), icon: IconScrollText, enabled: true },
 		{ href: '/notifications', label: m.section_notifications(), icon: IconBell, enabled: true },
 		{ href: '/config', label: m.section_config(), icon: IconSettings, enabled: true },
 		{ href: '/settings', label: m.section_settings(), icon: IconSlidersHorizontal, enabled: true }
@@ -110,6 +112,9 @@
 				void c.listAlertRules().catch(() => {});
 				void c.alertState().catch(() => {});
 				void c.alertEvents(100).catch(() => {});
+				break;
+			case '/events':
+				void c.events({ limit: 1000 }).catch(() => {});
 				break;
 			case '/notifications':
 				void c.listChannels().catch(() => {});
