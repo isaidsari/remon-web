@@ -464,6 +464,8 @@
 	"badge_probe_fail": "fail",
 	"badge_probe_pending": "pending",
 	"metrics_page_subtitle": "Resource usage trends across the selected time range.",
+	"metrics_annotations_toggle": "events",
+	"metrics_annotations_toggle_hint": "overlay host events (boots, alerts, incidents, operator actions) on the charts",
 	"metrics_resolution_label": "res {value}",
 	"metrics_updated_at": "updated {time}",
 	"metrics_signin_required": "sign in on the settings tab to query metrics.",

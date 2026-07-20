@@ -465,6 +465,8 @@
 	"badge_probe_fail": "hata",
 	"badge_probe_pending": "bekliyor",
 	"metrics_page_subtitle": "seçilen zaman aralığındaki kaynak kullanım eğilimleri.",
+	"metrics_annotations_toggle": "olaylar",
+	"metrics_annotations_toggle_hint": "host olaylarını (açılışlar, uyarılar, incident'lar, operatör aksiyonları) grafiklerin üzerine bindir",
 	"metrics_resolution_label": "çözünürlük {value}",
 	"metrics_updated_at": "güncellendi {time}",
 	"metrics_signin_required": "metrikleri sorgulamak için ayarlar sekmesinden oturum açın.",

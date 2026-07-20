@@ -3,8 +3,13 @@
 	import { page } from '$app/state';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
-	import HistoryChart, { type Series } from '$lib/components/charts/HistoryChart.svelte';
+	import HistoryChart, {
+		type Series,
+		type ChartAnnotation
+	} from '$lib/components/charts/HistoryChart.svelte';
 	import RangePicker, { type RefreshInterval } from '$lib/components/charts/RangePicker.svelte';
+	import Button from '$lib/components/ui/Button.svelte';
+	import IconHistory from '~icons/lucide/history';
 	import StatStrip from '$lib/components/charts/StatStrip.svelte';
 	import { RANGE_SECONDS, type RangeKey } from '$lib/components/charts/range';
 	import PressureCard from '$lib/components/metrics/PressureCard.svelte';
@@ -26,6 +31,7 @@
 		ComponentsHistoryResponse,
 		CpuHistoryResponse,
 		DiskHistoryResponse,
+		EventDto,
 		MemoryHistoryResponse,
 		NetworkHistoryResponse,
 		PressureHistoryResponse,
@@ -81,6 +87,9 @@
 	let pressureIo = $state<PressureHistoryResponse | null>(null);
 	let components = $state<ComponentsHistoryResponse | null>(null);
 	let resolution = $state<string | null>(null);
+	let events = $state<EventDto[]>([]);
+	let showAnnotations = $state(true);
+	let queryEnd = $state(0);
 	let smart = $state<SmartResponse | null>(null);
 
 	let cancelCtrl: AbortController | null = null;
@@ -93,17 +102,22 @@
 		const end = Math.floor(Date.now() / 1000) - offsetSecs;
 		const start = end - span;
 		const q = { start, end };
+		queryEnd = end;
 
 		busy = true;
 		try {
-			const [batch, pc, pm, pi] = await Promise.all([
+			const [batch, pc, pm, pi, ev] = await Promise.all([
 				conn.client.metricsBatch({
 					resources: 'cpu,memory,disk,network,components',
 					...q
 				}),
 				conn.client.pressureHistory('cpu', q).catch(() => null),
 				conn.client.pressureHistory('memory', q).catch(() => null),
-				conn.client.pressureHistory('io', q).catch(() => null)
+				conn.client.pressureHistory('io', q).catch(() => null),
+				conn.client
+					.events({ ...q, limit: 500 })
+					.then((r) => r.events)
+					.catch(() => [])
 			]);
 			const res = batch.resolution;
 			const cpuBatch = batch.series.find((s) => s.resource === 'cpu');
@@ -134,6 +148,7 @@
 			pressureCpu = pc;
 			pressureMem = pm;
 			pressureIo = pi;
+			events = ev;
 			resolution = res;
 			lastFetched = Date.now();
 		} catch (e) {
@@ -375,6 +390,54 @@
 
 	let loading = $derived(cpu === null);
 
+	// Host-event overlay for the primary charts: alert fired→resolved pairs
+	// become shaded bands, every other kind becomes a dashed instant line.
+	// Shown identically across cpu/memory/disk/network — correlation is the
+	// point ("did an OOM kill line up with that memory chart?"), and the
+	// reader can tell at a glance which chart's own series moved.
+	let chartAnnotations = $derived.by((): ChartAnnotation[] => {
+		const alertKey = (e: EventDto) =>
+			e.ref
+				? `${e.ref.type}:${e.ref.id}:${(e.details?.label_set as string | undefined) ?? ''}`
+				: '';
+
+		const fired = events.filter((e) => e.kind === 'alert_fired').sort((a, b) => a.ts - b.ts);
+		const resolved = events.filter((e) => e.kind === 'alert_resolved').sort((a, b) => a.ts - b.ts);
+		const resolvedByKey = new Map<string, EventDto[]>();
+		for (const r of resolved) {
+			const k = alertKey(r);
+			const arr = resolvedByKey.get(k);
+			if (arr) arr.push(r);
+			else resolvedByKey.set(k, [r]);
+		}
+
+		const bands: ChartAnnotation[] = fired.map((f) => {
+			const k = alertKey(f);
+			// First not-yet-consumed resolve after this fire, same rule+labels.
+			const candidates = resolvedByKey.get(k) ?? [];
+			const idx = candidates.findIndex((r) => r.ts >= f.ts);
+			const match = idx >= 0 ? candidates.splice(idx, 1)[0] : undefined;
+			return {
+				ts: f.ts,
+				// Still firing at the window edge → band runs to "now" (the
+				// query's end), reading as an open-ended, ongoing condition.
+				endTs: match ? match.ts : queryEnd,
+				label: f.message,
+				severity: f.severity
+			};
+		});
+
+		const instants: ChartAnnotation[] = events
+			.filter((e) => e.kind !== 'alert_fired' && e.kind !== 'alert_resolved')
+			.map((e) => ({
+				ts: e.ts,
+				label: e.message,
+				severity: e.severity
+			}));
+
+		return [...bands, ...instants];
+	});
+
 	let cpuKey = $derived(cpuSeries.map((s) => s.name).join('|'));
 	let memoryKey = $derived(memorySeries.map((s) => s.name).join('|'));
 	let memoryPressureKey = $derived(memoryPressureSeries.map((s) => s.name).join('|'));
@@ -504,18 +567,30 @@
 				</p>
 			</div>
 			<div class="flex flex-col gap-2 lg:items-end">
-				<RangePicker
-					class="lg:w-auto lg:justify-end"
-					value={range}
-					onSelect={(k) => (range = k)}
-					onRefresh={fetchAll}
-					{busy}
-					{autoRefresh}
-					onAutoRefreshChange={(i) => (autoRefresh = i)}
-					{offsetSecs}
-					onShift={(d) => (offsetSecs = Math.max(0, offsetSecs - d))}
-					onResetNow={() => (offsetSecs = 0)}
-				/>
+				<div class="flex items-center gap-2">
+					<Button
+						variant={showAnnotations ? 'secondary' : 'ghost'}
+						size="sm"
+						aria-pressed={showAnnotations}
+						title={m.metrics_annotations_toggle_hint()}
+						onclick={() => (showAnnotations = !showAnnotations)}
+					>
+						<IconHistory class="size-3.5" stroke-width="2" />
+						{m.metrics_annotations_toggle()}
+					</Button>
+					<RangePicker
+						class="lg:w-auto lg:justify-end"
+						value={range}
+						onSelect={(k) => (range = k)}
+						onRefresh={fetchAll}
+						{busy}
+						{autoRefresh}
+						onAutoRefreshChange={(i) => (autoRefresh = i)}
+						{offsetSecs}
+						onShift={(d) => (offsetSecs = Math.max(0, offsetSecs - d))}
+						onResetNow={() => (offsetSecs = 0)}
+					/>
+				</div>
 				<div
 					class="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] tabular-nums text-[var(--color-fg-subtle)] lg:justify-end"
 				>
@@ -567,6 +642,7 @@
 								yMin={0}
 								yMax={100}
 								group="metrics"
+								annotations={showAnnotations ? chartAnnotations : []}
 							/>
 						{/key}
 						{#if hasKernelRateData && lastCpu}
@@ -617,6 +693,7 @@
 								yMin={0}
 								yMax={100}
 								group="metrics"
+								annotations={showAnnotations ? chartAnnotations : []}
 							/>
 						{/key}
 					{/if}
@@ -638,6 +715,7 @@
 								yMin={0}
 								yMax={100}
 								group="metrics"
+								annotations={showAnnotations ? chartAnnotations : []}
 							/>
 						{/key}
 
@@ -761,7 +839,12 @@
 							</div>
 						{/if}
 						{#key networkKey}
-							<HistoryChart series={networkSeries} valueFormatter={fmtBpsCell} group="metrics" />
+							<HistoryChart
+								series={networkSeries}
+								valueFormatter={fmtBpsCell}
+								group="metrics"
+								annotations={showAnnotations ? chartAnnotations : []}
+							/>
 						{/key}
 
 						{#if netErrorRows.length > 0}
