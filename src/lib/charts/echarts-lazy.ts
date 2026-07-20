@@ -22,6 +22,7 @@ export function loadEcharts(): Promise<typeof Echarts> {
 			components.DataZoomComponent,
 			components.AxisPointerComponent,
 			components.MarkLineComponent,
+			components.MarkAreaComponent,
 			components.BrushComponent,
 			components.ToolboxComponent,
 			renderers.CanvasRenderer

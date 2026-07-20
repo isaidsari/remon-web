@@ -7,6 +7,26 @@
 		color: string;
 		fill?: boolean;
 	}
+
+	/**
+	 * One host-event annotation drawn over the series: an instant (vertical
+	 * dashed line) or, when `endTs` is set, a shaded band (e.g. an alert's
+	 * fired→resolved window). Timestamps are unix seconds like series data.
+	 */
+	export interface ChartAnnotation {
+		ts: number;
+		endTs?: number;
+		label: string;
+		severity: 'info' | 'warn' | 'error';
+	}
+
+	// Canvas needs literal colors (CSS vars don't resolve inside ECharts);
+	// these mirror the app's danger/warning/neutral tones.
+	const ANNOTATION_COLORS: Record<ChartAnnotation['severity'], string> = {
+		info: 'rgb(148, 163, 184)',
+		warn: 'rgb(251, 191, 36)',
+		error: 'rgb(248, 113, 113)'
+	};
 </script>
 
 <script lang="ts">
@@ -27,6 +47,8 @@
 		axisLabel?: string;
 		/** Same string on every chart on the page to sync crosshair hover. */
 		group?: string;
+		/** Host-event overlay: instants as dashed lines, ranges as shaded bands. */
+		annotations?: ChartAnnotation[];
 		class?: string;
 	}
 
@@ -39,6 +61,7 @@
 		valueFormatter,
 		axisLabel,
 		group,
+		annotations = [],
 		class: klass = ''
 	}: Props = $props();
 
@@ -73,7 +96,7 @@
 	}
 
 	function buildOption(): EChartsCoreOption {
-		const seriesArr = series.map((s) => ({
+		const seriesArr: Record<string, unknown>[] = series.map((s) => ({
 			type: 'line' as const,
 			name: s.name,
 			data: zip(s.data.xs, s.data.ys),
@@ -88,6 +111,48 @@
 			emphasis: { focus: 'series' as const, lineStyle: { width: 2.25 } },
 			connectNulls: false
 		}));
+
+		// Host-event overlay rides on the first series (marks must attach to a
+		// series; a dedicated one would pollute the legend). Instants are
+		// dashed verticals whose label appears on hover; ranges (alert
+		// fired→resolved) are faint severity-tinted bands.
+		if (seriesArr.length > 0 && annotations.length > 0) {
+			const lines = annotations.filter((a) => a.endTs == null);
+			const bands = annotations.filter((a) => a.endTs != null);
+			if (lines.length > 0) {
+				seriesArr[0].markLine = {
+					symbol: ['none', 'none'],
+					animation: false,
+					data: lines.map((a) => ({
+						xAxis: a.ts * 1000,
+						name: a.label,
+						lineStyle: { color: ANNOTATION_COLORS[a.severity], type: 'dashed', width: 1 },
+						label: {
+							show: false,
+							formatter: '{b}',
+							position: 'insideEndTop',
+							color: ANNOTATION_COLORS[a.severity],
+							fontSize: 10
+						},
+						emphasis: { label: { show: true } }
+					}))
+				};
+			}
+			if (bands.length > 0) {
+				seriesArr[0].markArea = {
+					silent: true,
+					animation: false,
+					data: bands.map((a) => [
+						{
+							xAxis: a.ts * 1000,
+							name: a.label,
+							itemStyle: { color: rgbAt(ANNOTATION_COLORS[a.severity], 0.08) }
+						},
+						{ xAxis: (a.endTs ?? a.ts) * 1000 }
+					])
+				};
+			}
+		}
 
 		const palette = chartPalette();
 		return {
@@ -253,6 +318,7 @@
 	$effect(() => {
 		// Touch sources before the early return so $effect tracks them even when chart is null.
 		void series.length;
+		void annotations.length;
 		for (const s of series) {
 			void s.data.xs.length;
 			void s.data.ys.length;
