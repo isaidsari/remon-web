@@ -17,6 +17,8 @@
 	import IconStethoscope from '~icons/lucide/stethoscope';
 	import IconSmartphone from '~icons/lucide/smartphone';
 	import IconCircleDot from '~icons/lucide/circle-dot';
+	import IconBug from '~icons/lucide/bug';
+	import IconOctagonAlert from '~icons/lucide/octagon-alert';
 
 	// Open-vocabulary kind → glyph. Unknown kinds fall back to a neutral dot,
 	// so a server that grows a new kind still renders sensibly without a web
@@ -31,6 +33,10 @@
 				return IconSkull;
 			case 'smart_health':
 				return IconHardDrive;
+			case 'app_crash':
+				return IconBug;
+			case 'disk_error':
+				return IconOctagonAlert;
 			case 'service_action':
 				return IconActivity;
 			case 'container_action':

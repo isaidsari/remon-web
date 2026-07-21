@@ -1153,8 +1153,9 @@ export interface EventRefDto {
 /**
  * One normalized timeline row unioned server-side from the host-event
  * ledger, alert fire/resolve, and incident captures. `kind` is an open
- * vocabulary (`boot`, `server_started`, `oom_kill`, `smart_health`,
- * `service_action`, `alert_fired`, `incident_captured`, …).
+ * vocabulary (`boot`, `server_started`, `oom_kill`, `app_crash`,
+ * `disk_error`, `smart_health`, `service_action`, `alert_fired`,
+ * `incident_captured`, …).
  */
 export interface EventDto {
 	ts: number;
