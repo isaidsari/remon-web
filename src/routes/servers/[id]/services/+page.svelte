@@ -9,6 +9,7 @@
 	import Banner from '$lib/components/ui/Banner.svelte';
 	import LogStream from '$lib/components/common/LogStream.svelte';
 	import ServiceStateBadge from '$lib/components/services/ServiceStateBadge.svelte';
+	import IconChevronDown from '~icons/lucide/chevron-down';
 	import { profiles } from '$lib/stores/profiles.svelte';
 	import { connections } from '$lib/stores/connections.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
@@ -301,13 +302,83 @@
 	}
 </script>
 
+<!-- Shared by the desktop table's trailing column and the mobile card's action
+     row, so the two never drift on which lifecycle verbs a service offers. -->
+{#snippet serviceActions(s: ServiceDto, running: boolean, enabled: boolean, large: boolean)}
+	{#if running}
+		{@render iconBtn(
+			m.services_action_stop(),
+			() => doStop(s),
+			acting !== null,
+			acting === `stop:${s.name}`,
+			'M6 6h12v12H6z',
+			false,
+			large
+		)}
+		{@render iconBtn(
+			m.services_action_restart(),
+			() => doRestart(s),
+			acting !== null,
+			acting === `restart:${s.name}`,
+			'M3 12a9 9 0 0 1 15-6.7M21 12a9 9 0 0 1-15 6.7M21 3v6h-6M3 21v-6h6',
+			false,
+			large
+		)}
+		{@render iconBtn(
+			m.services_action_reload(),
+			() => doReload(s),
+			acting !== null,
+			acting === `reload:${s.name}`,
+			'M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8',
+			false,
+			large
+		)}
+	{:else}
+		{@render iconBtn(
+			m.services_action_start(),
+			() => doStart(s),
+			acting !== null,
+			acting === `start:${s.name}`,
+			'M7 4v16l13-8L7 4z',
+			false,
+			large
+		)}
+	{/if}
+	{#if s.enabled_at_boot !== null}
+		{#if enabled}
+			{@render iconBtn(
+				m.services_action_disable_at_boot(),
+				() => doDisable(s),
+				acting !== null,
+				acting === `disable:${s.name}`,
+				'M5 12h14',
+				false,
+				large
+			)}
+		{:else}
+			{@render iconBtn(
+				m.services_action_enable_at_boot(),
+				() => doEnable(s),
+				acting !== null,
+				acting === `enable:${s.name}`,
+				'M12 5v14M5 12h14',
+				false,
+				large
+			)}
+		{/if}
+	{/if}
+{/snippet}
+
 {#snippet iconBtn(
 	label: string,
 	onclick: () => void,
 	disabled: boolean,
 	busy: boolean,
 	path: string,
-	danger?: boolean
+	danger?: boolean,
+	/** Touch-sized variant for the mobile card list, where these are the
+	 *  primary controls rather than a dense trailing column. */
+	large?: boolean
 )}
 	<button
 		type="button"
@@ -316,7 +387,8 @@
 		title={label}
 		aria-label={label}
 		class={cn(
-			'grid h-7 w-7 shrink-0 place-items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] transition disabled:cursor-not-allowed disabled:opacity-30',
+			'grid shrink-0 place-items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] transition disabled:cursor-not-allowed disabled:opacity-30',
+			large ? 'h-10 w-10' : 'h-7 w-7',
 			'hover:border-[var(--color-border-strong)]',
 			danger && 'hover:border-[var(--color-danger)]/50 hover:text-[var(--color-danger)]',
 			!danger && 'hover:text-[var(--color-fg)]',
@@ -431,7 +503,7 @@
 	{:else if services.length === 0 && !servicesLoading}
 		{@render emptyState(m.services_empty_services())}
 	{:else}
-		<Card padding="none" class="overflow-hidden">
+		<Card padding="none" class="hidden overflow-hidden md:block">
 			<div class="max-h-[max(18rem,calc(100dvh-22rem))] overflow-auto">
 				<table class="w-full text-sm">
 					<thead
@@ -469,6 +541,7 @@
 										<button
 											type="button"
 											onclick={() => toggleExpand(s.name)}
+											aria-expanded={expanded === s.name}
 											class="flex flex-col text-left"
 										>
 											<span class="font-mono text-[12px] font-medium text-[var(--color-fg)]"
@@ -501,56 +574,7 @@
 									</td>
 									<td class="px-3 py-2.5">
 										<div class="flex items-center justify-end gap-1.5">
-											{#if running}
-												{@render iconBtn(
-													m.services_action_stop(),
-													() => doStop(s),
-													acting !== null,
-													acting === `stop:${s.name}`,
-													'M6 6h12v12H6z'
-												)}
-												{@render iconBtn(
-													m.services_action_restart(),
-													() => doRestart(s),
-													acting !== null,
-													acting === `restart:${s.name}`,
-													'M3 12a9 9 0 0 1 15-6.7M21 12a9 9 0 0 1-15 6.7M21 3v6h-6M3 21v-6h6'
-												)}
-												{@render iconBtn(
-													m.services_action_reload(),
-													() => doReload(s),
-													acting !== null,
-													acting === `reload:${s.name}`,
-													'M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8'
-												)}
-											{:else}
-												{@render iconBtn(
-													m.services_action_start(),
-													() => doStart(s),
-													acting !== null,
-													acting === `start:${s.name}`,
-													'M7 4v16l13-8L7 4z'
-												)}
-											{/if}
-											{#if s.enabled_at_boot !== null}
-												{#if enabled}
-													{@render iconBtn(
-														m.services_action_disable_at_boot(),
-														() => doDisable(s),
-														acting !== null,
-														acting === `disable:${s.name}`,
-														'M5 12h14'
-													)}
-												{:else}
-													{@render iconBtn(
-														m.services_action_enable_at_boot(),
-														() => doEnable(s),
-														acting !== null,
-														acting === `enable:${s.name}`,
-														'M12 5v14M5 12h14'
-													)}
-												{/if}
-											{/if}
+											{@render serviceActions(s, running, enabled, false)}
 										</div>
 									</td>
 								</tr>
@@ -597,6 +621,102 @@
 				</table>
 			</div>
 		</Card>
+
+		<!-- Below md the same rows become cards: a table this wide can only
+		     horizontally scroll on a phone, which hides state and the lifecycle
+		     controls — the two things you open this page for. Actions sit in
+		     their own row because a <button> cannot nest inside the toggle. -->
+		<div class="flex flex-col gap-2 md:hidden">
+			{#if servicesLoading && services.length === 0}
+				{#each { length: 6 } as _, i (i)}
+					<Card padding="none">
+						<div class="flex flex-col gap-2 px-3.5 py-3">
+							<Skeleton class="h-3 w-40" />
+							<Skeleton class="h-5 w-20" rounded="full" />
+						</div>
+					</Card>
+				{/each}
+			{:else if filteredServices.length === 0}
+				<Card padding="lg" class="text-center text-sm text-[var(--color-fg-subtle)]">
+					{m.services_no_services_match()}
+				</Card>
+			{:else}
+				{#each filteredServices as s (s.name)}
+					{@const running = s.state === 'running' || s.state === 'reloading'}
+					{@const failed = s.state === 'failed'}
+					{@const enabled = s.enabled_at_boot === true}
+					{@const isOpen = expanded === s.name}
+					<Card
+						padding="none"
+						class={cn('overflow-hidden', failed && 'border-[var(--color-danger)]/40')}
+					>
+						<button
+							type="button"
+							onclick={() => toggleExpand(s.name)}
+							aria-expanded={isOpen}
+							class="flex w-full flex-col gap-2 px-3.5 py-3 text-left transition-colors hover:bg-[var(--color-surface-2)]/40"
+						>
+							<div class="flex items-start justify-between gap-2">
+								<div class="flex min-w-0 flex-1 flex-col">
+									<span class="font-mono text-[13px] font-medium break-all">{s.name}</span>
+									{#if s.description}
+										<span class="mt-0.5 text-[11px] leading-snug text-[var(--color-fg-muted)]">
+											{s.description}
+										</span>
+									{/if}
+								</div>
+								<IconChevronDown
+									class={cn(
+										'mt-0.5 size-4 shrink-0 text-[var(--color-fg-subtle)] transition-transform duration-[var(--dur-fast)]',
+										isOpen && 'rotate-180'
+									)}
+									stroke-width="2"
+								/>
+							</div>
+							<dl class="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1.5 text-[11px]">
+								<dt class="text-[var(--color-fg-subtle)]">{m.services_table_state()}</dt>
+								<dd><ServiceStateBadge state={s.state} /></dd>
+								<dt class="text-[var(--color-fg-subtle)]">{m.services_table_at_boot()}</dt>
+								<dd class="font-mono text-[var(--color-fg-muted)]">
+									{#if s.enabled_at_boot === null}
+										—
+									{:else if enabled}
+										<span class="text-[var(--color-success)]">{m.services_boot_enabled()}</span>
+									{:else}
+										<span class="text-[var(--color-fg-subtle)]">{m.services_boot_disabled()}</span>
+									{/if}
+								</dd>
+							</dl>
+						</button>
+
+						<div
+							class="flex items-center gap-2 border-t border-[var(--color-border)] px-3.5 py-2.5"
+						>
+							{@render serviceActions(s, running, enabled, true)}
+						</div>
+
+						{#if isOpen}
+							<div
+								class="border-t border-[var(--color-border)] bg-[var(--color-bg-soft)]/40 px-3.5 py-3"
+							>
+								<div class="mb-2 font-mono text-[11px] text-[var(--color-fg-subtle)]">
+									{m.services_raw_state_label()}
+									<span class="text-[var(--color-fg-muted)]">{s.raw_state}</span>
+								</div>
+								{#if canStreamLogs && conn}
+									<LogStream {conn} path={`/services/${s.name}/logs`} initialTail={100} />
+								{:else}
+									<p class="text-[12px] text-[var(--color-fg-muted)]">
+										{m.services_logs_journalctl_only_prefix()}
+										<span class="font-mono text-[var(--color-fg)]">{s.backend}</span>.
+									</p>
+								{/if}
+							</div>
+						{/if}
+					</Card>
+				{/each}
+			{/if}
+		</div>
 	{/if}
 {/snippet}
 
