@@ -441,12 +441,15 @@
 												{/if}
 											</div>
 										</td>
-										<td class="px-3 py-2.5">
-											<div class="flex flex-col gap-0.5">
-												<span class="text-[13px] text-[var(--color-fg)]">
+										<!-- w-full + max-w-0: a rule expression is arbitrary-length text, and
+										     in auto table layout the cell's max-content would set the column
+										     width — pushing severity/for/cooldown/actions off-screen. -->
+										<td class="w-full max-w-0 px-3 py-2.5">
+											<div class="flex flex-col gap-0.5" title={rule.expression}>
+												<span class="truncate text-[13px] text-[var(--color-fg)]">
 													{describeExpression(rule.expression, schema)}
 												</span>
-												<code class="font-mono text-[10px] text-[var(--color-fg-subtle)]"
+												<code class="truncate font-mono text-[10px] text-[var(--color-fg-subtle)]"
 													>{rule.expression}</code
 												>
 											</div>
