@@ -6,6 +6,7 @@
 	"start_url": "/servers",
 	"scope": "/",
 	"display": "standalone",
+	"orientation": "natural",
 	"background_color": "#0a0a0b",
 	"theme_color": "#0a0a0b",
 	"categories": ["productivity", "utilities"],
