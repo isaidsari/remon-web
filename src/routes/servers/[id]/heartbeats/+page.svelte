@@ -442,6 +442,32 @@
 													{c.description}
 												</span>
 											{/if}
+											<!-- Period / last ping / deadline are the operational numbers, but
+											     their columns hide below md-sm and the expanded panel never
+											     repeats them — on a phone they were unreachable. Restate each
+											     one at exactly the width where its own column disappears. -->
+											<dl
+												class="mt-1.5 grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 text-[10px] md:hidden"
+											>
+												<dt class="text-[var(--color-fg-subtle)]">
+													{m.heartbeats_table_period()}
+												</dt>
+												<dd class="font-mono text-[var(--color-fg-muted)]">
+													{fmtDuration(c.period_secs)} + {fmtDuration(c.grace_secs)}
+												</dd>
+												<dt class="text-[var(--color-fg-subtle)] sm:hidden">
+													{m.heartbeats_table_last_ping()}
+												</dt>
+												<dd class="text-[var(--color-fg-muted)] sm:hidden">
+													{c.last_ping_at
+														? fmtRelative(c.last_ping_at)
+														: m.heartbeats_never_pinged()}
+												</dd>
+												<dt class="text-[var(--color-fg-subtle)]">
+													{m.heartbeats_table_deadline()}
+												</dt>
+												<dd class="text-[var(--color-fg-muted)]">{deadlineText(c)}</dd>
+											</dl>
 										</div>
 									</td>
 									<td
