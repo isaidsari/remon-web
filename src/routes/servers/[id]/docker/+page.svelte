@@ -262,13 +262,88 @@
 	]);
 </script>
 
+<!-- Shared by the desktop table's trailing column and the mobile card's action
+     row, so which verbs a container offers is decided in exactly one place. -->
+{#snippet containerActions(
+	c: ContainerInfo,
+	running: boolean,
+	paused: boolean,
+	stopped: boolean,
+	large: boolean
+)}
+	{#if stopped}
+		{@render iconBtn(
+			m.docker_action_start(),
+			() => start(c),
+			acting !== null,
+			acting === `start:${c.id}`,
+			IconPlay,
+			undefined,
+			large
+		)}
+	{/if}
+	{#if running}
+		{@render iconBtn(
+			m.docker_action_pause(),
+			() => pause(c),
+			acting !== null,
+			acting === `pause:${c.id}`,
+			IconPause,
+			undefined,
+			large
+		)}
+		{@render iconBtn(
+			m.docker_action_stop(),
+			() => stop(c),
+			acting !== null,
+			acting === `stop:${c.id}`,
+			IconSquare,
+			undefined,
+			large
+		)}
+	{/if}
+	{#if paused}
+		{@render iconBtn(
+			m.docker_action_resume(),
+			() => unpause(c),
+			acting !== null,
+			acting === `unpause:${c.id}`,
+			IconPlay,
+			undefined,
+			large
+		)}
+	{/if}
+	{#if running || paused}
+		{@render iconBtn(
+			m.docker_action_restart(),
+			() => restart(c),
+			acting !== null,
+			acting === `restart:${c.id}`,
+			IconRefresh,
+			undefined,
+			large
+		)}
+	{/if}
+	{@render iconBtn(
+		m.docker_action_delete(),
+		() => remove(c),
+		acting !== null,
+		acting === `delete:${c.id}`,
+		IconTrash,
+		'danger',
+		large
+	)}
+{/snippet}
+
 {#snippet iconBtn(
 	label: string,
 	onclick: () => void,
 	disabled: boolean,
 	busy: boolean,
 	Icon: Component,
-	color?: string
+	color?: string,
+	/** Touch-sized variant for the mobile card list. */
+	large?: boolean
 )}
 	<button
 		type="button"
@@ -277,7 +352,8 @@
 		title={label}
 		aria-label={label}
 		class={cn(
-			'grid h-8 w-8 place-items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] transition disabled:cursor-not-allowed disabled:opacity-30',
+			'grid place-items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] transition disabled:cursor-not-allowed disabled:opacity-30',
+			large ? 'h-9 w-9' : 'h-8 w-8',
 			'hover:border-[var(--color-border-strong)]',
 			color === 'danger' &&
 				'hover:border-[var(--color-danger)]/50 hover:text-[var(--color-danger)]',
@@ -366,7 +442,7 @@
 			</div>
 
 			{#if tab === 'containers'}
-				<Card padding="none" class="overflow-hidden">
+				<Card padding="none" class="hidden overflow-hidden md:block">
 					<div class="max-h-[max(18rem,calc(100dvh-22rem))] overflow-auto">
 						<table class="w-full text-sm">
 							<thead
@@ -428,57 +504,7 @@
 													onclickcapture={(e) => e.stopPropagation()}
 													role="presentation"
 												>
-													{#if stopped}
-														{@render iconBtn(
-															m.docker_action_start(),
-															() => start(c),
-															acting !== null,
-															acting === `start:${c.id}`,
-															IconPlay
-														)}
-													{/if}
-													{#if running}
-														{@render iconBtn(
-															m.docker_action_pause(),
-															() => pause(c),
-															acting !== null,
-															acting === `pause:${c.id}`,
-															IconPause
-														)}
-														{@render iconBtn(
-															m.docker_action_stop(),
-															() => stop(c),
-															acting !== null,
-															acting === `stop:${c.id}`,
-															IconSquare
-														)}
-													{/if}
-													{#if paused}
-														{@render iconBtn(
-															m.docker_action_resume(),
-															() => unpause(c),
-															acting !== null,
-															acting === `unpause:${c.id}`,
-															IconPlay
-														)}
-													{/if}
-													{#if running || paused}
-														{@render iconBtn(
-															m.docker_action_restart(),
-															() => restart(c),
-															acting !== null,
-															acting === `restart:${c.id}`,
-															IconRefresh
-														)}
-													{/if}
-													{@render iconBtn(
-														m.docker_action_delete(),
-														() => remove(c),
-														acting !== null,
-														acting === `delete:${c.id}`,
-														IconTrash,
-														'danger'
-													)}
+													{@render containerActions(c, running, paused, stopped, false)}
 												</div>
 											</td>
 										</tr>
@@ -497,6 +523,65 @@
 						</table>
 					</div>
 				</Card>
+
+				<!-- Below md the rows become cards. The body is an <a>, not a click
+				     handler on the row: it navigates, so it should be keyboard- and
+				     middle-click-reachable. Actions live outside it — an <a> cannot
+				     contain buttons. -->
+				<div class="flex flex-col gap-2 md:hidden">
+					{#if busy && containers.length === 0}
+						{#each { length: 4 } as _, i (i)}
+							<Card padding="none">
+								<div class="flex flex-col gap-2 px-3.5 py-3">
+									<Skeleton class="h-3 w-32" />
+									<Skeleton class="h-3 w-44" />
+								</div>
+							</Card>
+						{/each}
+					{:else if filteredContainers.length === 0}
+						<Card padding="lg" class="text-center text-sm text-[var(--color-fg-subtle)]">
+							{m.docker_empty_containers()}
+						</Card>
+					{:else}
+						{#each filteredContainers as c (c.id)}
+							{@const running = c.state === 'running'}
+							{@const paused = c.state === 'paused'}
+							{@const stopped = !running && !paused}
+							<Card padding="none" class="overflow-hidden">
+								<a
+									href={`/servers/${id}/docker/containers/${c.id}`}
+									class="flex flex-col gap-2 px-3.5 py-3 transition-colors hover:bg-[var(--color-surface-2)]/40"
+								>
+									<div class="flex items-start justify-between gap-2">
+										<div class="flex min-w-0 flex-1 flex-col">
+											<span class="font-medium break-all text-[var(--color-fg)]">{name(c)}</span>
+											<span class="font-mono text-[10px] text-[var(--color-fg-subtle)]">
+												{shortId(c.id)}
+											</span>
+										</div>
+										<StateBadge state={c.state} />
+									</div>
+									<dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">
+										<dt class="text-[var(--color-fg-subtle)]">{m.docker_th_image()}</dt>
+										<dd class="font-mono break-all text-[var(--color-fg-muted)]">{c.image}</dd>
+										<dt class="text-[var(--color-fg-subtle)]">{m.docker_th_status()}</dt>
+										<dd class="text-[var(--color-fg-muted)]">
+											{c.status}
+											<span class="block text-[10px] text-[var(--color-fg-subtle)]">
+												{m.docker_created_at({ time: fmtRelative(c.created) })}
+											</span>
+										</dd>
+									</dl>
+								</a>
+								<div
+									class="flex items-center gap-2 border-t border-[var(--color-border)] px-3.5 py-2.5"
+								>
+									{@render containerActions(c, running, paused, stopped, true)}
+								</div>
+							</Card>
+						{/each}
+					{/if}
+				</div>
 			{:else}
 				<Card padding="none" class="overflow-hidden">
 					<div class="max-h-[max(18rem,calc(100dvh-22rem))] overflow-auto">

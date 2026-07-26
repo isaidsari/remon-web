@@ -388,7 +388,7 @@
 		aria-label={label}
 		class={cn(
 			'grid shrink-0 place-items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] transition disabled:cursor-not-allowed disabled:opacity-30',
-			large ? 'h-10 w-10' : 'h-7 w-7',
+			large ? 'h-9 w-9' : 'h-7 w-7',
 			'hover:border-[var(--color-border-strong)]',
 			danger && 'hover:border-[var(--color-danger)]/50 hover:text-[var(--color-danger)]',
 			!danger && 'hover:text-[var(--color-fg)]',
