@@ -325,6 +325,82 @@
 	}
 </script>
 
+<!-- Shared by the desktop table's trailing column and the mobile card's action
+     row. aria-label mirrors title so the icon-only controls are announced. -->
+{#snippet ruleActions(rule: AlertRuleDto)}
+	<button
+		type="button"
+		onclick={() => toggleEnabled(rule)}
+		disabled={acting !== null}
+		role="switch"
+		aria-checked={rule.enabled}
+		title={rule.enabled ? m.alerts_action_disable() : m.alerts_action_enable()}
+		aria-label={rule.enabled ? m.alerts_action_disable() : m.alerts_action_enable()}
+		class={cn(
+			'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50',
+			rule.enabled ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-border)]'
+		)}
+	>
+		<span
+			class={cn(
+				'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+				rule.enabled ? 'translate-x-4' : 'translate-x-0'
+			)}
+		></span>
+	</button>
+	<button
+		type="button"
+		onclick={() => openEdit(rule)}
+		title={m.alerts_action_edit()}
+		aria-label={m.alerts_action_edit()}
+		class="grid h-8 w-8 place-items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-fg-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-fg)]"
+	>
+		<IconPencil class="size-[13px]" stroke-width="2" />
+	</button>
+	{#if isSilenced(rule)}
+		<button
+			type="button"
+			onclick={() => unsilenceRule(rule)}
+			disabled={acting === `unsilence:${rule.id}`}
+			title={m.alerts_action_unsilence()}
+			aria-label={m.alerts_action_unsilence()}
+			class="grid h-8 w-8 place-items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-fg-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-fg)] disabled:cursor-not-allowed disabled:opacity-30"
+		>
+			{#if acting === `unsilence:${rule.id}`}
+				<span class="h-3 w-3 animate-spin rounded-full border-2 border-current border-r-transparent"
+				></span>
+			{:else}
+				<IconBell class="size-[13px]" stroke-width="2" />
+			{/if}
+		</button>
+	{:else}
+		<button
+			type="button"
+			onclick={() => openSilence(rule)}
+			title={m.alerts_action_silence()}
+			aria-label={m.alerts_action_silence()}
+			class="grid h-8 w-8 place-items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-fg-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-fg)]"
+		>
+			<IconBellOff class="size-[13px]" stroke-width="2" />
+		</button>
+	{/if}
+	<button
+		type="button"
+		onclick={() => deleteRule(rule)}
+		disabled={acting === `delete:${rule.id}`}
+		title={m.alerts_action_delete()}
+		aria-label={m.alerts_action_delete()}
+		class="grid h-8 w-8 place-items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-fg-muted)] transition hover:border-[var(--color-danger)]/50 hover:text-[var(--color-danger)] disabled:cursor-not-allowed disabled:opacity-30"
+	>
+		{#if acting === `delete:${rule.id}`}
+			<span class="h-3 w-3 animate-spin rounded-full border-2 border-current border-r-transparent"
+			></span>
+		{:else}
+			<IconTrash class="size-[13px]" stroke-width="2" />
+		{/if}
+	</button>
+{/snippet}
+
 {#snippet severityBadge(sev: AlertSeverity)}
 	<span
 		class={cn(
@@ -393,7 +469,7 @@
 			</div>
 
 			{#if tab === 'rules'}
-				<Card padding="none" class="overflow-hidden">
+				<Card padding="none" class="hidden overflow-hidden md:block">
 					<div class="max-h-[max(18rem,calc(100dvh-22rem))] overflow-auto">
 						<table class="w-full text-sm">
 							<thead
@@ -463,74 +539,7 @@
 										>
 										<td class="px-3 py-2.5">
 											<div class="flex items-center justify-end gap-2">
-												<button
-													type="button"
-													onclick={() => toggleEnabled(rule)}
-													disabled={acting !== null}
-													title={rule.enabled
-														? m.alerts_action_disable()
-														: m.alerts_action_enable()}
-													class={cn(
-														'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50',
-														rule.enabled ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-border)]'
-													)}
-												>
-													<span
-														class={cn(
-															'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
-															rule.enabled ? 'translate-x-4' : 'translate-x-0'
-														)}
-													></span>
-												</button>
-												<button
-													type="button"
-													onclick={() => openEdit(rule)}
-													title={m.alerts_action_edit()}
-													class="grid h-8 w-8 place-items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-fg-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-fg)]"
-												>
-													<IconPencil class="size-[13px]" stroke-width="2" />
-												</button>
-												{#if isSilenced(rule)}
-													<button
-														type="button"
-														onclick={() => unsilenceRule(rule)}
-														disabled={acting === `unsilence:${rule.id}`}
-														title={m.alerts_action_unsilence()}
-														class="grid h-8 w-8 place-items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-fg-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-fg)] disabled:cursor-not-allowed disabled:opacity-30"
-													>
-														{#if acting === `unsilence:${rule.id}`}
-															<span
-																class="h-3 w-3 animate-spin rounded-full border-2 border-current border-r-transparent"
-															></span>
-														{:else}
-															<IconBell class="size-[13px]" stroke-width="2" />
-														{/if}
-													</button>
-												{:else}
-													<button
-														type="button"
-														onclick={() => openSilence(rule)}
-														title={m.alerts_action_silence()}
-														class="grid h-8 w-8 place-items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-fg-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-fg)]"
-													>
-														<IconBellOff class="size-[13px]" stroke-width="2" />
-													</button>
-												{/if}
-												<button
-													type="button"
-													onclick={() => deleteRule(rule)}
-													disabled={acting === `delete:${rule.id}`}
-													title={m.alerts_action_delete()}
-													class="grid h-8 w-8 place-items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-fg-muted)] transition hover:border-[var(--color-danger)]/50 hover:text-[var(--color-danger)] disabled:cursor-not-allowed disabled:opacity-30"
-												>
-													{#if acting === `delete:${rule.id}`}
-														<span
-															class="h-3 w-3 animate-spin rounded-full border-2 border-current border-r-transparent"
-														></span>
-													{:else}
-														<IconTrash class="size-[13px]" stroke-width="2" />
-													{/if}
-												</button>
+												{@render ruleActions(rule)}
 											</div>
 										</td>
 									</tr>
@@ -549,6 +558,72 @@
 						</table>
 					</div>
 				</Card>
+
+				<!-- Below md the rules become cards: six columns, one of them a
+				     free-text expression, cannot survive a phone width. The
+				     expression keeps its plain-language line and the raw form
+				     wraps instead of truncating — on a card there is room. -->
+				<div class="flex flex-col gap-2 md:hidden">
+					{#if filteredRules.length === 0}
+						<Card padding="lg" class="text-center text-sm text-[var(--color-fg-subtle)]">
+							{rules.length === 0 ? m.alerts_empty_rules() : m.alerts_empty_rules_filter()}
+						</Card>
+					{:else}
+						{#each filteredRules as rule (rule.id)}
+							<Card padding="none" class={cn('overflow-hidden', !rule.enabled && 'opacity-60')}>
+								<div class="flex flex-col gap-2 px-3.5 py-3">
+									<div class="flex items-start justify-between gap-2">
+										<div class="flex min-w-0 flex-1 flex-col">
+											<span class="font-medium break-words text-[var(--color-fg)]">
+												{rule.name}
+											</span>
+											{#if rule.description}
+												<span class="mt-0.5 text-[11px] leading-snug text-[var(--color-fg-muted)]">
+													{rule.description}
+												</span>
+											{/if}
+										</div>
+										{@render severityBadge(rule.severity)}
+									</div>
+
+									{#if isSilenced(rule)}
+										<span
+											class="inline-flex w-fit items-center gap-1 rounded-full bg-[var(--color-fg-subtle)]/15 px-2 py-0.5 font-mono text-[10px] tracking-wide text-[var(--color-fg-muted)]"
+										>
+											<IconBellOff class="size-[10px]" stroke-width="2.25" />
+											{m.alerts_silenced_for({
+												duration: fmtDuration((rule.silenced_until ?? 0) - now)
+											})}
+										</span>
+									{/if}
+
+									<div class="flex flex-col gap-0.5">
+										<span class="text-[12px] text-[var(--color-fg)]">
+											{describeExpression(rule.expression, schema)}
+										</span>
+										<code class="font-mono text-[10px] break-all text-[var(--color-fg-subtle)]">
+											{rule.expression}
+										</code>
+									</div>
+
+									<dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">
+										<dt class="text-[var(--color-fg-subtle)]">{m.alerts_table_for()}</dt>
+										<dd class="font-mono text-[var(--color-fg-muted)]">
+											{rule.for_duration_secs}s
+										</dd>
+										<dt class="text-[var(--color-fg-subtle)]">{m.alerts_table_cooldown()}</dt>
+										<dd class="font-mono text-[var(--color-fg-muted)]">{rule.cooldown_secs}s</dd>
+									</dl>
+								</div>
+								<div
+									class="flex items-center gap-2 border-t border-[var(--color-border)] px-3.5 py-2.5"
+								>
+									{@render ruleActions(rule)}
+								</div>
+							</Card>
+						{/each}
+					{/if}
+				</div>
 			{:else if tab === 'active'}
 				{#if activeStates.length === 0}
 					<Card padding="lg" class="text-center">
