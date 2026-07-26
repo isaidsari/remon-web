@@ -181,8 +181,8 @@ export class LiveStats {
 
 			const netByTs = new Map<number, { rx: number; tx: number }>();
 			for (const p of n.points) {
-				// Same cross-platform physical-NIC filter as the live SSE path
-				// uses for KPI aggregation — see $lib/utils/netClassify.ts for
+				// Same cross-platform physical-NIC filter the live SSE path
+				// applies to its KPI totals — see $lib/utils/netClassify.ts for
 				// what's matched. Historic rollup rows from older server
 				// versions may still carry veth/Npcap/vEthernet entries, so
 				// we filter at read time rather than trusting the source.
@@ -298,15 +298,21 @@ export class LiveStats {
 				break;
 			}
 			case 'Network': {
-				// Server filters veth/br-/docker/tap/vmnet/vboxnet/virbr
-				// before broadcasting, so this array is host-NIC plus any
-				// tun/wg/tailscale links the operator actually has.
+				// The full array is kept as-is — the network-detail widget wants
+				// every interface so it can group them by class. The KPI totals
+				// below re-filter through isPhysicalInterface() because the
+				// server's own filter (veth/br-/docker/tap/vmnet/vboxnet/virbr)
+				// is narrower than ours: Npcap shadow adapters and Windows
+				// pseudo-tunnels survive it and would double-count against the
+				// same traffic. Must stay in step with prefetchHistory(), or the
+				// sparkline jumps where seeded history meets live samples.
 				this.network = event.data;
 				if (event.data.length > 0) {
 					const ts = event.data[0].timestamp;
 					let rx = 0;
 					let tx = 0;
 					for (const n of event.data) {
+						if (!isPhysicalInterface(n.interface)) continue;
 						rx += n.rx_bytes_per_sec;
 						tx += n.tx_bytes_per_sec;
 					}
