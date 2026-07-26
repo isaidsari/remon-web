@@ -583,7 +583,7 @@
 					{/if}
 				</div>
 			{:else}
-				<Card padding="none" class="overflow-hidden">
+				<Card padding="none" class="hidden overflow-hidden md:block">
 					<div class="max-h-[max(18rem,calc(100dvh-22rem))] overflow-auto">
 						<table class="w-full text-sm">
 							<thead
@@ -663,6 +663,64 @@
 						</table>
 					</div>
 				</Card>
+
+				<div class="flex flex-col gap-2 md:hidden">
+					{#if busy && images.length === 0}
+						{#each { length: 4 } as _, i (i)}
+							<Card padding="none">
+								<div class="flex flex-col gap-2 px-3.5 py-3">
+									<Skeleton class="h-3 w-40" />
+									<Skeleton class="h-3 w-24" />
+								</div>
+							</Card>
+						{/each}
+					{:else if filteredImages.length === 0}
+						<Card padding="lg" class="text-center text-sm text-[var(--color-fg-subtle)]">
+							{m.docker_empty_images()}
+						</Card>
+					{:else}
+						{#each filteredImages as img (img.id)}
+							<Card padding="none" class="overflow-hidden">
+								<div class="flex flex-col gap-2 px-3.5 py-3">
+									{#if img.tags.length === 0}
+										<span class="text-[12px] text-[var(--color-fg-subtle)]">
+											{m.docker_image_no_tag()}
+										</span>
+									{:else}
+										<div class="flex flex-col gap-0.5">
+											{#each img.tags as t (t)}
+												<span class="font-mono text-[12px] break-all text-[var(--color-fg)]">
+													{t}
+												</span>
+											{/each}
+										</div>
+									{/if}
+									<dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">
+										<dt class="text-[var(--color-fg-subtle)]">{m.docker_th_id()}</dt>
+										<dd class="font-mono text-[var(--color-fg-muted)]">{shortId(img.id)}</dd>
+										<dt class="text-[var(--color-fg-subtle)]">{m.docker_th_size()}</dt>
+										<dd class="font-mono text-[var(--color-fg-muted)]">{fmtBytes(img.size)}</dd>
+										<dt class="text-[var(--color-fg-subtle)]">{m.docker_th_created()}</dt>
+										<dd class="text-[var(--color-fg-muted)]">{fmtRelative(img.created)}</dd>
+									</dl>
+								</div>
+								<div
+									class="flex items-center gap-2 border-t border-[var(--color-border)] px-3.5 py-2.5"
+								>
+									{@render iconBtn(
+										m.docker_action_delete(),
+										() => deleteImage(img),
+										acting !== null,
+										acting === `image-delete:${img.id}`,
+										IconTrash,
+										'danger',
+										true
+									)}
+								</div>
+							</Card>
+						{/each}
+					{/if}
+				</div>
 			{/if}
 		{/if}
 	</div>
