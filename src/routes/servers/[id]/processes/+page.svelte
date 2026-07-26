@@ -571,7 +571,12 @@
 											class="px-3 py-2 text-right font-mono tabular-nums text-[var(--color-fg-muted)]"
 											>{p.pid}</td
 										>
-										<td class="p-0">
+										<!-- w-full + max-w-0: in auto table layout a cell's max-content
+										     width wins, so a long argv here pushed CPU/memory off-screen
+										     no matter how hard the inner span truncated. Zeroing the cell's
+										     content contribution makes it absorb the leftover width
+										     instead, which is what lets the truncate below actually bite. -->
+										<td class="w-full max-w-0 p-0">
 											<!-- Guides must span the full row height for continuous rails,
 											     so the cell drops its padding and the flex children stretch. -->
 											<div class="flex min-h-9 items-stretch pr-3 pl-3">
@@ -669,7 +674,7 @@
 										<td class="hidden px-3 py-2 text-[var(--color-fg-muted)] sm:table-cell"
 											>{p.user ?? '—'}</td
 										>
-										<td class="px-3 py-2 text-right font-mono tabular-nums">
+										<td class="px-3 py-2 text-right font-mono tabular-nums whitespace-nowrap">
 											{fmtPercent(cpuDisplay, 1)}
 											{#if showSubtree}
 												<span
@@ -678,7 +683,7 @@
 												>
 											{/if}
 										</td>
-										<td class="px-3 py-2 text-right font-mono tabular-nums">
+										<td class="px-3 py-2 text-right font-mono tabular-nums whitespace-nowrap">
 											{fmtBytes(p.memory_bytes)}
 										</td>
 										<td class="hidden px-3 py-2 md:table-cell">
