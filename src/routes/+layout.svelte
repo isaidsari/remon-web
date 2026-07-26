@@ -50,10 +50,25 @@
 	onNavigate((navigation) => {
 		if (!('startViewTransition' in document)) return;
 		return new Promise((resolve) => {
-			document.startViewTransition(async () => {
+			let transition: ViewTransition;
+			try {
+				transition = document.startViewTransition(async () => {
+					resolve();
+					await navigation.complete;
+				});
+			} catch {
+				// Document not fully active (a backgrounded tab hitting the boot
+				// redirect). Navigate without the animation — resolving here is
+				// load-bearing, an unresolved promise would stall the navigation.
 				resolve();
-				await navigation.complete;
-			});
+				return;
+			}
+			// A transition gets abandoned whenever the tab is hidden or a second
+			// navigation starts before this one paints — exactly what the boot
+			// redirect does. Chrome rejects both promises for that; nothing is
+			// broken, but unhandled they surface as a console exception.
+			transition.ready.catch(() => {});
+			transition.finished.catch(() => {});
 		});
 	});
 
