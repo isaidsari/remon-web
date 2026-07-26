@@ -720,13 +720,29 @@
 	{/if}
 {/snippet}
 
+<!-- Shared by the timers table and its mobile cards. -->
+{#snippet bootToggle(t: TimerDto, enabled: boolean)}
+	<button
+		type="button"
+		onclick={() => toggleTimer(t)}
+		class={cn(
+			'rounded-full border px-2.5 py-0.5 font-mono text-[10px] tracking-wide transition',
+			enabled
+				? 'border-[var(--color-success)]/40 bg-[var(--color-success)]/15 text-[var(--color-success)] hover:bg-[var(--color-success)]/25'
+				: 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-fg-subtle)] hover:border-[var(--color-border-strong)]'
+		)}
+	>
+		{enabled ? m.services_boot_enabled() : m.services_boot_disabled()}
+	</button>
+{/snippet}
+
 {#snippet timersTab()}
 	{#if timersError}
 		{@render errorBanner(timersError, fetchTimers)}
 	{:else if timers.length === 0 && !timersLoading}
 		{@render emptyState(m.services_empty_timers())}
 	{:else}
-		<Card padding="none" class="overflow-hidden">
+		<Card padding="none" class="hidden overflow-hidden md:block">
 			<div class="max-h-[max(18rem,calc(100dvh-22rem))] overflow-auto">
 				<table class="w-full text-sm">
 					<thead
@@ -783,18 +799,7 @@
 									</td>
 									<td class="px-3 py-2.5">
 										<div class="flex items-center justify-end">
-											<button
-												type="button"
-												onclick={() => toggleTimer(t)}
-												class={cn(
-													'rounded-full border px-2.5 py-0.5 font-mono text-[10px] tracking-wide transition',
-													enabled
-														? 'border-[var(--color-success)]/40 bg-[var(--color-success)]/15 text-[var(--color-success)] hover:bg-[var(--color-success)]/25'
-														: 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-fg-subtle)] hover:border-[var(--color-border-strong)]'
-												)}
-											>
-												{enabled ? m.services_boot_enabled() : m.services_boot_disabled()}
-											</button>
+											{@render bootToggle(t, enabled)}
 										</div>
 									</td>
 								</tr>
@@ -814,6 +819,64 @@
 				</table>
 			</div>
 		</Card>
+
+		<div class="flex flex-col gap-2 md:hidden">
+			{#if timersLoading && timers.length === 0}
+				{#each { length: 5 } as _, i (i)}
+					<Card padding="none">
+						<div class="flex flex-col gap-2 px-3.5 py-3">
+							<Skeleton class="h-3 w-36" />
+							<Skeleton class="h-3 w-28" />
+						</div>
+					</Card>
+				{/each}
+			{:else if filteredTimers.length === 0}
+				<Card padding="lg" class="text-center text-sm text-[var(--color-fg-subtle)]">
+					{m.services_no_timers_match()}
+				</Card>
+			{:else}
+				{#each filteredTimers as t (t.name)}
+					{@const enabled = t.enabled_at_boot === true}
+					<Card padding="none" class="overflow-hidden">
+						<div class="flex flex-col gap-2 px-3.5 py-3">
+							<div class="flex items-start justify-between gap-2">
+								<div class="flex min-w-0 flex-1 flex-col">
+									<span class="font-mono text-[12px] break-all text-[var(--color-fg)]">
+										{t.name}
+									</span>
+									{#if t.description}
+										<span class="mt-0.5 text-[11px] leading-snug text-[var(--color-fg-muted)]">
+											{t.description}
+										</span>
+									{/if}
+								</div>
+								<ServiceStateBadge state={t.state} />
+							</div>
+							<dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">
+								<dt class="text-[var(--color-fg-subtle)]">{m.services_table_service()}</dt>
+								<dd class="font-mono break-all text-[var(--color-fg-muted)]">
+									{t.service ?? '—'}
+								</dd>
+								<dt class="text-[var(--color-fg-subtle)]">{m.services_table_next()}</dt>
+								<dd class="font-mono text-[var(--color-fg-muted)]">{fmtNextRun(t.next_run)}</dd>
+								<dt class="text-[var(--color-fg-subtle)]">{m.services_table_last()}</dt>
+								<dd class="font-mono text-[var(--color-fg-muted)]">
+									{t.last_run ? fmtRelative(t.last_run) : '—'}
+								</dd>
+							</dl>
+						</div>
+						<div
+							class="flex items-center gap-2 border-t border-[var(--color-border)] px-3.5 py-2.5"
+						>
+							<span class="text-[11px] text-[var(--color-fg-subtle)]">
+								{m.services_table_boot()}
+							</span>
+							{@render bootToggle(t, enabled)}
+						</div>
+					</Card>
+				{/each}
+			{/if}
+		</div>
 	{/if}
 {/snippet}
 
@@ -831,7 +894,7 @@
 						(j.user ?? '').toLowerCase().includes(q.toLowerCase())
 				)
 			: cronJobs}
-		<Card padding="none" class="overflow-hidden">
+		<Card padding="none" class="hidden overflow-hidden md:block">
 			<div class="max-h-[max(18rem,calc(100dvh-22rem))] overflow-auto">
 				<table class="w-full text-sm">
 					<thead
@@ -865,7 +928,10 @@
 									<td class="px-3 py-2.5 font-mono text-[11px] text-[var(--color-fg-muted)]">
 										{j.user ?? '—'}
 									</td>
-									<td class="px-3 py-2.5">
+									<!-- w-full + max-w-0, same reason as the process argv column: without
+									     it the cell's max-content sets the column width and the truncate
+									     below never gets a chance to bite. -->
+									<td class="w-full max-w-0 px-3 py-2.5">
 										<span
 											class="block truncate font-mono text-[11px] text-[var(--color-fg)]"
 											title={j.command}
@@ -893,6 +959,45 @@
 				</table>
 			</div>
 		</Card>
+
+		<div class="flex flex-col gap-2 md:hidden">
+			{#if cronLoading && cronJobs.length === 0}
+				{#each { length: 5 } as _, i (i)}
+					<Card padding="none">
+						<div class="flex flex-col gap-2 px-3.5 py-3">
+							<Skeleton class="h-3 w-24" />
+							<Skeleton class="h-3 w-full" />
+						</div>
+					</Card>
+				{/each}
+			{:else if filtered.length === 0}
+				<Card padding="lg" class="text-center text-sm text-[var(--color-fg-subtle)]">
+					{m.services_no_cron_match()}
+				</Card>
+			{:else}
+				{#each filtered as j, i (i)}
+					<Card padding="none">
+						<div class="flex flex-col gap-2 px-3.5 py-3">
+							<div class="flex items-center justify-between gap-2">
+								<span class="font-mono text-[12px] font-medium text-[var(--color-fg)]">
+									{j.schedule}
+								</span>
+								<span class="font-mono text-[10px] text-[var(--color-fg-subtle)]">{j.source}</span>
+							</div>
+							<!-- Wrapped, not truncated: on a card there is room, and the
+							     command is the whole reason to look at a cron entry. -->
+							<code class="font-mono text-[11px] break-all text-[var(--color-fg)]">
+								{j.command}
+							</code>
+							<dl class="grid grid-cols-[auto_1fr] gap-x-3 text-[11px]">
+								<dt class="text-[var(--color-fg-subtle)]">{m.services_table_user()}</dt>
+								<dd class="font-mono text-[var(--color-fg-muted)]">{j.user ?? '—'}</dd>
+							</dl>
+						</div>
+					</Card>
+				{/each}
+			{/if}
+		</div>
 	{/if}
 {/snippet}
 
