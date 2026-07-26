@@ -86,6 +86,15 @@ import { ApiError, errorFromResponse, errorFromThrown } from './error';
 
 export type AccessTokenProvider = () => string | null;
 
+/**
+ * Opt-in cancellation for the read endpoints a page re-queries as the user
+ * changes range/filters. Passing a signal also skips the short GET cache —
+ * a superseding query wants the current answer, not the previous one's.
+ */
+export interface Cancellable {
+	signal?: AbortSignal;
+}
+
 /** The daemon predates `POST /assistant/stream` — fall back to plain `ask`. */
 export class StreamUnsupportedError extends Error {
 	constructor() {
@@ -323,10 +332,12 @@ export class ApiClient {
 
 	pressureHistory(
 		resource: PressureResource,
-		q: MetricsRangeQuery = {}
+		q: MetricsRangeQuery = {},
+		opts: Cancellable = {}
 	): Promise<PressureHistoryResponse> {
 		return this.request<PressureHistoryResponse>(`/metrics/pressure/${resource}`, {
-			query: { ...q }
+			query: { ...q },
+			signal: opts.signal
 		});
 	}
 
@@ -334,8 +345,11 @@ export class ApiClient {
 		return this.request<ComponentsHistoryResponse>('/metrics/components', { query: { ...q } });
 	}
 
-	metricsBatch(q: BatchMetricsQuery): Promise<BatchMetricsResponse> {
-		return this.request<BatchMetricsResponse>('/metrics/batch', { query: { ...q } });
+	metricsBatch(q: BatchMetricsQuery, opts: Cancellable = {}): Promise<BatchMetricsResponse> {
+		return this.request<BatchMetricsResponse>('/metrics/batch', {
+			query: { ...q },
+			signal: opts.signal
+		});
 	}
 
 	systemInfo(): Promise<SystemInfoResponse> {
@@ -672,14 +686,20 @@ export class ApiClient {
 	 * incident captures. `kinds`/`sources` are CSV allowlists; range and
 	 * limit mirror the metrics endpoints (default last 24h, cap 1000).
 	 */
-	events(params?: {
-		start?: number;
-		end?: number;
-		kinds?: string;
-		sources?: string;
-		limit?: number;
-	}): Promise<ListEventsResponse> {
-		return this.request<ListEventsResponse>('/events', { query: { ...params } });
+	events(
+		params?: {
+			start?: number;
+			end?: number;
+			kinds?: string;
+			sources?: string;
+			limit?: number;
+		},
+		opts: Cancellable = {}
+	): Promise<ListEventsResponse> {
+		return this.request<ListEventsResponse>('/events', {
+			query: { ...params },
+			signal: opts.signal
+		});
 	}
 
 	/**

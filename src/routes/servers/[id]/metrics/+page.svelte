@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { onDestroy, untrack } from 'svelte';
 	import { page } from '$app/state';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
@@ -94,10 +94,18 @@
 
 	let cancelCtrl: AbortController | null = null;
 
+	// Navigating away mid-fetch: drop the in-flight window rather than let a
+	// five-request fan-out finish for a page nobody is looking at.
+	onDestroy(() => cancelCtrl?.abort());
+
 	async function fetchAll() {
 		if (!conn?.isAuthenticated) return;
+		// Supersede any in-flight window: without this a slow earlier response
+		// could land after a newer one and repaint the charts with stale data.
 		cancelCtrl?.abort();
-		cancelCtrl = new AbortController();
+		const ctrl = new AbortController();
+		cancelCtrl = ctrl;
+		const signal = ctrl.signal;
 		const span = RANGE_SECONDS[range];
 		const end = Math.floor(Date.now() / 1000) - offsetSecs;
 		const start = end - span;
@@ -107,18 +115,24 @@
 		busy = true;
 		try {
 			const [batch, pc, pm, pi, ev] = await Promise.all([
-				conn.client.metricsBatch({
-					resources: 'cpu,memory,disk,network,components',
-					...q
-				}),
-				conn.client.pressureHistory('cpu', q).catch(() => null),
-				conn.client.pressureHistory('memory', q).catch(() => null),
-				conn.client.pressureHistory('io', q).catch(() => null),
+				conn.client.metricsBatch(
+					{
+						resources: 'cpu,memory,disk,network,components',
+						...q
+					},
+					{ signal }
+				),
+				conn.client.pressureHistory('cpu', q, { signal }).catch(() => null),
+				conn.client.pressureHistory('memory', q, { signal }).catch(() => null),
+				conn.client.pressureHistory('io', q, { signal }).catch(() => null),
 				conn.client
-					.events({ ...q, limit: 500 })
+					.events({ ...q, limit: 500 }, { signal })
 					.then((r) => r.events)
 					.catch(() => [])
 			]);
+			// The optional calls swallow their own aborts and resolve to null/[],
+			// so re-check before committing anything to state.
+			if (signal.aborted) return;
 			const res = batch.resolution;
 			const cpuBatch = batch.series.find((s) => s.resource === 'cpu');
 			const memBatch = batch.series.find((s) => s.resource === 'memory');
@@ -152,13 +166,16 @@
 			resolution = res;
 			lastFetched = Date.now();
 		} catch (e) {
+			// An abort means we were superseded, not that the fetch failed.
+			if (signal.aborted) return;
 			if (e instanceof ApiError) {
 				toast.error(m.metrics_toast_fetch_failed(), {
 					description: e.userMessage
 				});
 			}
 		} finally {
-			busy = false;
+			// Only the newest query owns the spinner; a superseded one leaves it on.
+			if (cancelCtrl === ctrl) busy = false;
 		}
 	}
 
