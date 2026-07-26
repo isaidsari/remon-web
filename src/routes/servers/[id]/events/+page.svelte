@@ -44,9 +44,11 @@
 	let busy = $state(false);
 	let loadFailed = $state(false);
 
-	async function fetchData() {
+	/** `background` = the 30s poll: it must not put the Refresh button into a
+	 *  loading state, or the page appears to refresh itself every half minute. */
+	async function fetchData(background = false) {
 		if (!conn?.isAuthenticated) return;
-		busy = true;
+		if (!background) busy = true;
 		const now = Math.floor(Date.now() / 1000);
 		try {
 			const res = await conn.client.events({
@@ -61,7 +63,7 @@
 			// Keep the stale list on a transient failure; flag it for the banner.
 			loadFailed = true;
 		} finally {
-			busy = false;
+			if (!background) busy = false;
 		}
 	}
 
@@ -71,7 +73,7 @@
 		void range;
 		if (!conn?.isAuthenticated) return;
 		void fetchData();
-		const t = setInterval(fetchData, 30_000);
+		const t = setInterval(() => void fetchData(true), 30_000);
 		return () => clearInterval(t);
 	});
 
@@ -102,7 +104,8 @@
 			<h1 class="text-[24px] font-semibold tracking-tight">{m.events_title()}</h1>
 			<p class="mt-1.5 text-sm text-[var(--color-fg-muted)]">{m.events_subtitle()}</p>
 		</div>
-		<Button variant="secondary" size="sm" onclick={fetchData} loading={busy}>
+		<!-- Wrapped, not passed by reference: the click event would land in `background`. -->
+		<Button variant="secondary" size="sm" onclick={() => fetchData()} loading={busy}>
 			{m.alerts_action_refresh()}
 		</Button>
 	</header>
@@ -132,8 +135,14 @@
 			{/if}
 		</div>
 
-		{#if loadFailed && events === null}
-			<Banner variant="danger" title={m.events_load_failed()} />
+		{#if loadFailed}
+			{#if events === null}
+				<Banner variant="danger" title={m.events_load_failed()} class="mb-4" />
+			{:else}
+				<!-- A list is on screen but no longer current — say so, otherwise
+				     the poll fails silently and stale rows read as live. -->
+				<Banner variant="warning" title={m.events_refresh_failed()} class="mb-4" />
+			{/if}
 		{/if}
 
 		<Card padding="none" class="overflow-hidden">

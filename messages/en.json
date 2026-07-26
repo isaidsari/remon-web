@@ -1089,6 +1089,7 @@
 	"events_ref_alert": "rule",
 	"events_count": "{count} events",
 	"events_load_failed": "couldn't load events",
+	"events_refresh_failed": "showing the last successful load — refresh failed",
 	"overview_health_ok": "all clear",
 	"overview_health_firing": "{count} alerts firing",
 	"overview_health_pending": "{count} alerts pending",

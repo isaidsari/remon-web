@@ -1089,6 +1089,7 @@
 	"events_ref_alert": "kural",
 	"events_count": "{count} olay",
 	"events_load_failed": "olaylar yüklenemedi",
+	"events_refresh_failed": "son başarılı yükleme gösteriliyor — yenileme başarısız",
 	"overview_health_ok": "her şey yolunda",
 	"overview_health_firing": "{count} alarm aktif",
 	"overview_health_pending": "{count} alarm beklemede",
