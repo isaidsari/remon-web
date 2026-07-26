@@ -397,7 +397,7 @@
 			{/if}
 
 			<Card padding="none" class="overflow-hidden">
-				<div class="max-h-[calc(100vh-20rem)] overflow-auto">
+				<div class="max-h-[max(18rem,calc(100dvh-20rem))] overflow-auto">
 					<table class="w-full text-sm">
 						<thead
 							class="sticky top-0 z-10 bg-[var(--color-surface-2)] text-[11px] font-medium tracking-[0.06em] text-[var(--color-fg-muted)]"

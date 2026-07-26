@@ -520,7 +520,7 @@
 			</div>
 
 			<Card padding="none" class="overflow-hidden">
-				<div class="max-h-[calc(100vh-22rem)] overflow-auto">
+				<div class="max-h-[max(18rem,calc(100dvh-22rem))] overflow-auto">
 					<table class="w-full text-sm">
 						<thead
 							class="sticky top-0 z-10 bg-[var(--color-surface-2)] text-xs tracking-wide text-[var(--color-fg-muted)]"
@@ -609,10 +609,14 @@
 														</span>
 													{/each}
 													{#if p.hasChildren}
+														<!-- 20px visual keeps the chevron aligned to the w-4/w-5 guide
+														     rail, but that is under the 24px minimum target size, so a
+														     ::before pad grows the hit area to 32px without moving
+														     anything in the tree layout. -->
 														<button
 															type="button"
 															onclick={() => toggleCollapse(p.pid)}
-															class="my-auto grid size-5 shrink-0 place-items-center rounded text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)]"
+															class="relative my-auto grid size-5 shrink-0 place-items-center rounded text-[var(--color-fg-muted)] transition before:absolute before:-inset-1.5 before:content-[''] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)]"
 															aria-expanded={!isCollapsed}
 															aria-label={isCollapsed
 																? m.processes_aria_expand()

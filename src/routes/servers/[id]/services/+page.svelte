@@ -432,7 +432,7 @@
 		{@render emptyState(m.services_empty_services())}
 	{:else}
 		<Card padding="none" class="overflow-hidden">
-			<div class="max-h-[calc(100vh-22rem)] overflow-auto">
+			<div class="max-h-[max(18rem,calc(100dvh-22rem))] overflow-auto">
 				<table class="w-full text-sm">
 					<thead
 						class="sticky top-0 z-10 bg-[var(--color-surface-2)] text-xs tracking-wide text-[var(--color-fg-muted)]"
@@ -607,7 +607,7 @@
 		{@render emptyState(m.services_empty_timers())}
 	{:else}
 		<Card padding="none" class="overflow-hidden">
-			<div class="max-h-[calc(100vh-22rem)] overflow-auto">
+			<div class="max-h-[max(18rem,calc(100dvh-22rem))] overflow-auto">
 				<table class="w-full text-sm">
 					<thead
 						class="sticky top-0 z-10 bg-[var(--color-surface-2)] text-xs tracking-wide text-[var(--color-fg-muted)]"
@@ -712,7 +712,7 @@
 				)
 			: cronJobs}
 		<Card padding="none" class="overflow-hidden">
-			<div class="max-h-[calc(100vh-22rem)] overflow-auto">
+			<div class="max-h-[max(18rem,calc(100dvh-22rem))] overflow-auto">
 				<table class="w-full text-sm">
 					<thead
 						class="sticky top-0 z-10 bg-[var(--color-surface-2)] text-xs tracking-wide text-[var(--color-fg-muted)]"
