@@ -408,8 +408,12 @@
 													>
 												</div>
 											</td>
-											<td class="px-3 py-2.5 font-mono text-xs text-[var(--color-fg-muted)]"
-												>{c.image}</td
+											<!-- w-full + max-w-0: registry refs run long (host/org/proj:sha-…) and
+											     in auto table layout the cell's max-content sets the column
+											     width, pushing state/status/actions off-screen. -->
+											<td
+												class="w-full max-w-0 truncate px-3 py-2.5 font-mono text-xs text-[var(--color-fg-muted)]"
+												title={c.image}>{c.image}</td
 											>
 											<td class="px-3 py-2.5"><StateBadge state={c.state} /></td>
 											<td class="px-3 py-2.5 text-xs text-[var(--color-fg-muted)]">
