@@ -170,9 +170,11 @@
 			{m.docker_container_back_all_containers()}
 		</button>
 
-		<header class="mb-8 flex items-start justify-between gap-4">
+		<!-- Stacks below sm: the action group is shrink-0, so side-by-side it
+		     squeezed the title column until the state badge had nowhere to go. -->
+		<header class="mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
 			<div class="min-w-0 flex-1">
-				<div class="flex items-center gap-3">
+				<div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
 					<h1 class="truncate text-[24px] font-semibold tracking-tight">{displayName}</h1>
 					<StateBadge state={stateStr} />
 				</div>
@@ -185,7 +187,7 @@
 				</p>
 			</div>
 
-			<div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
+			<div class="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
 				{#if stopped}
 					<Button size="sm" onclick={start} loading={acting === 'start'} disabled={!!acting}>
 						{m.docker_container_action_start()}
