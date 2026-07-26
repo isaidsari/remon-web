@@ -69,23 +69,31 @@
 		term.loadAddon(fit);
 		term.loadAddon(new WebLinksAddon());
 		term.open(host);
-		try {
-			fit.fit();
-		} catch {
-			/* DOM not ready yet — will fit on first observer tick */
-		}
 
-		term.onData((data) => {
-			ws?.send(data);
-		});
-
-		observer = new ResizeObserver(() => {
+		// xterm keeps its 80x24 default whenever fit() cannot propose
+		// dimensions, and proposeDimensions() bails out while the font has not
+		// been measured yet (it returns early on a zero cell width). 80 columns
+		// is roughly 620px at this font size, so on a phone the terminal renders
+		// far wider than its card and paints over whatever sits beside it.
+		// The container never changes size afterwards, so the ResizeObserver
+		// alone gives no second chance — retry after a frame and again once
+		// fonts have settled.
+		const refit = () => {
 			try {
 				fit?.fit();
 			} catch {
 				/* container collapsed; ignore */
 			}
+		};
+		refit();
+		requestAnimationFrame(refit);
+		void document.fonts?.ready.then(refit).catch(() => {});
+
+		term.onData((data) => {
+			ws?.send(data);
 		});
+
+		observer = new ResizeObserver(refit);
 		observer.observe(host);
 
 		writeInfo(m.terminal_info_ready());
@@ -190,6 +198,6 @@
 
 	<div
 		bind:this={host}
-		class="h-[480px] rounded-[var(--radius-input)] border border-[var(--color-border)] bg-black p-2"
+		class="h-[480px] overflow-hidden rounded-[var(--radius-input)] border border-[var(--color-border)] bg-black p-2"
 	></div>
 </div>
