@@ -636,7 +636,7 @@
 						<p class="mt-1 text-sm text-[var(--color-fg-muted)]">{m.alerts_empty_active_body()}</p>
 					</Card>
 				{:else}
-					<Card padding="none" class="overflow-hidden">
+					<Card padding="none" class="hidden overflow-hidden md:block">
 						<div class="max-h-[max(18rem,calc(100dvh-22rem))] overflow-auto">
 							<table class="w-full text-sm">
 								<thead
@@ -680,9 +680,42 @@
 							</table>
 						</div>
 					</Card>
+
+					<div class="flex flex-col gap-2 md:hidden">
+						{#each activeStates as s (s.rule_id + s.label_set)}
+							<Card padding="none">
+								<div class="flex flex-col gap-2 px-3.5 py-3">
+									<div class="flex items-start justify-between gap-2">
+										<span class="min-w-0 flex-1 font-medium break-words text-[var(--color-fg)]">
+											{s.rule_name}
+										</span>
+										{@render severityBadge(s.severity)}
+									</div>
+									<div class="flex flex-wrap items-center gap-2">
+										{@render stateBadge(s.state)}
+										{#if s.label_set !== '{}'}
+											<code
+												class="rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[10px] break-all text-[var(--color-fg-muted)]"
+											>
+												{s.label_set}
+											</code>
+										{/if}
+									</div>
+									<dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">
+										<dt class="text-[var(--color-fg-subtle)]">{m.alerts_table_last_value()}</dt>
+										<dd class="font-mono text-[var(--color-fg-muted)]">
+											{s.last_value != null ? s.last_value.toFixed(2) : '—'}
+										</dd>
+										<dt class="text-[var(--color-fg-subtle)]">{m.alerts_table_since()}</dt>
+										<dd class="text-[var(--color-fg-muted)]">{fmtRelative(s.state_since)}</dd>
+									</dl>
+								</div>
+							</Card>
+						{/each}
+					</div>
 				{/if}
 			{:else if tab === 'events'}
-				<Card padding="none" class="overflow-hidden">
+				<Card padding="none" class="hidden overflow-hidden md:block">
 					<div class="max-h-[max(18rem,calc(100dvh-22rem))] overflow-auto">
 						<table class="w-full text-sm">
 							<thead
@@ -787,6 +820,98 @@
 						</div>
 					{/if}
 				</Card>
+
+				<!-- Load-more lives inside the desktop Card, so the mobile list needs
+				     its own copy or paging would be unreachable below md. -->
+				<div class="flex flex-col gap-2 md:hidden">
+					{#if episodes.length === 0}
+						<Card padding="lg" class="text-center text-sm text-[var(--color-fg-subtle)]">
+							{m.alerts_empty_events()}
+						</Card>
+					{:else}
+						{#each episodes as ep (ep.fired.id)}
+							{@const rule = rulesById.get(ep.fired.rule_id)}
+							{@const duration = ep.resolved
+								? ep.resolved.occurred_at - ep.fired.occurred_at
+								: null}
+							<Card padding="none">
+								<div class="flex flex-col gap-2 px-3.5 py-3">
+									<div class="flex items-start justify-between gap-2">
+										<span class="min-w-0 flex-1 font-medium break-words text-[var(--color-fg)]">
+											{#if rule}
+												{rule.name}
+											{:else}
+												<span class="font-mono text-xs text-[var(--color-fg-subtle)]">
+													#{ep.fired.rule_id}
+												</span>
+											{/if}
+										</span>
+										{@render severityBadge(ep.fired.severity)}
+									</div>
+
+									<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+										{#if ep.resolved}
+											<span
+												class="inline-flex items-center gap-1.5 text-[11px] text-[var(--color-success)]"
+											>
+												<IconCircleCheck class="size-[13px]" stroke-width="2" />
+												{m.alerts_event_status_resolved()}
+											</span>
+											{#if duration !== null}
+												<span class="text-[10px] text-[var(--color-fg-subtle)]">
+													{m.alerts_event_resolved_in({ duration: fmtDuration(duration) })}
+												</span>
+											{/if}
+										{:else}
+											<span
+												class="inline-flex items-center gap-1.5 text-[11px] text-[var(--color-danger)]"
+											>
+												<IconFlame class="size-[13px]" stroke-width="2" />
+												{m.alerts_event_status_ongoing()}
+											</span>
+										{/if}
+										{#if ep.fired.label_set !== '{}'}
+											<code
+												class="rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[10px] break-all text-[var(--color-fg-muted)]"
+											>
+												{ep.fired.label_set}
+											</code>
+										{/if}
+									</div>
+
+									<dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">
+										<dt class="text-[var(--color-fg-subtle)]">{m.alerts_table_time()}</dt>
+										<dd class="text-[var(--color-fg-muted)]">
+											{fmtRelative(ep.fired.occurred_at)}
+										</dd>
+										<dt class="text-[var(--color-fg-subtle)]">{m.alerts_table_value()}</dt>
+										<dd class="font-mono text-[var(--color-fg-muted)]">
+											{ep.fired.metric_value != null ? ep.fired.metric_value.toFixed(2) : '—'}
+										</dd>
+										<dt class="text-[var(--color-fg-subtle)]">{m.alerts_table_notified()}</dt>
+										<dd>
+											{#if ep.fired.notified || ep.resolved?.notified}
+												<span class="text-[var(--color-success)]">✓</span>
+											{:else}
+												<span class="text-[var(--color-fg-subtle)]">—</span>
+											{/if}
+										</dd>
+									</dl>
+								</div>
+							</Card>
+						{/each}
+						{#if eventsHasMore}
+							<Button
+								variant="ghost"
+								size="sm"
+								onclick={loadMoreEvents}
+								loading={eventsLoadingMore}
+							>
+								{m.alerts_events_load_more()}
+							</Button>
+						{/if}
+					{/if}
+				</div>
 			{/if}
 		{/if}
 	</div>
