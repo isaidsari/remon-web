@@ -52,6 +52,7 @@
 	import IconRefreshCw from '~icons/lucide/refresh-cw';
 	import IconBellRing from '~icons/lucide/bell-ring';
 	import IconBellOff from '~icons/lucide/bell-off';
+	import IconPower from '~icons/lucide/power';
 
 	let id = $derived(page.params.id ?? '');
 	let profile = $derived(id ? profiles.byId(id) : undefined);
@@ -359,6 +360,62 @@
 		if (!ok) return;
 		await vault.untrustDevice();
 		toast.info(m.settings_autounlock_toast_disabled());
+	}
+
+	// Both lifecycle calls answer 202 and act afterwards, so the reply is the
+	// last thing this process says. `message` is the only place the outcome
+	// differs (restart comes back; shutdown does not, and says so differently
+	// depending on whether anything supervises it) — so it is shown verbatim.
+	let lifecycleBusy = $state<'restart' | 'shutdown' | null>(null);
+
+	async function runLifecycle(action: 'restart' | 'shutdown') {
+		if (!conn || lifecycleBusy) return;
+		const ok = await confirm({
+			title:
+				action === 'restart'
+					? m.settings_lifecycle_restart_dialog_title()
+					: m.settings_lifecycle_shutdown_dialog_title(),
+			description:
+				action === 'restart'
+					? m.settings_lifecycle_restart_dialog_description()
+					: m.settings_lifecycle_shutdown_dialog_description(),
+			confirmLabel:
+				action === 'restart'
+					? m.settings_lifecycle_restart_dialog_confirm()
+					: m.settings_lifecycle_shutdown_dialog_confirm(),
+			variant: 'danger'
+		});
+		if (!ok) return;
+		lifecycleBusy = action;
+		try {
+			const res =
+				action === 'restart'
+					? await conn.client.restartServer()
+					: await conn.client.shutdownServer();
+			toast.warning(
+				action === 'restart'
+					? m.settings_lifecycle_toast_restarting()
+					: m.settings_lifecycle_toast_stopping(),
+				{ description: res.message, duration: 0 }
+			);
+		} catch (e) {
+			// The daemon can drop the connection while replying; that is the
+			// request succeeding, not failing, so don't call it an error.
+			if (e instanceof ApiError && e.code === 'CORS_OR_OFFLINE') {
+				toast.warning(
+					action === 'restart'
+						? m.settings_lifecycle_toast_restarting()
+						: m.settings_lifecycle_toast_stopping(),
+					{ duration: 0 }
+				);
+			} else {
+				toast.error(m.settings_lifecycle_toast_failed(), {
+					description: e instanceof ApiError ? e.userMessage : String(e)
+				});
+			}
+		} finally {
+			lifecycleBusy = null;
+		}
 	}
 
 	async function revokeSession(s: SessionInfo) {
@@ -803,6 +860,39 @@
 					{/if}
 				</dd>
 			</dl>
+		</Card>
+
+		<Card padding="md" class="mb-5 border-[var(--color-danger)]/30">
+			<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+				<div class="min-w-0">
+					<p class="font-medium text-[var(--color-fg)]">{m.settings_lifecycle_eyebrow()}</p>
+					<p class="mt-1 text-sm text-[var(--color-fg-muted)]">
+						{m.settings_lifecycle_description()}
+					</p>
+				</div>
+				<div class="flex shrink-0 flex-wrap gap-2">
+					<Button
+						variant="secondary"
+						size="sm"
+						onclick={() => runLifecycle('restart')}
+						disabled={!conn?.isAuthenticated || lifecycleBusy !== null}
+						loading={lifecycleBusy === 'restart'}
+					>
+						<IconRefreshCw class="size-[13px]" stroke-width="2" />
+						{m.settings_lifecycle_restart()}
+					</Button>
+					<Button
+						variant="danger"
+						size="sm"
+						onclick={() => runLifecycle('shutdown')}
+						disabled={!conn?.isAuthenticated || lifecycleBusy !== null}
+						loading={lifecycleBusy === 'shutdown'}
+					>
+						<IconPower class="size-[13px]" stroke-width="2" />
+						{m.settings_lifecycle_shutdown()}
+					</Button>
+				</div>
+			</div>
 		</Card>
 
 		<Card padding="md" class="border-[var(--color-danger)]/30">

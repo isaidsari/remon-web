@@ -74,6 +74,7 @@ import type {
 	SystemInfoResponse,
 	SmartResponse,
 	SummaryResponse,
+	LifecycleResponse,
 	TestChannelResponse,
 	TokenResponse,
 	UpdateAlertRuleRequest,
@@ -358,6 +359,27 @@ export class ApiClient {
 
 	systemSmart(): Promise<SmartResponse> {
 		return this.request<SmartResponse>('/system/smart');
+	}
+
+	/**
+	 * Restart the daemon. The deliberate counterpart to killing it from the
+	 * process list or stopping its unit through `/services` — both of which
+	 * answer 409 when they name the agent itself.
+	 *
+	 * Answers 202 and exits afterwards, so the in-flight request is the last
+	 * one this process serves: expect the connection to drop right after.
+	 */
+	restartServer(): Promise<LifecycleResponse> {
+		return this.request<LifecycleResponse>('/system/restart', { method: 'POST' });
+	}
+
+	/**
+	 * Stop the daemon and keep it stopped — the supervisor is told, not just
+	 * bypassed. Monitoring ends here; starting it again needs access to the
+	 * host, which is why the reply's message is worth showing verbatim.
+	 */
+	shutdownServer(): Promise<LifecycleResponse> {
+		return this.request<LifecycleResponse>('/system/shutdown', { method: 'POST' });
 	}
 
 	summary(): Promise<SummaryResponse> {

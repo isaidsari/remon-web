@@ -448,6 +448,17 @@ export interface SmartResponse {
 	devices: SmartDeviceDto[];
 }
 
+/**
+ * `POST /system/restart` and `POST /system/shutdown` — both answer **202**,
+ * the work happens after the response. The message is the only thing that
+ * says whether the agent is coming back on its own, so surface it verbatim
+ * rather than substituting fixed copy: shutdown falls back to ending the
+ * process when nothing supervises it, and the wording differs.
+ */
+export interface LifecycleResponse {
+	message: string;
+}
+
 export interface SummaryResponse {
 	server_name: string;
 	hostname: string;
