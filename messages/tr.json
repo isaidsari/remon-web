@@ -670,6 +670,7 @@
 	"settings_lifecycle_toast_restarting": "yeniden başlatma istendi",
 	"settings_lifecycle_toast_stopping": "durdurma istendi",
 	"settings_lifecycle_toast_failed": "sunucu isteği reddetti",
+	"error_self_target_title": "bu, izleme ajanının kendisi",
 	"config_signin_failed": "oturum açma başarısız",
 	"config_load_failed": "yapılandırma yüklenemedi",
 	"config_save_failed": "kaydetme başarısız",

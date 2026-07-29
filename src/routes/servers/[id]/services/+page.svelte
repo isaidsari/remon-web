@@ -180,8 +180,16 @@
 			toast.success(successMsg);
 			await fetchServices();
 		} catch (e) {
-			if (e instanceof ApiError)
-				toast.error(m.services_toast_action_failed(), { description: e.userMessage });
+			if (e instanceof ApiError) {
+				// stop/restart/disable on the agent's own unit is refused by
+				// design (a self-stop is one the supervisor won't undo). That
+				// is a guardrail, not a failure.
+				if (e.isSelfTarget) {
+					toast.warning(m.error_self_target_title(), { description: e.userMessage });
+				} else {
+					toast.error(m.services_toast_action_failed(), { description: e.userMessage });
+				}
+			}
 		} finally {
 			acting = null;
 		}

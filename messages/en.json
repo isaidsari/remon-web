@@ -669,6 +669,7 @@
 	"settings_lifecycle_toast_restarting": "restart requested",
 	"settings_lifecycle_toast_stopping": "shutdown requested",
 	"settings_lifecycle_toast_failed": "the server refused the request",
+	"error_self_target_title": "that's the monitoring agent itself",
 	"config_signin_failed": "sign-in failed",
 	"config_load_failed": "failed to load config",
 	"config_save_failed": "save failed",

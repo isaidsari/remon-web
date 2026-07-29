@@ -371,8 +371,18 @@
 			killTarget = null;
 			fetchProcesses();
 		} catch (e) {
-			if (e instanceof ApiError)
-				toast.error(m.processes_toast_kill_failed(), { description: e.userMessage });
+			if (e instanceof ApiError) {
+				// Refusing to kill the agent from the list it rendered is a
+				// guardrail doing its job, not a failed operation. Close the
+				// dialog with it: the refusal is permanent for this pid, so
+				// leaving a confirm button up that can only fail is a trap.
+				if (e.isSelfTarget) {
+					toast.warning(m.error_self_target_title(), { description: e.userMessage });
+					killTarget = null;
+				} else {
+					toast.error(m.processes_toast_kill_failed(), { description: e.userMessage });
+				}
+			}
 		} finally {
 			killing = false;
 		}
