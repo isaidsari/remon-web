@@ -145,6 +145,10 @@ function humanize(code: ApiErrorCode, fallback: string): string {
 			return fallback || 'Forbidden — the server rejected this action.';
 		case 'NOT_SUPPORTED':
 			return fallback || 'Not supported on this platform.';
+		case 'SERVICE_UNAVAILABLE':
+			// Server-side text is deliberately client-safe and actionable
+			// ("assistant provider is rate-limited; try again in a minute").
+			return fallback || 'That feature is switched off or not configured on this server.';
 		case 'NOT_FOUND':
 		case 'BAD_REQUEST':
 			return fallback;

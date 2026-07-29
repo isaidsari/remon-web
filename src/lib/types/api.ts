@@ -25,6 +25,10 @@ export type ApiErrorCode =
 	/** 501: operation not implementable on this OS / init backend. */
 	| 'NOT_SUPPORTED'
 	| 'DOCKER_UNAVAILABLE'
+	/** 503: a feature is off or unconfigured — today the assistant, either
+	 *  disabled/key-less or rate-limited by its provider. The message is
+	 *  client-safe and names what to do about it, so show it as-is. */
+	| 'SERVICE_UNAVAILABLE'
 	| 'DATABASE_ERROR'
 	| 'INTERNAL_ERROR';
 
