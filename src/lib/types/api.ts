@@ -119,7 +119,6 @@ export interface SessionInfo {
 	/** Unix seconds. */
 	created_at: number;
 	is_active: boolean;
-	has_totp: boolean;
 	/** True for the device making the request — UI should tag it as "this device". */
 	is_current: boolean;
 	/** Non-expired JWT count for this device. 0 means paired but logged out. */
