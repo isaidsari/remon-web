@@ -1025,7 +1025,10 @@ export interface ListAlertStateResponse {
 
 export interface AlertEventDto {
 	id: number;
-	rule_id: number;
+	/** `null` once the rule has been deleted; the event outlives it. */
+	rule_id: number | null;
+	/** Stored on the event, so it reads correctly even with no rule to look up. */
+	rule_name: string;
 	label_set: string;
 	event_type: AlertEventType;
 	severity: AlertSeverity;
@@ -1187,6 +1190,13 @@ export interface ListEventsResponse {
 	end: number;
 	count: number;
 	events: EventDto[];
+	/**
+	 * Pass back as `cursor` for the next page. Present whenever a full page came
+	 * back, so the last page of a range is followed by one empty response rather
+	 * than being detectable in advance. Opaque: its contents are the endpoint's
+	 * internal sort key and are not part of the contract.
+	 */
+	next_cursor?: string;
 }
 
 // ===== Assistant =====

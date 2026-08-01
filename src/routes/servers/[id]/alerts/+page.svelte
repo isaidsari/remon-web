@@ -68,7 +68,9 @@
 		const result: Episode[] = [];
 		const pending = new Map<string, Episode>();
 		for (const ev of sorted) {
-			const key = `${ev.rule_id}:${ev.label_set}`;
+			// Falls back to the name so two deleted rules do not both key on
+			// `null` and have their episodes paired into each other.
+			const key = `${ev.rule_id ?? ev.rule_name}:${ev.label_set}`;
 			if (ev.event_type === 'fired') {
 				const ep: Episode = { fired: ev };
 				pending.set(key, ep);
@@ -733,7 +735,8 @@
 							</thead>
 							<tbody>
 								{#each episodes as ep (ep.fired.id)}
-									{@const rule = rulesById.get(ep.fired.rule_id)}
+									{@const rule =
+										ep.fired.rule_id === null ? undefined : rulesById.get(ep.fired.rule_id)}
 									{@const duration = ep.resolved
 										? ep.resolved.occurred_at - ep.fired.occurred_at
 										: null}
@@ -745,9 +748,7 @@
 											{#if rule}
 												<span class="font-medium text-[var(--color-fg)]">{rule.name}</span>
 											{:else}
-												<span class="font-mono text-xs text-[var(--color-fg-subtle)]"
-													>#{ep.fired.rule_id}</span
-												>
+												<span class="text-[var(--color-fg-muted)]">{ep.fired.rule_name}</span>
 											{/if}
 										</td>
 										<td class="px-3 py-2.5">{@render severityBadge(ep.fired.severity)}</td>
@@ -830,7 +831,8 @@
 						</Card>
 					{:else}
 						{#each episodes as ep (ep.fired.id)}
-							{@const rule = rulesById.get(ep.fired.rule_id)}
+							{@const rule =
+								ep.fired.rule_id === null ? undefined : rulesById.get(ep.fired.rule_id)}
 							{@const duration = ep.resolved
 								? ep.resolved.occurred_at - ep.fired.occurred_at
 								: null}
@@ -841,9 +843,7 @@
 											{#if rule}
 												{rule.name}
 											{:else}
-												<span class="font-mono text-xs text-[var(--color-fg-subtle)]">
-													#{ep.fired.rule_id}
-												</span>
+												<span class="text-[var(--color-fg-muted)]">{ep.fired.rule_name}</span>
 											{/if}
 										</span>
 										{@render severityBadge(ep.fired.severity)}

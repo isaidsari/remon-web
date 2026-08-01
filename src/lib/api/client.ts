@@ -715,6 +715,8 @@ export class ApiClient {
 			kinds?: string;
 			sources?: string;
 			limit?: number;
+			/** `next_cursor` from the previous page. */
+			cursor?: string;
 		},
 		opts: Cancellable = {}
 	): Promise<ListEventsResponse> {
