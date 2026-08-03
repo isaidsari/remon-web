@@ -8,8 +8,7 @@ const HISTORY_RANGES = Object.keys(RANGE_SECONDS) as Array<keyof typeof RANGE_SE
 const STATUS_SUMMARIES = ['host', 'services', 'containers', 'alerts'] as const;
 
 export function widgetId(): string {
-	if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
-	return 'w-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+	return crypto.randomUUID();
 }
 
 function widget(x: number, y: number, w: number, h: number, config: WidgetConfig): Widget {

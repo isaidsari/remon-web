@@ -174,9 +174,8 @@ export class ApiClient {
 				headers.set('authorization', `Bearer ${token}`);
 			}
 
-			const timeoutCtrl = new AbortController();
-			const timer = window.setTimeout(() => timeoutCtrl.abort(), timeoutMs);
-			const finalSignal = mergeSignals(signal, timeoutCtrl.signal);
+			const timeout = AbortSignal.timeout(timeoutMs);
+			const finalSignal = signal ? AbortSignal.any([signal, timeout]) : timeout;
 
 			let res: Response;
 			try {
@@ -189,8 +188,6 @@ export class ApiClient {
 				});
 			} catch (e) {
 				throw errorFromThrown(e);
-			} finally {
-				clearTimeout(timer);
 			}
 
 			if (!res.ok) throw await errorFromResponse(res);
@@ -818,84 +815,77 @@ export class ApiClient {
 			);
 		}
 
-		return new Promise<AssistantAskResponse>((resolve, reject) => {
-			let settled = false;
-			const settle = (fn: () => void) => {
-				if (!settled) {
-					settled = true;
-					fn();
-				}
-			};
+		// The first settle wins and later ones are no-ops, which is exactly the
+		// semantics wanted here: a `done` frame followed by the stream closing
+		// must not turn a delivered answer into an error.
+		const { promise, resolve, reject } = Promise.withResolvers<AssistantAskResponse>();
 
-			fetchEventSource(`${this.baseUrl}/assistant/stream`, {
-				method: 'POST',
-				headers: {
-					'content-type': 'application/json',
-					authorization: `Bearer ${token}`
-				},
-				body: JSON.stringify({ question, history: opts.history ?? [], dev: opts.dev }),
-				signal: opts.signal,
-				// An answer in flight should survive a backgrounded tab.
-				openWhenHidden: true,
-				async onopen(res) {
-					const ct = res.headers.get('content-type') ?? '';
-					if (res.ok && ct.includes('text/event-stream')) return;
-					// Older daemons don't have the route — signal the caller to
-					// fall back to the buffered ask.
-					if (res.status === 404 || res.status === 405) throw new StreamUnsupportedError();
-					throw await errorFromResponse(res);
-				},
-				onmessage(msg) {
-					if (!msg.data) return;
-					switch (msg.event) {
-						case 'step':
-							opts.onStep?.(JSON.parse(msg.data) as AssistantStreamStep);
-							break;
-						case 'delta': {
-							const { text } = JSON.parse(msg.data) as { text: string };
-							if (text) opts.onDelta?.(text);
-							break;
-						}
-						case 'done':
-							settle(() => resolve(JSON.parse(msg.data) as AssistantAskResponse));
-							break;
-						case 'error': {
-							const { message } = JSON.parse(msg.data) as { message: string };
-							settle(() =>
-								reject(
-									new ApiError({
-										code: 'INTERNAL_ERROR',
-										status: 0,
-										userMessage: message,
-										serverMessage: message
-									})
-								)
-							);
-							break;
-						}
+		void fetchEventSource(`${this.baseUrl}/assistant/stream`, {
+			method: 'POST',
+			headers: {
+				'content-type': 'application/json',
+				authorization: `Bearer ${token}`
+			},
+			body: JSON.stringify({ question, history: opts.history ?? [], dev: opts.dev }),
+			signal: opts.signal,
+			// An answer in flight should survive a backgrounded tab.
+			openWhenHidden: true,
+			async onopen(res) {
+				const ct = res.headers.get('content-type') ?? '';
+				if (res.ok && ct.includes('text/event-stream')) return;
+				// Older daemons don't have the route — signal the caller to
+				// fall back to the buffered ask.
+				if (res.status === 404 || res.status === 405) throw new StreamUnsupportedError();
+				throw await errorFromResponse(res);
+			},
+			onmessage(msg) {
+				if (!msg.data) return;
+				switch (msg.event) {
+					case 'step':
+						opts.onStep?.(JSON.parse(msg.data) as AssistantStreamStep);
+						break;
+					case 'delta': {
+						const { text } = JSON.parse(msg.data) as { text: string };
+						if (text) opts.onDelta?.(text);
+						break;
 					}
-				},
-				// One-shot request: any transport error ends it — retrying would
-				// re-run the whole (paid) tool loop.
-				onerror(err) {
-					throw err;
-				}
-			}).then(
-				// Stream closed without a terminal event: surface it, never hang.
-				() =>
-					settle(() =>
+					case 'done':
+						resolve(JSON.parse(msg.data) as AssistantAskResponse);
+						break;
+					case 'error': {
+						const { message } = JSON.parse(msg.data) as { message: string };
 						reject(
 							new ApiError({
-								code: 'NETWORK',
+								code: 'INTERNAL_ERROR',
 								status: 0,
-								userMessage: 'Assistant stream ended unexpectedly.',
-								serverMessage: 'stream closed before done/error event'
+								userMessage: message,
+								serverMessage: message
 							})
-						)
-					),
-				(err: unknown) => settle(() => reject(err))
-			);
-		});
+						);
+						break;
+					}
+				}
+			},
+			// One-shot request: any transport error ends it — retrying would
+			// re-run the whole (paid) tool loop.
+			onerror(err) {
+				throw err;
+			}
+		}).then(
+			// Stream closed without a terminal event: surface it, never hang.
+			() =>
+				reject(
+					new ApiError({
+						code: 'NETWORK',
+						status: 0,
+						userMessage: 'Assistant stream ended unexpectedly.',
+						serverMessage: 'stream closed before done/error event'
+					})
+				),
+			(err: unknown) => reject(err)
+		);
+
+		return promise;
 	}
 
 	sseUrl(path: string): string {
@@ -908,17 +898,4 @@ export class ApiClient {
 		const wsBase = this.baseUrl.replace(/^http/, 'ws');
 		return `${wsBase}${trimmed.startsWith('/ws/') ? trimmed : '/ws' + trimmed}`;
 	}
-}
-
-function mergeSignals(a?: AbortSignal, b?: AbortSignal): AbortSignal {
-	if (!a) return b!;
-	if (!b) return a;
-	if (typeof AbortSignal !== 'undefined' && 'any' in AbortSignal) {
-		return (AbortSignal as unknown as { any: (s: AbortSignal[]) => AbortSignal }).any([a, b]);
-	}
-	const ctrl = new AbortController();
-	const onAbort = () => ctrl.abort();
-	a.addEventListener('abort', onAbort, { once: true });
-	b.addEventListener('abort', onAbort, { once: true });
-	return ctrl.signal;
 }

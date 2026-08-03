@@ -3,9 +3,7 @@ import type { ServerProfile, VaultData } from '$lib/types/profile';
 import type { DashboardLayout } from '$lib/types/dashboard';
 
 function uuid(): string {
-	if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
-	// Fallback: not cryptographically perfect but profile ids are not secrets.
-	return Math.random().toString(36).slice(2) + Date.now().toString(36);
+	return crypto.randomUUID();
 }
 
 function snapshot(): VaultData {

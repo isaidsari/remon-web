@@ -18,16 +18,7 @@ export interface LabelGroup {
 
 /** Group a flat point list into one stream per label set, most-populated first. */
 export function groupPointsByLabel(points: ProbeMetricPoint[]): LabelGroup[] {
-	const groups = new Map<string, ProbeMetricPoint[]>();
-	for (const p of points) {
-		const k = labelKey(p.labels ?? {});
-		let arr = groups.get(k);
-		if (!arr) {
-			arr = [];
-			groups.set(k, arr);
-		}
-		arr.push(p);
-	}
+	const groups = Map.groupBy(points, (p) => labelKey(p.labels ?? {}));
 	const result: LabelGroup[] = [];
 	for (const [key, pts] of groups) result.push({ key, points: pts });
 	result.sort((a, b) => b.points.length - a.points.length || a.key.localeCompare(b.key));

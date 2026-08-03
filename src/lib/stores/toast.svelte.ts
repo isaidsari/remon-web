@@ -20,10 +20,7 @@ const toasts = $state<Toast[]>([]);
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
 
 function push(variant: ToastVariant, title: string, opts: ShowOptions = {}) {
-	const id =
-		typeof crypto !== 'undefined' && 'randomUUID' in crypto
-			? crypto.randomUUID()
-			: Math.random().toString(36).slice(2);
+	const id = crypto.randomUUID();
 	const duration = opts.duration ?? DEFAULT_DURATION;
 	const t: Toast = { id, variant, title, description: opts.description, duration };
 	toasts.push(t);

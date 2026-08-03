@@ -25,10 +25,7 @@ interface BroadcastTokens {
 	from: string;
 }
 
-const TAB_ID =
-	typeof crypto !== 'undefined' && 'randomUUID' in crypto
-		? crypto.randomUUID()
-		: Math.random().toString(36).slice(2);
+const TAB_ID = crypto.randomUUID();
 
 export type ConnectionStatus = 'idle' | 'authenticating' | 'authenticated' | 'error';
 
