@@ -160,7 +160,6 @@
 		severity = t.severity;
 		if (t.for_duration_secs !== undefined) for_duration_secs = t.for_duration_secs;
 		if (t.cooldown_secs !== undefined) cooldown_secs = t.cooldown_secs;
-		// Default a name if the user hasn't filled one yet
 		if (!name) name = t.title;
 		mode = 'builder';
 	}
@@ -182,7 +181,6 @@
 			p = (async () => {
 				const data = await conn.client.request<unknown>(endpoint);
 				const arr = walkJsonPath(data, jsonPath);
-				// dedupe & sort for a stable dropdown
 				return [...new Set(arr)].sort();
 			})();
 			sourceCache.set(key, p);

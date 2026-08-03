@@ -625,8 +625,6 @@ export interface ProbeMetricRangeQuery {
 	labels?: string;
 }
 
-// ===== Heartbeats (push dead-man's-switch checks) =====
-
 /** Derived check state, in precedence order. `late` = period elapsed but
  *  still inside grace; `waiting` = never pinged, first window still open. */
 export type HeartbeatState = 'disabled' | 'paused' | 'failed' | 'down' | 'waiting' | 'late' | 'up';
@@ -1125,8 +1123,6 @@ export interface TestChannelResponse {
 	delivered: number;
 }
 
-// ===== Incidents =====
-
 /**
  * Manual trigger of the incident flight recorder: freezes the current host
  * context (vitals, top processes, recent errors) as a snapshot the assistant
@@ -1142,8 +1138,6 @@ export interface CaptureIncidentRequest {
 export interface CaptureIncidentResponse {
 	id: number;
 }
-
-// ===== Events (unified host-event timeline) =====
 
 /** Who a `GET /events` row was produced by. */
 export type EventSource = 'system' | 'operator' | 'agent';
@@ -1199,8 +1193,6 @@ export interface ListEventsResponse {
 	 */
 	next_cursor?: string;
 }
-
-// ===== Assistant =====
 
 export interface AssistantAskRequest {
 	question: string;

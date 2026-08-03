@@ -57,7 +57,6 @@ function merge(series: TimeSeries, batch: { ts: number; v: number }[]) {
 }
 
 export class LiveStats {
-	// Latest snapshots
 	cpu = $state<CpuStats | null>(null);
 	memory = $state<MemoryStats | null>(null);
 	disks = $state<DiskStats[]>([]);
@@ -67,7 +66,6 @@ export class LiveStats {
 	/** Hardware sensors; null until the server emits at least one reading. */
 	components = $state<ComponentsSnapshot | null>(null);
 
-	// Sparkline histories
 	cpuHistory = $state<TimeSeries>(emptySeries());
 	memoryActivePercentHistory = $state<TimeSeries>(emptySeries());
 	diskMaxPercentHistory = $state<TimeSeries>(emptySeries());

@@ -121,8 +121,6 @@
 		if (checkId !== undefined && pingsCache[checkId]) void ensurePings(checkId, true);
 	}
 
-	// ===== deadline / pause description =====
-
 	function deadlineText(c: HeartbeatCheckDto): string {
 		if (c.state === 'disabled') return '—';
 		if (c.state === 'paused') {
@@ -135,8 +133,6 @@
 		if (delta >= 0) return m.heartbeats_due_in({ d: fmtDuration(delta) });
 		return m.heartbeats_overdue_by({ d: fmtDuration(-delta) });
 	}
-
-	// ===== create / edit =====
 
 	let editorOpen = $state(false);
 	let editing = $state<HeartbeatCheckDto | null>(null);
@@ -217,8 +213,6 @@
 		}
 	}
 
-	// ===== slug reveal (create / rotate) =====
-
 	let slugOpen = $state(false);
 	let slugPingPath = $state('');
 	let slugUrl = $derived(profile ? `${profile.baseUrl.replace(/\/+$/, '')}${slugPingPath}` : '');
@@ -253,8 +247,6 @@
 				toast.error(m.heartbeats_rotate_failed(), { description: e.userMessage });
 		}
 	}
-
-	// ===== pause / resume =====
 
 	type PausePreset = '1h' | '3h' | '24h' | '7d' | 'inf';
 	const PAUSE_SECS: Record<Exclude<PausePreset, 'inf'>, number> = {
@@ -637,7 +629,6 @@
 		{/if}
 	</div>
 
-	<!-- create / edit -->
 	<Modal
 		open={editorOpen}
 		onClose={() => (editorOpen = false)}
@@ -714,7 +705,6 @@
 		{/snippet}
 	</Modal>
 
-	<!-- slug reveal: create / rotate -->
 	<Modal
 		open={slugOpen}
 		onClose={() => (slugOpen = false)}
@@ -762,7 +752,6 @@
 		{/snippet}
 	</Modal>
 
-	<!-- operator pause -->
 	<Modal
 		open={pauseOpen}
 		onClose={() => (pauseOpen = false)}

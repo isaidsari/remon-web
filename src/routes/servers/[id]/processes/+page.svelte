@@ -172,7 +172,6 @@
 		searchTimer = setTimeout(() => untrack(() => fetchProcesses(true)), 300);
 	}
 
-	// Cancel a pending debounced search on unmount.
 	$effect(() => () => clearTimeout(searchTimer));
 
 	// One-shot seed: collapse non-root parents so the initial tree isn't a 500-row dump.

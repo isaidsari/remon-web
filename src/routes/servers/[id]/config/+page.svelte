@@ -193,8 +193,6 @@
 		return `${(ms / 3600000).toFixed(ms % 3600000 === 0 ? 0 : 1)}h`;
 	}
 
-	// ─── Retention policy ────────────────────────────────────────────────────
-
 	const RESOLUTION_ORDER = ['raw', '1m', '5m', '1h'];
 	// Metric families first, bookkeeping tables after; unknowns sort last.
 	const RESOURCE_ORDER = [
@@ -302,8 +300,6 @@
 			retOriginal.map((p) => [retKey(p.resource, p.resolution), p.keep_seconds])
 		);
 	}
-
-	// ─── Resolutions ─────────────────────────────────────────────────────────
 
 	let resolutions = $state<ResolutionDto[] | null>(null);
 	let resolutionBusy = $state<string | null>(null);

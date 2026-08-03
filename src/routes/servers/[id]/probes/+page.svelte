@@ -383,7 +383,6 @@
 				</div>
 			{/if}
 
-			<!-- Desktop / tablet: dense table -->
 			<Card padding="none" class="hidden overflow-hidden md:block">
 				<div class="max-h-[max(18rem,calc(100dvh-22rem))] overflow-auto">
 					<table class="w-full text-sm">
@@ -495,7 +494,6 @@
 				</div>
 			</Card>
 
-			<!-- Mobile: stacked cards -->
 			<div class="flex flex-col gap-2 md:hidden">
 				{#each filteredProbes as p (p.name)}
 					{@const isOpen = expanded === p.name}

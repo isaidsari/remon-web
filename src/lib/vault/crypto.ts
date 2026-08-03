@@ -110,8 +110,8 @@ export async function decryptJson<T>(key: CryptoKey, blob: EncryptedBlob): Promi
 	return JSON.parse(dec.decode(plaintextBytes)) as T;
 }
 
-// ─── Device-bound key (for optional auto-unlock) ─────────────────────────────
-// A non-extractable AES-GCM CryptoKey persisted in IndexedDB. Used to wrap the
+// The device-bound key behind optional auto-unlock: a non-extractable AES-GCM
+// CryptoKey persisted in IndexedDB. Used to wrap the
 // master vault key when the user opts into "trust this device". The wrapped
 // blob lives in localStorage (compact + sync-readable), the key itself only
 // in IndexedDB because non-extractable CryptoKeys can't be serialised.

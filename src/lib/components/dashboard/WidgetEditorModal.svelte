@@ -19,7 +19,6 @@
 
 	let { open, conn, initial, onSave, onClose }: Props = $props();
 
-	// Local form state, seeded whenever the modal opens.
 	let kind = $state<WidgetKind>('live-kpi');
 	let liveSource = $state<'cpu' | 'memory' | 'disk-io' | 'network'>('cpu');
 	let histResource = $state<'cpu' | 'memory' | 'disk' | 'network'>('cpu');
@@ -33,7 +32,6 @@
 	// Unit captured at pick time; history API doesn't echo it back, so keep it in form state.
 	let unitSel = $state<string | undefined>(undefined);
 
-	// Probe picker data
 	let probeList = $state<ProbeListEntry[]>([]);
 	let metricsForProbe = $state<ProbeMetric[]>([]);
 	let probesLoading = $state(false);

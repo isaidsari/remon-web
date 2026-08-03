@@ -303,7 +303,8 @@
 		}
 	}
 
-	// ─── Auto-unlock (global, mirrors theme/language scope) ──────────────────
+	// Auto-unlock is global like theme and language, not per server — this page
+	// is just where it is reachable from.
 	let autoUnlockModalOpen = $state(false);
 	let autoUnlockPwd = $state('');
 	let autoUnlockBusy = $state(false);

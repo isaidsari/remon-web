@@ -37,7 +37,6 @@
 	let saved = $derived(
 		profile?.dashboard ? normalizeDashboard(profile.dashboard) : fallbackDashboard
 	);
-	// What the grid renders: the editable draft while editing, else the saved layout.
 	let layout = $derived(editing && draft ? draft : saved);
 	let needsLive = $derived(layoutNeedsLive(layout));
 
