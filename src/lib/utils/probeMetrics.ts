@@ -1,5 +1,5 @@
 import type { ProbeMetricPoint } from '$lib/types/api';
-import { fmtBytes, fmtNumber, fmtPercent } from './format';
+import { fmtBytes, fmtPercent, fmtScalar } from './format';
 
 // Canonical JSON for a label set — keys sorted so the same logical label-set
 // always produces the same key regardless of insertion order. Used to group
@@ -50,10 +50,6 @@ export function formatLabelKey(key: string): string {
 	} catch {
 		return key;
 	}
-}
-
-function fmtScalar(value: number): string {
-	return Number.isInteger(value) ? value.toString() : fmtNumber(value, 2);
 }
 
 // Unit-aware value formatting. The probe API gives free-form unit strings; we

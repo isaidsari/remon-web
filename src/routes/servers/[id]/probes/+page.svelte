@@ -13,7 +13,7 @@
 	import { connections } from '$lib/stores/connections.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { ApiError } from '$lib/api/error';
-	import { fmtBytes, fmtNumber, fmtPercent, fmtRelative } from '$lib/utils/format';
+	import { fmtBytes, fmtPercent, fmtRelative, fmtScalar } from '$lib/utils/format';
 	import { formatLabelKey as formatLabelKeyBase } from '$lib/utils/probeMetrics';
 	import { cn } from '$lib/utils/cn';
 	import { m } from '$lib/paraglide/messages';
@@ -227,12 +227,6 @@
 	// for everything else so unknown units still render readably.
 	function normalizeUnit(unit: string | null | undefined): string {
 		return (unit ?? '').trim().toLowerCase();
-	}
-
-	// Integer counts render without trailing ".00" — `3 bans` reads better
-	// than `3.00 bans`. Floats keep two decimals.
-	function fmtScalar(value: number): string {
-		return Number.isInteger(value) ? value.toString() : fmtNumber(value, 2);
 	}
 
 	function formatMetricValue(value: number, unit: string | null | undefined): string {

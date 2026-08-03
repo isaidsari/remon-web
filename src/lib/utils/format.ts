@@ -3,12 +3,36 @@ import { currentLocale, type Locale } from './lang';
 
 const BYTE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
 
+/**
+ * `Intl.NumberFormat` construction is expensive and these run per table row and
+ * per chart tick, so instances are kept per (locale, style, digits). Locale
+ * changes reload the page, so an entry can never go stale.
+ */
+const nfCache = new Map<string, Intl.NumberFormat>();
+function nf(locale: Locale, opts: Intl.NumberFormatOptions): Intl.NumberFormat {
+	const key = `${locale}|${opts.style ?? 'decimal'}|${opts.minimumFractionDigits}|${opts.maximumFractionDigits}`;
+	let f = nfCache.get(key);
+	if (!f) {
+		f = new Intl.NumberFormat(locale, opts);
+		nfCache.set(key, f);
+	}
+	return f;
+}
+
+/** Fixed digits, formatted for the active locale (`1,2` under tr, `1.2` under en). */
+function fixed(v: number, digits: number): string {
+	return nf(currentLocale(), {
+		minimumFractionDigits: digits,
+		maximumFractionDigits: digits
+	}).format(v);
+}
+
 /** Bytes → human ("1.2 GB"). Decimal SI for size, IEC scale (1024). */
 export function fmtBytes(n: number, fractionDigits = 1): string {
 	if (!Number.isFinite(n) || n <= 0) return '0 B';
 	const i = Math.max(0, Math.min(BYTE_UNITS.length - 1, Math.floor(Math.log(n) / Math.log(1024))));
 	const v = n / Math.pow(1024, i);
-	return `${v.toFixed(i === 0 ? 0 : fractionDigits)} ${BYTE_UNITS[i]}`;
+	return `${fixed(v, i === 0 ? 0 : fractionDigits)} ${BYTE_UNITS[i]}`;
 }
 
 /** Bytes/sec → ("1.2 MB/s"). */
@@ -16,10 +40,17 @@ export function fmtBps(n: number, fractionDigits = 1): string {
 	return `${fmtBytes(n, fractionDigits)}/s`;
 }
 
-/** Number → ("12.3 %"). Caller passes the percent already (0–100). */
+/**
+ * Percent → ("12.3%" under en, "%12,3" under tr). Caller passes the percent
+ * already (0–100); the sign's side of the number is the locale's business.
+ */
 export function fmtPercent(p: number, fractionDigits = 1): string {
 	if (!Number.isFinite(p)) return '—';
-	return `${p.toFixed(fractionDigits)} %`;
+	return nf(currentLocale(), {
+		style: 'percent',
+		minimumFractionDigits: fractionDigits,
+		maximumFractionDigits: fractionDigits
+	}).format(p / 100);
 }
 
 /** Seconds → "h m s" compact form. */
@@ -35,10 +66,19 @@ export function fmtDuration(secs: number): string {
 	return `${s}s`;
 }
 
-/** Truncate to fractional digits without rounding artifacts. */
+/** Plain number at fixed digits, with the locale's separators and grouping. */
 export function fmtNumber(n: number, fractionDigits = 2): string {
 	if (!Number.isFinite(n)) return '—';
-	return n.toFixed(fractionDigits);
+	return fixed(n, fractionDigits);
+}
+
+/**
+ * A probe's own number: integers keep their exact shape, floats get two digits.
+ * Both go through the locale, so a count and a rate don't disagree about what a
+ * thousands separator looks like.
+ */
+export function fmtScalar(value: number): string {
+	return Number.isInteger(value) ? fixed(value, 0) : fmtNumber(value, 2);
 }
 
 const rtfCache = new Map<Locale, Intl.RelativeTimeFormat>();
