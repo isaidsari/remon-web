@@ -46,6 +46,10 @@
 	);
 
 	let status = $state<DockerStatusResponse | null>(null);
+	/** The daemon has no `/docker/*` routes at all — built without the feature.
+	 *  Distinct from a routed daemon answering `available: false`, and it needs
+	 *  different advice: nothing about the host's Docker install will fix it. */
+	let dockerUnsupported = $state(false);
 	let containers = $state<ContainerInfo[]>([]);
 	let images = $state<ImageInfo[]>([]);
 	let busy = $state(false);
@@ -54,9 +58,11 @@
 	let autoRefresh = $state(true);
 	let acting = $state<string | null>(null);
 
-	async function fetchAll() {
+	/** `background` = the 5s auto-refresh: it neither spins the Refresh button
+	 *  nor toasts, or a server that keeps failing raises a toast every 5s. */
+	async function fetchAll(background = false) {
 		if (!conn?.isAuthenticated) return;
-		busy = true;
+		if (!background) busy = true;
 		try {
 			const [s, c, i] = await Promise.all([
 				conn.client.dockerStatus(),
@@ -64,15 +70,30 @@
 				conn.client.listImages().catch(() => ({ images: [] }))
 			]);
 			status = s;
+			dockerUnsupported = false;
 			containers = c.containers;
 			images = i.images;
 			lastFetched = Date.now();
 		} catch (e) {
-			if (e instanceof ApiError) {
+			// A daemon built without the docker feature doesn't route these paths
+			// at all, so the 404 arrives without the usual error envelope. The
+			// operator-visible answer is the same as an absent daemon — show the
+			// panel this page already has instead of an error toast.
+			if (e instanceof ApiError && e.status === 404) {
+				dockerUnsupported = true;
+				status = {
+					available: false,
+					version: null,
+					backend: null,
+					api_version: null,
+					os: null,
+					arch: null
+				};
+			} else if (!background && e instanceof ApiError) {
 				toast.error(m.docker_toast_fetch_failed(), { description: e.userMessage });
 			}
 		} finally {
-			busy = false;
+			if (!background) busy = false;
 		}
 	}
 
@@ -81,8 +102,10 @@
 	});
 
 	$effect(() => {
-		if (!autoRefresh || !conn?.isAuthenticated) return;
-		const t = setInterval(fetchAll, 5000);
+		// Nothing to poll for on a daemon that has no Docker routes — the answer
+		// can only change by reinstalling the server.
+		if (!autoRefresh || !conn?.isAuthenticated || dockerUnsupported) return;
+		const t = setInterval(() => void fetchAll(true), 5000);
 		return () => clearInterval(t);
 	});
 
@@ -401,7 +424,13 @@
 					onChange={(next) => (autoRefresh = next !== 'off')}
 					class="w-[8.5rem]"
 				/>
-				<RefreshButton onclick={fetchAll} loading={busy} label={m.docker_action_refresh()} />
+				<!-- Wrapped, not passed by reference: the click event would land in
+				     `background` and silence the very feedback the button is for. -->
+				<RefreshButton
+					onclick={() => fetchAll()}
+					loading={busy}
+					label={m.docker_action_refresh()}
+				/>
 			</div>
 		</header>
 
@@ -415,7 +444,9 @@
 			<Card padding="lg">
 				<p class="font-medium">{m.docker_unavailable_title()}</p>
 				<p class="mt-1 text-sm text-[var(--color-fg-muted)]">
-					{m.docker_unavailable_description()}
+					{dockerUnsupported
+						? m.docker_unsupported_description()
+						: m.docker_unavailable_description()}
 				</p>
 			</Card>
 		{:else}

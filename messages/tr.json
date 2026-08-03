@@ -789,6 +789,7 @@
 	"docker_signin_required": "Docker sorgulamak için ayarlar sekmesinden oturum açın.",
 	"docker_unavailable_title": "bu sunucuda Docker kullanılamıyor.",
 	"docker_unavailable_description": "arka plan servisinin çalıştığından ve remon-server tarafından erişilebilir olduğundan emin olun.",
+	"docker_unsupported_description": "bu remon-server Docker desteği olmadan derlenmiş — uç noktalar sunucuda hiç yok. Host'taki Docker kurulumuyla ilgili hiçbir şey bunu değiştirmez.",
 	"docker_filter_containers_placeholder": "ada, imaja veya id'ye göre filtrele…",
 	"docker_filter_images_placeholder": "etikete veya id'ye göre filtrele…",
 	"docker_th_name": "ad",

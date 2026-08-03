@@ -788,6 +788,7 @@
 	"docker_signin_required": "sign in on the settings tab to query Docker.",
 	"docker_unavailable_title": "Docker is not available on this server.",
 	"docker_unavailable_description": "make sure the daemon is running and reachable from remon-server.",
+	"docker_unsupported_description": "this remon-server was built without Docker support — the endpoints don't exist on it. Nothing about the host's Docker install will change that.",
 	"docker_filter_containers_placeholder": "filter by name, image, or id…",
 	"docker_filter_images_placeholder": "filter by tag or id…",
 	"docker_th_name": "name",
