@@ -22,6 +22,7 @@
 	import IconContainer from '~icons/lucide/container';
 	import IconTriangleAlert from '~icons/lucide/triangle-alert';
 	import IconScrollText from '~icons/lucide/scroll-text';
+	import IconFileText from '~icons/lucide/file-text';
 	import IconBell from '~icons/lucide/bell';
 	import IconSettings from '~icons/lucide/settings';
 	import IconSlidersHorizontal from '~icons/lucide/sliders-horizontal';
@@ -73,6 +74,7 @@
 		{ href: '/docker', label: m.section_docker(), icon: IconContainer, enabled: true },
 		{ href: '/alerts', label: m.section_alerts(), icon: IconTriangleAlert, enabled: true },
 		{ href: '/events', label: m.section_events(), icon: IconScrollText, enabled: true },
+		{ href: '/logs', label: m.section_logs(), icon: IconFileText, enabled: true },
 		{ href: '/notifications', label: m.section_notifications(), icon: IconBell, enabled: true },
 		{ href: '/config', label: m.section_config(), icon: IconSettings, enabled: true },
 		{ href: '/settings', label: m.section_settings(), icon: IconSlidersHorizontal, enabled: true }
