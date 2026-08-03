@@ -488,7 +488,8 @@ export type ServiceState =
 	| 'reloading'
 	| 'unknown';
 
-export type ServiceBackend = 'systemd' | 'openrc' | 'windows_scm' | 'unsupported';
+/** `unknown` is what a host with no recognised init backend reports. */
+export type ServiceBackend = 'systemd' | 'openrc' | 'windows_scm' | 'unknown';
 
 export interface ServiceDto {
 	name: string;
