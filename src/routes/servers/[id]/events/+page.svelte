@@ -40,24 +40,49 @@
 	let source = $state<SourceFilter>('all');
 	let range = $state<RangeKey>('24h');
 
+	/** One screenful. The server caps a page at 1000 and hands back a cursor
+	 *  whenever a full one came back, so a large page just delays the first
+	 *  paint — it never removes the need to follow the cursor. */
+	const PAGE_SIZE = 200;
+
 	let events = $state<EventDto[] | null>(null);
 	let busy = $state(false);
+	let loadingMore = $state(false);
 	let loadFailed = $state(false);
+	/** `next_cursor` from the newest page; absent once the range is exhausted. */
+	let nextCursor = $state<string | undefined>(undefined);
+	/** True once the operator has paged past the first screenful. */
+	let paged = $state(false);
+	/** The window page 1 was read from. Later pages reuse it so a clock that
+	 *  moved between clicks can't shift the range under the cursor. */
+	let windowStart = 0;
+	let windowEnd = 0;
+	/** Bumped by every page-1 load. A request that outlives its filters must
+	 *  not land: an in-flight `load more` would otherwise append rows from a
+	 *  range the operator has already navigated away from. */
+	let generation = 0;
 
 	/** `background` = the 30s poll: it must not put the Refresh button into a
 	 *  loading state, or the page appears to refresh itself every half minute. */
 	async function fetchData(background = false) {
 		if (!conn?.isAuthenticated) return;
 		if (!background) busy = true;
+		const gen = ++generation;
 		const now = Math.floor(Date.now() / 1000);
+		const start = now - RANGE_SECS[range];
 		try {
 			const res = await conn.client.events({
-				start: now - RANGE_SECS[range],
+				start,
 				end: now,
 				sources: source === 'all' ? undefined : source,
-				limit: 1000
+				limit: PAGE_SIZE
 			});
+			if (gen !== generation) return;
 			events = res.events;
+			nextCursor = res.next_cursor;
+			windowStart = start;
+			windowEnd = now;
+			paged = false;
 			loadFailed = false;
 		} catch {
 			// Keep the stale list on a transient failure; flag it for the banner.
@@ -67,13 +92,45 @@
 		}
 	}
 
+	/** Append the next keyset page. Without this the view stops at the first
+	 *  page and says nothing about the events behind it. */
+	async function loadMore() {
+		if (!conn?.isAuthenticated || loadingMore || !nextCursor) return;
+		loadingMore = true;
+		const gen = generation;
+		try {
+			const res = await conn.client.events({
+				start: windowStart,
+				end: windowEnd,
+				sources: source === 'all' ? undefined : source,
+				limit: PAGE_SIZE,
+				cursor: nextCursor
+			});
+			if (gen !== generation) return;
+			events = [...(events ?? []), ...res.events];
+			nextCursor = res.next_cursor;
+			paged = true;
+			loadFailed = false;
+		} catch {
+			loadFailed = true;
+		} finally {
+			loadingMore = false;
+		}
+	}
+
 	// Refetch when the filters or auth change; poll every 30s while mounted.
 	$effect(() => {
 		void source;
 		void range;
 		if (!conn?.isAuthenticated) return;
 		void fetchData();
-		const t = setInterval(() => void fetchData(true), 30_000);
+		const t = setInterval(() => {
+			// A background refresh replaces the list with page 1. While the
+			// operator is reading further down the timeline that would pull the
+			// pages they just loaded out from under them, so the poll stands
+			// down until they refresh by hand.
+			if (!paged) void fetchData(true);
+		}, 30_000);
 		return () => clearInterval(t);
 	});
 
@@ -164,6 +221,13 @@
 						<EventRow event={ev} now={nowMs} serverId={id} />
 					{/each}
 				</ol>
+				{#if nextCursor}
+					<div class="border-t border-[var(--color-border)] px-4 py-3 text-center">
+						<Button variant="ghost" size="sm" onclick={loadMore} loading={loadingMore}>
+							{m.events_load_more()}
+						</Button>
+					</div>
+				{/if}
 			{/if}
 		</Card>
 	{/if}

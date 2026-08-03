@@ -1103,6 +1103,7 @@
 	"events_ref_incident": "snapshot",
 	"events_ref_alert": "rule",
 	"events_count": "{count} events",
+	"events_load_more": "load more",
 	"logs_title": "server log",
 	"logs_subtitle": "what the daemon itself recorded. the level picks a floor — warn shows warnings and errors.",
 	"logs_level_aria": "minimum level",

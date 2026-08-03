@@ -1103,6 +1103,7 @@
 	"events_ref_incident": "anlık görüntü",
 	"events_ref_alert": "kural",
 	"events_count": "{count} olay",
+	"events_load_more": "daha fazla yükle",
 	"logs_title": "sunucu günlüğü",
 	"logs_subtitle": "daemon'ın kendi kaydettikleri. seçilen seviye bir taban belirler — warn, uyarıları ve hataları gösterir.",
 	"logs_level_aria": "en düşük seviye",
