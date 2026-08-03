@@ -11,8 +11,10 @@
 	import { connections } from '$lib/stores/connections.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { ApiError } from '$lib/api/error';
+	import { serverKey } from '$lib/api/query';
+	import { createInfiniteQuery, type InfiniteData } from '@tanstack/svelte-query';
 	import { m } from '$lib/paraglide/messages';
-	import type { EventDto, EventSource } from '$lib/types/api';
+	import type { EventDto, EventSource, ListEventsResponse } from '$lib/types/api';
 
 	let id = $derived(page.params.id ?? '');
 	let profile = $derived(id ? profiles.byId(id) : undefined);
@@ -45,94 +47,56 @@
 	 *  paint — it never removes the need to follow the cursor. */
 	const PAGE_SIZE = 200;
 
-	let events = $state<EventDto[] | null>(null);
+	const query = createInfiniteQuery<ListEventsResponse, ApiError, InfiniteData<ListEventsResponse>>(
+		() => ({
+			queryKey: serverKey(id, 'events', source, range),
+			enabled: !!conn?.isAuthenticated,
+			initialPageParam: undefined,
+			getNextPageParam: (last: ListEventsResponse) => last.next_cursor,
+			// The window is read per fetch rather than frozen at page 1: that is
+			// what lets the poll below surface events that happened since. Only
+			// page 1 is bounded by `end` — every later page is bounded by its
+			// cursor, so a clock that moved between pages cannot skip a row.
+			queryFn: async ({ pageParam, signal }) => {
+				const now = Math.floor(Date.now() / 1000);
+				return conn!.client.events(
+					{
+						start: now - RANGE_SECS[range],
+						end: now,
+						sources: source === 'all' ? undefined : source,
+						limit: PAGE_SIZE,
+						cursor: pageParam as string | undefined
+					},
+					{ signal }
+				);
+			},
+			// A poll refetches every loaded page. While the operator is reading
+			// further down the timeline that is both wasteful and disruptive, so
+			// paging past the first screenful stands the poll down until they
+			// refresh by hand.
+			refetchInterval: (q) => ((q.state.data?.pages.length ?? 1) > 1 ? false : 30_000)
+		})
+	);
+
+	/** Flattened for rendering; `null` until the first page lands. */
+	let events = $derived<EventDto[] | null>(
+		query.data ? query.data.pages.flatMap((p) => p.events) : null
+	);
+	/** A failed background refetch keeps the last good pages on screen — the
+	 *  banner is what says they are no longer current. */
+	let loadFailed = $derived(query.isError);
+
+	// Only an explicit refresh spins the button; the 30s poll must not, or the
+	// page appears to refresh itself every half minute.
 	let busy = $state(false);
-	let loadingMore = $state(false);
-	let loadFailed = $state(false);
-	/** `next_cursor` from the newest page; absent once the range is exhausted. */
-	let nextCursor = $state<string | undefined>(undefined);
-	/** True once the operator has paged past the first screenful. */
-	let paged = $state(false);
-	/** The window page 1 was read from. Later pages reuse it so a clock that
-	 *  moved between clicks can't shift the range under the cursor. */
-	let windowStart = 0;
-	let windowEnd = 0;
-	/** Bumped by every page-1 load. A request that outlives its filters must
-	 *  not land: an in-flight `load more` would otherwise append rows from a
-	 *  range the operator has already navigated away from. */
-	let generation = 0;
-
-	/** `background` = the 30s poll: it must not put the Refresh button into a
-	 *  loading state, or the page appears to refresh itself every half minute. */
-	async function fetchData(background = false) {
-		if (!conn?.isAuthenticated) return;
-		if (!background) busy = true;
-		const gen = ++generation;
-		const now = Math.floor(Date.now() / 1000);
-		const start = now - RANGE_SECS[range];
+	async function refresh() {
+		busy = true;
 		try {
-			const res = await conn.client.events({
-				start,
-				end: now,
-				sources: source === 'all' ? undefined : source,
-				limit: PAGE_SIZE
-			});
-			if (gen !== generation) return;
-			events = res.events;
-			nextCursor = res.next_cursor;
-			windowStart = start;
-			windowEnd = now;
-			paged = false;
-			loadFailed = false;
-		} catch {
-			// Keep the stale list on a transient failure; flag it for the banner.
-			loadFailed = true;
+			await query.refetch();
 		} finally {
-			if (!background) busy = false;
+			busy = false;
 		}
 	}
-
-	/** Append the next keyset page. Without this the view stops at the first
-	 *  page and says nothing about the events behind it. */
-	async function loadMore() {
-		if (!conn?.isAuthenticated || loadingMore || !nextCursor) return;
-		loadingMore = true;
-		const gen = generation;
-		try {
-			const res = await conn.client.events({
-				start: windowStart,
-				end: windowEnd,
-				sources: source === 'all' ? undefined : source,
-				limit: PAGE_SIZE,
-				cursor: nextCursor
-			});
-			if (gen !== generation) return;
-			events = [...(events ?? []), ...res.events];
-			nextCursor = res.next_cursor;
-			paged = true;
-			loadFailed = false;
-		} catch {
-			loadFailed = true;
-		} finally {
-			loadingMore = false;
-		}
-	}
-
-	// Refetch when the filters or auth change; poll every 30s while mounted.
-	$effect(() => {
-		void source;
-		void range;
-		if (!conn?.isAuthenticated) return;
-		void fetchData();
-		const t = setInterval(() => {
-			// A background refresh replaces the list with page 1. While the
-			// operator is reading further down the timeline that would pull the
-			// pages they just loaded out from under them, so the poll stands
-			// down until they refresh by hand.
-			if (!paged) void fetchData(true);
-		}, 30_000);
-		return () => clearInterval(t);
-	});
 
 	// Re-render relative timestamps once a minute.
 	let nowMs = $state(Date.now());
@@ -161,8 +125,7 @@
 			<h1 class="text-[24px] font-semibold tracking-tight">{m.events_title()}</h1>
 			<p class="mt-1.5 text-sm text-[var(--color-fg-muted)]">{m.events_subtitle()}</p>
 		</div>
-		<!-- Wrapped, not passed by reference: the click event would land in `background`. -->
-		<Button variant="secondary" size="sm" onclick={() => fetchData()} loading={busy}>
+		<Button variant="secondary" size="sm" onclick={refresh} loading={busy}>
 			{m.alerts_action_refresh()}
 		</Button>
 	</header>
@@ -221,9 +184,14 @@
 						<EventRow event={ev} now={nowMs} serverId={id} />
 					{/each}
 				</ol>
-				{#if nextCursor}
+				{#if query.hasNextPage}
 					<div class="border-t border-[var(--color-border)] px-4 py-3 text-center">
-						<Button variant="ghost" size="sm" onclick={loadMore} loading={loadingMore}>
+						<Button
+							variant="ghost"
+							size="sm"
+							onclick={() => query.fetchNextPage()}
+							loading={query.isFetchingNextPage}
+						>
 							{m.events_load_more()}
 						</Button>
 					</div>

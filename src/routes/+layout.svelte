@@ -12,9 +12,13 @@
 	import { loadEcharts } from '$lib/charts/echarts-lazy';
 	import { onMount } from 'svelte';
 	import { useRegisterSW } from 'virtual:pwa-register/svelte';
+	import { QueryClientProvider } from '@tanstack/svelte-query';
+	import { createQueryClient } from '$lib/api/query';
 	import { m } from '$lib/paraglide/messages';
 
 	let { children } = $props();
+
+	const queryClient = createQueryClient();
 
 	// A monitoring dashboard is exactly the kind of tab that stays open for
 	// weeks — without these checks a deployed update would never be noticed,
@@ -103,16 +107,18 @@
 	<title>Remon</title>
 </svelte:head>
 
-<div class="app-content flex min-h-screen flex-col text-[var(--color-fg)]">
-	{#if showChrome}
-		<Header />
-	{/if}
-	<main class="flex-1">
-		{#if showContent}
-			{@render children()}
+<QueryClientProvider client={queryClient}>
+	<div class="app-content flex min-h-screen flex-col text-[var(--color-fg)]">
+		{#if showChrome}
+			<Header />
 		{/if}
-	</main>
-</div>
+		<main class="flex-1">
+			{#if showContent}
+				{@render children()}
+			{/if}
+		</main>
+	</div>
+</QueryClientProvider>
 
 {#if $needRefresh}
 	<div
