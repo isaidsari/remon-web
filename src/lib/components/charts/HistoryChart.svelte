@@ -8,11 +8,7 @@
 		fill?: boolean;
 	}
 
-	/**
-	 * One host-event annotation drawn over the series: an instant (vertical
-	 * dashed line) or, when `endTs` is set, a shaded band (e.g. an alert's
-	 * fired→resolved window). Timestamps are unix seconds like series data.
-	 */
+	/** An instant, or a shaded band when `endTs` is set. Unix seconds. */
 	export interface ChartAnnotation {
 		ts: number;
 		endTs?: number;
@@ -113,10 +109,7 @@
 			connectNulls: false
 		}));
 
-		// Host-event overlay rides on the first series (marks must attach to a
-		// series; a dedicated one would pollute the legend). Instants are
-		// dashed verticals whose label appears on hover; ranges (alert
-		// fired→resolved) are faint severity-tinted bands.
+		// Marks must attach to a series, so the overlay rides on the first one.
 		if (seriesArr.length > 0 && annotations.length > 0) {
 			const lines = annotations.filter((a) => a.endTs == null);
 			const bands = annotations.filter((a) => a.endTs != null);
@@ -206,10 +199,8 @@
 				},
 				splitLine: { lineStyle: { color: palette.gridLine } }
 			},
-			// Drag-to-zoom is the only zoom gesture (wired via the brush below).
-			// Wheel zoom is off so scrolling the page over a chart never
-			// hijacks into a zoom. The inside dataZoom stays mounted only so
-			// brushEnd can dispatch a dataZoom action into it.
+			// Drag-to-zoom only; wheel zoom would hijack page scroll. The inside
+			// dataZoom stays mounted so brushEnd can dispatch into it.
 			dataZoom: [
 				{
 					type: 'inside',
@@ -219,10 +210,7 @@
 					moveOnMouseWheel: false
 				}
 			],
-			// Brush is configured with no toolbox UI; we drive it
-			// programmatically via takeGlobalCursor so dragging anywhere on
-			// the chart starts a horizontal selection without a click-into
-			// "zoom mode" first. brushEnd then triggers dataZoom below.
+			// No toolbox UI: takeGlobalCursor arms the brush so any drag zooms.
 			brush: {
 				xAxisIndex: 0,
 				brushType: 'lineX',
@@ -269,9 +257,7 @@
 				chart = echarts.init(container, undefined, { renderer: 'canvas' });
 				chart.setOption(buildOption());
 
-				// brushEnd carries the selected coordRange in axis units; feed it
-				// straight into the inside-dataZoom and then drop the brush rect
-				// so the chart isn't decorated with the selection afterwards.
+				// coordRange is in axis units; feed dataZoom, then drop the rect.
 				chart.on('brushEnd', (params: unknown) => {
 					const p = params as { areas?: Array<{ coordRange?: [number, number] }> };
 					const range = p.areas?.[0]?.coordRange;
@@ -283,9 +269,7 @@
 					enableBrushCursor();
 				});
 
-				// Double-tap / double-click to reset. zrender's 'dblclick' doesn't
-				// fire on touch, so detect two quick taps via 'click' instead —
-				// works the same on mouse and touch.
+				// zrender dblclick does not fire on touch — detect two quick taps.
 				let lastTap = 0;
 				chart.getZr().on('click', () => {
 					const now = Date.now();

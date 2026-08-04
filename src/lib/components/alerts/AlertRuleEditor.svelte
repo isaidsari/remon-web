@@ -227,13 +227,8 @@
 
 	let isBool = $derived(currentMetric?.value_type === 'bool');
 
-	// "Dynamic-metric" namespaces (today: `probe`) expose a runtime-defined
-	// metric list rather than a server-side whitelist. Schema marks them
-	// with `dynamic_metrics: true`. We treat the namespace's first label as
-	// the "selector" — the user picks an instance (a specific probe), and
-	// we then fetch that instance's emitted metrics. Generalising on schema
-	// flags keeps this code working if a second dynamic-metric namespace
-	// ever joins the schema.
+	// `dynamic_metrics` namespaces define their metrics at runtime: the first
+	// label picks the instance, then we fetch that instance's metrics.
 	let isDynamicMetricNs = $derived<boolean>(currentNamespace?.dynamic_metrics === true);
 	let selectorLabel = $derived<LabelSchema | null>(
 		isDynamicMetricNs ? (currentLabels[0] ?? null) : null
@@ -242,9 +237,7 @@
 		selectorLabel ? (builder.labels[selectorLabel.name] ?? '') : ''
 	);
 
-	// The instance-detail fetcher is genuinely namespace-specific (probe today),
-	// so it stays a switch keyed on namespace name. New dynamic namespaces would
-	// add a branch here. Everything ABOVE this is schema-driven and generic.
+	// Namespace-specific fetcher; everything above is schema-driven.
 	let probeDetail = $state<ProbeDetail | null>(null);
 	const probeDetailCache = new Map<string, Promise<ProbeDetail | null>>();
 	function fetchProbeDetail(probeName: string): Promise<ProbeDetail | null> {
@@ -273,9 +266,7 @@
 	);
 
 	type DynamicLabel = { name: string; values: string[] };
-	// Inspect the rows matching the chosen metric and project them into a
-	// (label_key → observed_values) list. The user picks one value per key
-	// to scope the rule to a single stream (e.g. `drive=C:`).
+	// Project matching rows into (label → observed values) to scope the rule.
 	let dynamicScopeLabels = $derived.by<DynamicLabel[]>(() => {
 		if (!probeDetail || !builder.field) return [];
 		const matching = probeDetail.last_metrics.filter((mm) => mm.name === builder.field);

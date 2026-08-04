@@ -20,20 +20,13 @@
 	import type { ProcessInfo, ProcessState } from '$lib/types/api';
 
 	type DisplayRow = ProcessInfo & {
-		/** One flag per ancestor level, ending with this node's own slot:
-		 *  guides[i] (i < depth-1) = "the ancestor at that level has further
-		 *  siblings" → draw a │ pass-through; the last entry = "this node has
-		 *  a following sibling" → ├ vs └ on its own connector. Empty for
-		 *  roots and flat rows. */
+		/** One flag per ancestor level: has further siblings → │ pass-through. The
+		 *  last entry picks ├ or └ for this node. Empty for roots and flat rows. */
 		guides: boolean[];
 		hasChildren: boolean;
 		descendantCount: number;
-		/** Sum of CPU% across this node and all descendants. Safe to add
-		 *  because each process accumulates its own CPU time independently.
-		 *  Memory deliberately omitted — `memory_bytes` is RSS, which counts
-		 *  shared pages per-process; summing produces fantastical numbers
-		 *  (e.g. 2.7 TB on a 24 GB host). PSS would be the right metric but
-		 *  sysinfo doesn't expose it, so we just show self memory. */
+		/** CPU% summed over the subtree. No memory equivalent: RSS counts shared
+		 *  pages per process, so summing it invents terabytes. */
 		subtreeCpu: number;
 	};
 
@@ -371,10 +364,8 @@
 			fetchProcesses();
 		} catch (e) {
 			if (e instanceof ApiError) {
-				// Refusing to kill the agent from the list it rendered is a
-				// guardrail doing its job, not a failed operation. Close the
-				// dialog with it: the refusal is permanent for this pid, so
-				// leaving a confirm button up that can only fail is a trap.
+				// A guardrail, not a failure — and permanent for this pid, so close
+				// the dialog rather than leave a button that can only fail.
 				if (e.isSelfTarget) {
 					toast.warning(m.error_self_target_title(), { description: e.userMessage });
 					killTarget = null;

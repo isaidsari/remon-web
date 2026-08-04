@@ -17,10 +17,8 @@ import {
 	type WrappedKey
 } from './crypto';
 
-// 'pending' covers the async window during bootstrap when we're trying to
-// auto-unlock from a wrapped key in IndexedDB. The root layout treats it like
-// 'locked' for content gating but suppresses any redirects so we don't flash
-// the unlock screen before async unwrap resolves.
+// 'pending' = auto-unlock in flight. The layout gates content on it but does
+// not redirect, so /unlock never flashes.
 export type VaultState = 'none' | 'locked' | 'open' | 'pending';
 
 const VAULT_KEY = 'remon-web:vault';
@@ -94,9 +92,7 @@ async function autoUnlock(blob: EncryptedBlob, wrapped: WrappedKey): Promise<boo
 		state = 'open';
 		return true;
 	} catch {
-		// Wrapped key is stale (e.g. password was changed elsewhere, IndexedDB
-		// was wiped, or vault was rewrapped). Drop the marker and fall back to
-		// the password prompt.
+		// Stale wrapped key (password changed elsewhere, IndexedDB wiped, …).
 		clearWrappedKey();
 		await deleteDeviceKey();
 		isTrusted = false;

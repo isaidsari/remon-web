@@ -2,9 +2,7 @@ import type { Connection } from '$lib/stores/connections.svelte';
 
 export type LiveTone = 'online' | 'connecting' | 'offline' | 'idle' | 'warning';
 
-// Single source of truth for the badge tone shown on a server card.
-// ServerCard renders the badge; +page.svelte counts cards by tone — they
-// must agree, otherwise the summary pills disagree with the card pills.
+// Shared so the card badge and the summary pills that count by tone agree.
 export function connectionTone(conn: Connection): LiveTone {
 	if (!conn.isAuthenticated) {
 		return conn.status === 'authenticating' ? 'connecting' : 'offline';

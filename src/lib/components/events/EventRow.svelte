@@ -20,9 +20,7 @@
 	import IconBug from '~icons/lucide/bug';
 	import IconOctagonAlert from '~icons/lucide/octagon-alert';
 
-	// Open-vocabulary kind → glyph. Unknown kinds fall back to a neutral dot,
-	// so a server that grows a new kind still renders sensibly without a web
-	// change (the message text carries the meaning regardless).
+	// Unknown kinds fall back to a neutral dot; the message carries the meaning.
 	function iconFor(kind: string): Component {
 		switch (kind) {
 			case 'boot':
@@ -107,9 +105,7 @@
 
 	let Icon = $derived(iconFor(event.kind));
 
-	// Only refs that have a destination page today become links. Alert rules
-	// go to the alerts view; incident snapshots have no detail page yet, so
-	// they stay non-clickable rather than dead-link.
+	// Only refs with a destination page become links; incidents have none yet.
 	let refHref = $derived.by(() => {
 		if (!serverId || !event.ref) return null;
 		if (event.ref.type === 'alert_rule') return `/servers/${serverId}/alerts?tab=events`;

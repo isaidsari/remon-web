@@ -15,12 +15,7 @@ function widget(x: number, y: number, w: number, h: number, config: WidgetConfig
 	return { id: widgetId(), x, y, w, h, config };
 }
 
-/**
- * The layout a fresh / migrated profile starts with: four live KPIs across the
- * top, the CPU story next to the recent-alerts feed, then memory/network
- * two-up and disk beside the host identity card. (Health verdict and quick
- * links live in the fixed StatusBand above the grid, not in a widget.)
- */
+/** Starting layout for a fresh or migrated profile. */
 export function defaultDashboard(): DashboardLayout {
 	return {
 		version: 1,

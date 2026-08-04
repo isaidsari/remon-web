@@ -407,11 +407,8 @@
 
 	let loading = $derived(cpu === null);
 
-	// Host-event overlay for the primary charts: alert fired→resolved pairs
-	// become shaded bands, every other kind becomes a dashed instant line.
-	// Shown identically across cpu/memory/disk/network — correlation is the
-	// point ("did an OOM kill line up with that memory chart?"), and the
-	// reader can tell at a glance which chart's own series moved.
+	// Same overlay on every chart: correlation is the point ("did the OOM kill
+	// line up with that memory dip?").
 	let chartAnnotations = $derived.by((): ChartAnnotation[] => {
 		const alertKey = (e: EventDto) =>
 			e.ref

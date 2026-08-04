@@ -1,6 +1,5 @@
-// Token appended as ?access_token= query (browser WS API can't set headers;
-// server redacts it from span logs). No auto-reconnect by design — a PTY
-// session can't be resumed; reconnecting would silently open a second shell.
+// Token goes in the query: the WS API cannot set headers. No auto-reconnect —
+// a PTY cannot be resumed and would silently open a second shell.
 
 export interface WsSubscription {
 	send(data: string | ArrayBuffer | ArrayBufferView | Blob): void;

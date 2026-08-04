@@ -57,13 +57,8 @@
 		}
 	}
 
-	/**
-	 * Re-fetch inspect a few times after an action — Docker's transitional
-	 * state often takes a beat to settle (e.g., a "stopped" container needs
-	 * a couple hundred ms after `start` before inspect reports "running").
-	 * Cancel any pending retry chain on each new call so back-to-back
-	 * actions don't pile up overlapping fetches.
-	 */
+	/** Docker's transitional state takes a beat to settle. Each call cancels the
+	 *  previous chain so back-to-back actions do not pile up. */
 	function refetchSoon() {
 		retryTimers.forEach(clearTimeout);
 		retryTimers = [];

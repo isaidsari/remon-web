@@ -62,9 +62,7 @@
 
 <span
 	class={cn(
-		// shrink-0 + nowrap: a pill's min-content is its whole label, so in a
-		// tight flex row it cannot shrink and spills instead. Localised labels
-		// are the long case — "çalışıyor" is twice the width of "running".
+		// shrink-0 + nowrap: a pill cannot shrink below its label and would spill.
 		'inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium whitespace-nowrap',
 		cls,
 		klass

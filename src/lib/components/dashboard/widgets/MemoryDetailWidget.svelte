@@ -15,9 +15,7 @@
 
 	let memory = $derived(conn?.live?.memory ?? null);
 
-	// htop "used": total - MemAvailable (sysinfo used_bytes counts buffers/cache
-	// against you). available already includes reclaimable cache, so truly-free
-	// is available - cached.
+	// htop "used" = total - available; truly-free = available - cached.
 	let memTotal = $derived(memory?.total_bytes ?? 0);
 	let memActive = $derived(Math.max(0, memTotal - (memory?.available_bytes ?? 0)));
 	let memCached = $derived(memory?.cached_bytes ?? 0);

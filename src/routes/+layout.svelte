@@ -20,9 +20,7 @@
 
 	const queryClient = createQueryClient();
 
-	// A monitoring dashboard is exactly the kind of tab that stays open for
-	// weeks — without these checks a deployed update would never be noticed,
-	// since the browser only looks for a new SW on page load.
+	// This tab stays open for weeks; the browser only looks for a new SW on load.
 	const SW_UPDATE_INTERVAL_MS = 60 * 60 * 1000;
 
 	const { needRefresh, updateServiceWorker } = useRegisterSW({
@@ -66,16 +64,13 @@
 					await navigation.complete;
 				});
 			} catch {
-				// Document not fully active (a backgrounded tab hitting the boot
-				// redirect). Navigate without the animation — resolving here is
-				// load-bearing, an unresolved promise would stall the navigation.
+				// Document not fully active. Resolving is load-bearing: an unresolved
+				// promise stalls the navigation.
 				resolve();
 				return;
 			}
-			// A transition gets abandoned whenever the tab is hidden or a second
-			// navigation starts before this one paints — exactly what the boot
-			// redirect does. Chrome rejects both promises for that; nothing is
-			// broken, but unhandled they surface as a console exception.
+			// An abandoned transition (hidden tab, superseded navigation) rejects
+			// both promises. Harmless, but noisy if unhandled.
 			transition.ready.catch(() => {});
 			transition.finished.catch(() => {});
 		});

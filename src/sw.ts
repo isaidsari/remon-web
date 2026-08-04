@@ -24,10 +24,7 @@ self.addEventListener('push', (event) => {
 	}
 	const title = data.title || 'remon';
 	const isCrit = data.severity === 'crit';
-	// Pick the panel icon by state so the OS notification is legible at a
-	// glance: a resolved event is calm (green), a fired one is red (crit) or
-	// amber (warn). Falls back to the crit icon for an unknown severity — a
-	// missing/mislabelled alert should look loud, not quiet.
+	// Unknown severity falls back to crit: a mislabelled alert should look loud.
 	const icon =
 		data.event === 'resolved'
 			? '/notify-ok.png'

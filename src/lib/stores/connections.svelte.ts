@@ -1,6 +1,5 @@
-// Refresh: scheduled ~60s before exp with up to 8s jitter. Result is broadcast
-// via BroadcastChannel so sibling tabs skip their own refresh — server rotation
-// wipes all sessions; whoever wins broadcasts, others apply without re-fetching.
+// Refresh ~60s before exp, broadcast to sibling tabs: rotation wipes all
+// sessions, so whoever wins shares the result.
 
 import { ApiClient } from '$lib/api/client';
 import { ApiError } from '$lib/api/error';
@@ -69,11 +68,8 @@ class Connection {
 			});
 		}
 
-		// Auto-recover from transient network outages: when the browser
-		// reports a connectivity change OR the tab becomes visible after
-		// being backgrounded, retry sign-in if we're stuck on a network-
-		// class error. Auth-class failures (DEVICE_NOT_FOUND etc.) are NOT
-		// retried — those need user action to repair.
+		// Retry sign-in on connectivity/visibility change, but only for
+		// network-class errors — auth failures need user action.
 		if (typeof window !== 'undefined' && typeof document !== 'undefined') {
 			const tryRecover = () => this.maybeAutoRetry();
 			const onOnline = () => tryRecover();
@@ -301,12 +297,7 @@ export const connections = {
 		map.delete(id);
 	},
 
-	/**
-	 * Drop a connection from the cache without trying to revoke it server-
-	 * side. Used during re-pair when the existing credential is already
-	 * invalid (so /auth/logout would 401 anyway). The next `connect()` will
-	 * lazily build a fresh Connection bound to the updated profile.
-	 */
+	/** Drop without revoking: used when the credential is already invalid. */
 	evict(id: string): void {
 		const c = map.get(id);
 		if (!c) return;
@@ -331,9 +322,7 @@ $effect.root(() => {
 	});
 });
 
-// Profile delete → drop the orphaned Connection. Without this hook, removing
-// a server from the vault leaves its Connection in the cache (slow leak —
-// SSE stream stays open, refresh timer keeps firing) until the page reloads.
+// Without this, a deleted profile leaks its Connection (SSE + refresh timer).
 $effect.root(() => {
 	$effect(() => {
 		const activeIds = new Set(profiles.list.map((p) => p.id));

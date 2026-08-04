@@ -194,12 +194,8 @@
 	// Factory value of `server_config.server_name` (see 0001_schema.sql).
 	const DEFAULT_SERVER_NAME = 'My Server';
 
-	/**
-	 * Best-effort two-way name sync on a fresh pair: a factory-named server
-	 * adopts the name typed during pairing; a server that was already renamed
-	 * wins and overwrites the local alias. Failures are ignored — pairing
-	 * already succeeded and the config page can fix names later.
-	 */
+	/** Best-effort name sync: a factory-named server adopts the typed name, an
+	 *  already-renamed one wins. Failures are ignored; pairing succeeded. */
 	async function syncServerName(
 		conn: ReturnType<typeof connections.connect>,
 		profileId: string,

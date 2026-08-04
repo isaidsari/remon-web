@@ -18,19 +18,11 @@
 		onSelect: (key: RangeKey) => void;
 		onRefresh?: () => void;
 		busy?: boolean;
-		/**
-		 * Auto-refresh interval. The parent owns the actual setInterval and
-		 * calls `onRefresh` on each tick — we just render the toggle and
-		 * notify of changes.
-		 */
+		/** Auto-refresh interval; the parent owns the timer and calls `onRefresh`. */
 		autoRefresh?: RefreshInterval;
 		onAutoRefreshChange?: (i: RefreshInterval) => void;
-		/**
-		 * Time-travel offset. The parent treats the visible window as
-		 * `[now - span - offset, now - offset]`. When 0, "live (now)" mode.
-		 * `onShift` returns the requested delta in seconds (negative = back,
-		 * positive = forward). Optional — when not supplied, nav buttons hide.
-		 */
+		/** Window is `[now - span - offset, now - offset]`; 0 = live. Omit to hide
+		 *  the nav buttons. */
 		offsetSecs?: number;
 		onShift?: (deltaSecs: number) => void;
 		onResetNow?: () => void;

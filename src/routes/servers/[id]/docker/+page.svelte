@@ -46,9 +46,7 @@
 	);
 
 	let status = $state<DockerStatusResponse | null>(null);
-	/** The daemon has no `/docker/*` routes at all — built without the feature.
-	 *  Distinct from a routed daemon answering `available: false`, and it needs
-	 *  different advice: nothing about the host's Docker install will fix it. */
+	/** Built without the feature — distinct from a daemon answering `available: false`. */
 	let dockerUnsupported = $state(false);
 	let containers = $state<ContainerInfo[]>([]);
 	let images = $state<ImageInfo[]>([]);
@@ -75,10 +73,8 @@
 			images = i.images;
 			lastFetched = Date.now();
 		} catch (e) {
-			// A daemon built without the docker feature doesn't route these paths
-			// at all, so the 404 arrives without the usual error envelope. The
-			// operator-visible answer is the same as an absent daemon — show the
-			// panel this page already has instead of an error toast.
+			// No routes at all, so the 404 has no error envelope. Same answer for
+			// the operator as an absent daemon.
 			if (e instanceof ApiError && e.status === 404) {
 				dockerUnsupported = true;
 				status = {

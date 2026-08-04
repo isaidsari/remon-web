@@ -53,17 +53,8 @@ export class ApiError extends Error {
 		return this.status === 429;
 	}
 
-	/**
-	 * 409 raised because the request named the monitoring agent itself —
-	 * killing its own pid from the process list, or stopping/restarting its
-	 * own unit from the services list. The deliberate way through is the
-	 * agent lifecycle section in settings.
-	 *
-	 * Matched on the message: the server answers plain `CONFLICT` for this and
-	 * for ordinary state conflicts alike, so there is no code to key off. A
-	 * phrasing change on the server costs the tailored copy and nothing else —
-	 * the server's own text is what gets shown either way.
-	 */
+	/** 409 for naming the agent itself. Matched on the message: the server sends
+	 *  plain `CONFLICT` here and for ordinary conflicts alike. */
 	get isSelfTarget(): boolean {
 		return this.code === 'CONFLICT' && /remon-server itself/i.test(this.serverMessage);
 	}
@@ -132,9 +123,7 @@ function humanize(code: ApiErrorCode, fallback: string): string {
 		case 'ALREADY_EXISTS':
 			return 'A pairing window is already open. Wait for it to expire or finish it.';
 		case 'CONFLICT':
-			// The server's text names REST endpoints ("use POST /system/restart"),
-			// which is the right answer for an API caller and the wrong one for
-			// someone who just pressed a button. Point at the UI instead.
+			// The server names REST endpoints; a button-presser needs the UI.
 			if (isSelfTargetMessage(code, fallback)) {
 				return 'That is the monitoring agent itself. Use the agent lifecycle controls in Settings to restart or stop it.';
 			}

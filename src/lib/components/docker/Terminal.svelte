@@ -70,14 +70,9 @@
 		term.loadAddon(new WebLinksAddon());
 		term.open(host);
 
-		// xterm keeps its 80x24 default whenever fit() cannot propose
-		// dimensions, and proposeDimensions() bails out while the font has not
-		// been measured yet (it returns early on a zero cell width). 80 columns
-		// is roughly 620px at this font size, so on a phone the terminal renders
-		// far wider than its card and paints over whatever sits beside it.
-		// The container never changes size afterwards, so the ResizeObserver
-		// alone gives no second chance — retry after a frame and again once
-		// fonts have settled.
+		// fit() cannot propose dimensions before the font is measured, so xterm
+		// keeps its 80-column default and overflows the card on a phone. Retry
+		// after a frame and once fonts settle.
 		const refit = () => {
 			try {
 				fit?.fit();

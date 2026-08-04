@@ -205,10 +205,7 @@
 	}
 
 	let pushSupported = $state(false);
-	/** 'none' — no active subscription in this browser. 'this' — the
-	 *  browser's one subscription belongs to this server. 'other' — it
-	 *  belongs to a different paired server (see push.ts: only one can be
-	 *  active at a time). */
+	/** Which server owns this browser's one subscription — see push.ts. */
 	let pushState = $state<'none' | 'this' | 'other'>('none');
 	let pushOtherName = $state<string | null>(null);
 	let pushBusy = $state(false);
@@ -238,10 +235,8 @@
 	}
 
 	$effect(() => {
-		// `id` must be read synchronously here (not just inside the async
-		// function) so Svelte tracks it as a dependency — SvelteKit reuses
-		// this component across server switches, and without this the push
-		// status shown would stay frozen on whichever server loaded first.
+		// Read synchronously so Svelte tracks it: the component is reused across
+		// server switches and the status would otherwise freeze on the first.
 		void id;
 		void refreshPushState();
 	});
@@ -250,10 +245,8 @@
 		if (!conn?.isAuthenticated) return;
 		pushBusy = true;
 		try {
-			// Stealing the subscription from another paired server: best-effort
-			// tell IT to drop the row too, so it doesn't keep retrying a dead
-			// endpoint. Non-fatal if that server is unreachable right now —
-			// its own next failed send self-heals via the 410-Gone cleanup.
+			// Best-effort: tell the previous owner to drop its row. Unreachable is
+			// fine — its next failed send self-heals on 410.
 			const prevOwner = getPushOwner();
 			if (pushState === 'other' && prevOwner && prevOwner.serverId !== id) {
 				const otherProfile = profiles.byId(prevOwner.serverId);
@@ -363,10 +356,8 @@
 		toast.info(m.settings_autounlock_toast_disabled());
 	}
 
-	// Both lifecycle calls answer 202 and act afterwards, so the reply is the
-	// last thing this process says. `message` is the only place the outcome
-	// differs (restart comes back; shutdown does not, and says so differently
-	// depending on whether anything supervises it) — so it is shown verbatim.
+	// Both answer 202 and act afterwards; `message` is the only place the
+	// outcome differs, so it is shown verbatim.
 	let lifecycleBusy = $state<'restart' | 'shutdown' | null>(null);
 
 	async function runLifecycle(action: 'restart' | 'shutdown') {

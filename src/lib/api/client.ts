@@ -87,11 +87,7 @@ import { ApiError, errorFromResponse, errorFromThrown } from './error';
 
 export type AccessTokenProvider = () => string | null;
 
-/**
- * Opt-in cancellation for the read endpoints a page re-queries as the user
- * changes range/filters. Passing a signal also skips the short GET cache —
- * a superseding query wants the current answer, not the previous one's.
- */
+/** Opt-in cancellation. Passing a signal also skips the short GET cache. */
 export interface Cancellable {
 	signal?: AbortSignal;
 }
@@ -358,23 +354,12 @@ export class ApiClient {
 		return this.request<SmartResponse>('/system/smart');
 	}
 
-	/**
-	 * Restart the daemon. The deliberate counterpart to killing it from the
-	 * process list or stopping its unit through `/services` — both of which
-	 * answer 409 when they name the agent itself.
-	 *
-	 * Answers 202 and exits afterwards, so the in-flight request is the last
-	 * one this process serves: expect the connection to drop right after.
-	 */
+	/** Answers 202 then exits — expect the connection to drop right after. */
 	restartServer(): Promise<LifecycleResponse> {
 		return this.request<LifecycleResponse>('/system/restart', { method: 'POST' });
 	}
 
-	/**
-	 * Stop the daemon and keep it stopped — the supervisor is told, not just
-	 * bypassed. Monitoring ends here; starting it again needs access to the
-	 * host, which is why the reply's message is worth showing verbatim.
-	 */
+	/** Stops for good: starting again needs host access, so show `message` verbatim. */
 	shutdownServer(): Promise<LifecycleResponse> {
 		return this.request<LifecycleResponse>('/system/shutdown', { method: 'POST' });
 	}
@@ -699,12 +684,7 @@ export class ApiClient {
 		return this.request<AlertsSchemaResponse>('/alerts/schema');
 	}
 
-	/**
-	 * Unified host-event timeline — the ledger (boots, OOM kills, SMART
-	 * transitions, operator audit) unioned with alert fire/resolve and
-	 * incident captures. `kinds`/`sources` are CSV allowlists; range and
-	 * limit mirror the metrics endpoints (default last 24h, cap 1000).
-	 */
+	/** Unified timeline. `kinds`/`sources` are CSV allowlists; default 24h, cap 1000. */
 	events(
 		params?: {
 			start?: number;
@@ -723,10 +703,7 @@ export class ApiClient {
 		});
 	}
 
-	/**
-	 * Freeze an incident snapshot right now ("record the box, now"). Alert
-	 * threshold crossings capture on their own; this is the manual trigger.
-	 */
+	/** Manual trigger; alert transitions capture on their own. */
 	captureIncident(req: CaptureIncidentRequest): Promise<CaptureIncidentResponse> {
 		return this.request<CaptureIncidentResponse>('/incidents/capture', {
 			method: 'POST',
@@ -762,12 +739,7 @@ export class ApiClient {
 		});
 	}
 
-	/**
-	 * Ask the read-only operator assistant a natural-language question. The
-	 * daemon runs a tool-use loop over its own telemetry and returns an answer;
-	 * the provider api_key stays server-side. The loop can take a while, so this
-	 * uses a longer timeout than the default request.
-	 */
+	/** Read-only tool-use loop server-side; long timeout because it can run for a while. */
 	ask(
 		question: string,
 		opts?: {
@@ -784,15 +756,9 @@ export class ApiClient {
 		});
 	}
 
-	/**
-	 * Streaming variant of {@link ask}: `POST /assistant/stream` over SSE.
-	 * `onStep` fires as the loop advances (model turns, tool calls), `onDelta`
-	 * as answer text generates (native Anthropic hosts only). Resolves with the
-	 * authoritative final response from the `done` event — callers should
-	 * replace any accumulated deltas with it. Rejects with
-	 * {@link StreamUnsupportedError} on a daemon without the endpoint, so
-	 * callers can fall back to the buffered `ask`.
-	 */
+	/** SSE variant of {@link ask}. Resolves with the authoritative `done` payload —
+	 *  replace accumulated deltas with it. Rejects {@link StreamUnsupportedError}
+	 *  on daemons without the route. */
 	askStream(
 		question: string,
 		opts: {

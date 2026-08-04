@@ -25,9 +25,7 @@ export type ApiErrorCode =
 	/** 501: operation not implementable on this OS / init backend. */
 	| 'NOT_SUPPORTED'
 	| 'DOCKER_UNAVAILABLE'
-	/** 503: a feature is off or unconfigured — today the assistant, either
-	 *  disabled/key-less or rate-limited by its provider. The message is
-	 *  client-safe and names what to do about it, so show it as-is. */
+	/** 503: feature off or unconfigured. The message is client-safe — show as-is. */
 	| 'SERVICE_UNAVAILABLE'
 	| 'DATABASE_ERROR'
 	| 'INTERNAL_ERROR';
@@ -37,9 +35,7 @@ export interface HealthResponse {
 	status: 'ok';
 }
 
-/** `GET /ready` — readiness. 200 with `status: 'ready'` once a DB round-trip
- *  succeeds; the server returns 503 (→ throws here) with `status: 'not_ready'`
- *  and `failed_check: 'db'` while the pool can't serve queries. */
+/** `GET /ready`. 503 (→ throws) with `not_ready` while the pool cannot serve. */
 export interface ReadyResponse {
 	status: 'ready' | 'not_ready';
 	/** Present only on the 503 path. */
@@ -451,13 +447,8 @@ export interface SmartResponse {
 	devices: SmartDeviceDto[];
 }
 
-/**
- * `POST /system/restart` and `POST /system/shutdown` — both answer **202**,
- * the work happens after the response. The message is the only thing that
- * says whether the agent is coming back on its own, so surface it verbatim
- * rather than substituting fixed copy: shutdown falls back to ending the
- * process when nothing supervises it, and the wording differs.
- */
+/** Both lifecycle calls answer 202 and act afterwards. `message` is the only
+ *  place the outcome differs, so show it verbatim. */
 export interface LifecycleResponse {
 	message: string;
 }
@@ -966,9 +957,7 @@ export interface AlertRuleDto {
 	eval_interval_secs: number;
 	/** Notification suppression window after a fire (seconds). */
 	cooldown_secs: number;
-	/** Unix epoch seconds while a silence window is active; `null`
-	 *  otherwise. `now < silenced_until` gates Fired notifications;
-	 *  Resolved always delivers, evaluator keeps running. */
+	/** Gates Fired notifications only; Resolved always delivers. */
 	silenced_until: number | null;
 	created_at: number;
 	updated_at: number;
@@ -1123,11 +1112,7 @@ export interface TestChannelResponse {
 	delivered: number;
 }
 
-/**
- * Manual trigger of the incident flight recorder: freezes the current host
- * context (vitals, top processes, recent errors) as a snapshot the assistant
- * can read back later. Alert transitions capture on their own.
- */
+/** Manual capture of host context; alert transitions capture on their own. */
 export interface CaptureIncidentRequest {
 	/** Why this moment is worth recording (stored, clamped server-side). */
 	reason: string;
@@ -1151,24 +1136,13 @@ export interface EventActorDto {
 	name?: string;
 }
 
-/**
- * What the event points at, when it points at a concrete object —
- * `{type:"alert_rule",id:"3"}`, `{type:"incident",id:"17"}`,
- * `{type:"service",id:"nginx"}`, `{type:"process",id:"chrome"}`,
- * `{type:"disk",id:"/dev/sda"}`.
- */
+/** What the event points at, e.g. `{type:"alert_rule",id:"3"}`. */
 export interface EventRefDto {
 	type: string;
 	id: string;
 }
 
-/**
- * One normalized timeline row unioned server-side from the host-event
- * ledger, alert fire/resolve, and incident captures. `kind` is an open
- * vocabulary (`boot`, `server_started`, `oom_kill`, `app_crash`,
- * `disk_error`, `smart_health`, `service_action`, `alert_fired`,
- * `incident_captured`, …).
- */
+/** One timeline row; `kind` is an open vocabulary (`boot`, `oom_kill`, …). */
 export interface EventDto {
 	ts: number;
 	source: EventSource;
@@ -1185,12 +1159,8 @@ export interface ListEventsResponse {
 	end: number;
 	count: number;
 	events: EventDto[];
-	/**
-	 * Pass back as `cursor` for the next page. Present whenever a full page came
-	 * back, so the last page of a range is followed by one empty response rather
-	 * than being detectable in advance. Opaque: its contents are the endpoint's
-	 * internal sort key and are not part of the contract.
-	 */
+	/** Opaque; present whenever a full page came back, so the last page is
+	 *  followed by one empty response. */
 	next_cursor?: string;
 }
 
@@ -1198,11 +1168,7 @@ export interface AssistantAskRequest {
 	question: string;
 }
 
-/**
- * A write-action the assistant drafted but did not perform. The client renders
- * it for confirmation and, only on confirm, calls `method path` (with `body`)
- * against the normal REST API.
- */
+/** Drafted, not performed: the client calls `method path` only on confirm. */
 export interface ProposedAction {
 	kind: string;
 	summary: string;
@@ -1243,12 +1209,7 @@ export interface AssistantAskResponse {
 	trace?: AssistantTraceStep[];
 }
 
-/**
- * Progress frame from `POST /assistant/stream` (SSE event `step`): a model
- * turn starting, or a tool call starting. Answer-text deltas arrive as the
- * separate `delta` event; the terminal `done` carries a full
- * {@link AssistantAskResponse}.
- */
+/** SSE `step` frame. Text arrives as `delta`; `done` carries the full response. */
 export type AssistantStreamStep =
 	| { kind: 'model'; step: number }
 	| { kind: 'tool'; step: number; name: string };

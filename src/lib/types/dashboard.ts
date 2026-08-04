@@ -1,8 +1,7 @@
 import type { RangeKey } from '$lib/components/charts/range';
 
-// A customizable per-server dashboard: a set of widgets placed on a 12-column
-// grid. Persisted inside the (encrypted) vault on each ServerProfile, so it
-// travels with profile export/import and needs no backend support.
+// Widgets on a 12-column grid, stored in the vault so they travel with the
+// profile and need no backend support.
 
 export type WidgetKind =
 	| 'live-kpi'
@@ -53,9 +52,7 @@ export interface StatusSummaryConfig {
 	summary: StatusSummaryKind;
 }
 
-/** Live memory breakdown card: active/cache/free segmented bar + swap bar.
- *  Config-less — reads the live SSE memory snapshot. Ports the old fixed
- *  overview's memory card, which the KPI/history widgets can't reproduce. */
+/** Active/cache/free bar + swap. Config-less; reads the live SSE snapshot. */
 export interface MemoryDetailConfig {
 	kind: 'memory-detail';
 }
@@ -72,16 +69,12 @@ export interface PressureConfig {
 	kind: 'pressure';
 }
 
-/** Live network detail card: per-interface rx/tx rates + totals-since-boot,
- *  physical NICs leading with container/virtual links collapsed. Config-less,
- *  reads the live SSE network snapshot. */
+/** Per-interface rates and totals, physical NICs first. Config-less. */
 export interface NetworkDetailConfig {
 	kind: 'network-detail';
 }
 
-/** Live storage detail card: per-mount used/total + usage bar and R/W rates,
- *  host mounts leading with container-overlay mounts collapsed. Config-less,
- *  reads the live SSE disk snapshot. */
+/** Per-mount usage and R/W rates, host mounts first. Config-less. */
 export interface DiskDetailConfig {
 	kind: 'disk-detail';
 }

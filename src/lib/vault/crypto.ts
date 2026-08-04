@@ -110,11 +110,9 @@ export async function decryptJson<T>(key: CryptoKey, blob: EncryptedBlob): Promi
 	return JSON.parse(dec.decode(plaintextBytes)) as T;
 }
 
-// The device-bound key behind optional auto-unlock: a non-extractable AES-GCM
-// CryptoKey persisted in IndexedDB. Used to wrap the
-// master vault key when the user opts into "trust this device". The wrapped
-// blob lives in localStorage (compact + sync-readable), the key itself only
-// in IndexedDB because non-extractable CryptoKeys can't be serialised.
+// Device-bound key for auto-unlock. It lives in IndexedDB because a
+// non-extractable CryptoKey cannot be serialised; the blob it wraps is in
+// localStorage, which is compact and sync-readable.
 
 const IDB_NAME = 'remon-web';
 const IDB_STORE = 'vault-keys';

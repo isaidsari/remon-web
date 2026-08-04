@@ -1,11 +1,5 @@
-/**
- * Helpers for the alert-rule editor.
- *
- * The expression grammar (mirrored from the Rust resolver) is intentionally
- * tiny: `namespace.field{label="value", …}? comparator number`. These
- * utilities let the form pick it apart, reassemble it, and render it back
- * as something a non-power-user can read in the rules list.
- */
+/** Alert-rule editor helpers. Grammar mirrors the Rust resolver:
+ *  `namespace.field{label="value", …}? comparator number`. */
 import type { AlertsSchemaResponse, NamespaceSchema } from '$lib/types/api';
 
 export interface ParsedExpression {
@@ -44,9 +38,8 @@ export function parseExpression(expr: string): ParsedExpression | null {
 	return { namespace, field, labels, comparator, threshold };
 }
 
-/** Serialize the form-state pieces into the canonical wire shape the resolver
- *  accepts. Empty label values are dropped so a half-filled form still produces
- *  a valid expression for partial validation. */
+/** Form state → wire shape. Empty labels are dropped so a half-filled form
+ *  still produces something valid. */
 export function buildExpression(parts: ParsedExpression): string {
 	const cleanLabels: string[] = [];
 	for (const [k, v] of Object.entries(parts.labels)) {
@@ -57,16 +50,8 @@ export function buildExpression(parts: ParsedExpression): string {
 	return `${parts.namespace}.${parts.field}${labelBlock} ${parts.comparator} ${thr}`;
 }
 
-/**
- * Render an expression as a single human-readable sentence for the rules
- * list. Falls back to the raw expression if the shape is unfamiliar — the
- * UI then displays it in the code style block as before.
- *
- * Examples:
- *   `service.up{unit="nginx.service"} == 0`  → "Service nginx.service down"
- *   `cpu.usage_percent > 80`                 → "CPU usage over 80%"
- *   `disk.used_bytes{mount_point="/"} > 1e9` → "Disk / used > 1,000,000,000 bytes"
- */
+/** One readable sentence for the rules list, e.g. `cpu.usage_percent > 80` →
+ *  "CPU usage over 80%". Unfamiliar shapes fall back to the raw expression. */
 export function describeExpression(expr: string, schema: AlertsSchemaResponse | null): string {
 	const p = parseExpression(expr);
 	if (!p) return expr;

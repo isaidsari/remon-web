@@ -78,14 +78,10 @@
 				: 'offline'
 	);
 
-	// The conversation survives navigation within the tab: persisted per
-	// profile in sessionStorage. In-flight asks are dropped and transient
-	// proposal states normalized, so a restore never resurrects a spinner.
+	// Persisted per profile in sessionStorage; a restore never resurrects a spinner.
 	const storageKey = $derived(`remon.assistant.${id}`);
 
-	// Tolerates stale or foreign payloads (older Entry shapes, hand-edited
-	// storage): anything that doesn't look like a finished turn is dropped
-	// rather than crashing the render.
+	// Anything that is not a finished turn is dropped rather than crashing.
 	function readStoredEntries(key: string): Entry[] {
 		try {
 			const parsed: unknown = JSON.parse(sessionStorage.getItem(key) ?? '[]');
@@ -149,10 +145,8 @@
 		return Math.max(0, Math.floor((now - (entry.startedAt ?? now)) / 1000));
 	}
 
-	// Dev mode: per-tab toggle (sessionStorage) that asks the server for the
-	// loop trace and lets a custom system prompt be tried without a rebuild.
-	// The server refuses overrides unless [assistant] dev = true, so leaving
-	// this on against a locked-down daemon just yields a clear 403.
+	// Per-tab toggle asking for the loop trace. The server refuses overrides
+	// unless [assistant] dev = true, so a locked-down daemon just answers 403.
 	let devMode = $state(false);
 	let devSystem = $state('');
 	let devModel = $state('');
@@ -209,9 +203,8 @@
 		question = '';
 		resizeTextarea();
 
-		// Mutate through the proxy the array hands back — not an index — so a
-		// clear() while the ask is in flight detaches this turn harmlessly
-		// instead of writing into whatever now occupies that slot.
+		// Through the proxy, not an index: a clear() mid-ask must not write into
+		// whatever now occupies the slot.
 		entries.push({
 			question: text,
 			answer: '',
@@ -244,9 +237,7 @@
 					: undefined
 			};
 
-			// Streamed by default: tool activity + answer text render as the
-			// server works. Daemons without the stream route fall back to the
-			// buffered ask — same answer, just all at once.
+			// Daemons without the stream route fall back to the buffered ask.
 			let res;
 			try {
 				res = await conn.client.askStream(text, {
@@ -299,15 +290,11 @@
 
 	const PROPOSAL_METHODS = new Set(['POST', 'PUT', 'DELETE']);
 
-	// The daemon never acts on its own: a proposal is applied only here, when
-	// the operator confirms, by calling the same REST endpoint any other UI
-	// control would. `path` may carry a query string (e.g. kill signal).
+	// The daemon never acts on its own; a proposal is applied only on confirm.
 	async function applyProposal(entryIdx: number, propIdx: number) {
 		const p = entries[entryIdx].proposals[propIdx];
 		if (!conn?.isAuthenticated || p.state === 'applying' || p.state === 'done') return;
-		// Defense in depth: the daemon builds these paths from templates, but
-		// never let one retarget the confirm off this API — an absolute URL
-		// would override baseUrl in `new URL(...)` and leak the bearer token.
+		// An absolute URL would override baseUrl and leak the bearer token.
 		if (!PROPOSAL_METHODS.has(p.method) || !p.path.startsWith('/') || p.path.startsWith('//')) {
 			p.state = 'failed';
 			p.error = m.assistant_action_invalid_path();
@@ -361,9 +348,7 @@
 	}
 
 	function onKeydown(e: KeyboardEvent) {
-		// Enter sends; Shift+Enter inserts a newline. Enter that commits an
-		// IME composition (Japanese, Chinese, …) must not send — isComposing
-		// flags it.
+		// Enter sends, except the one that commits an IME composition.
 		if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
 			e.preventDefault();
 			void ask(question);

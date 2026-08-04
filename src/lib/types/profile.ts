@@ -32,11 +32,7 @@ export const EMPTY_VAULT_DATA: VaultData = {
 	createdAt: 0
 };
 
-/**
- * Forward-migrate a decrypted vault to the current schema. v1→v2 only bumps the
- * version marker — the `dashboard` field is optional, so older profiles simply
- * have none until the dashboard page generates a default and saves it.
- */
+/** Forward-migrate a decrypted vault. v1→v2 only bumps the version marker. */
 export function migrateVaultData(data: VaultData): VaultData {
 	if (data.schemaVersion >= VAULT_SCHEMA_VERSION) return data;
 	return { ...data, schemaVersion: VAULT_SCHEMA_VERSION };

@@ -207,9 +207,7 @@
 		return !!x && typeof x === 'object' && 'error' in (x as object);
 	}
 
-	// Canonical JSON for label set — must match server-side key shape so the
-	// dropdown selection survives across refetches even if the server emits
-	// labels with the same keys in different insertion orders.
+	// Must match the server's key shape or the selection breaks on refetch.
 	function labelKey(labels: Record<string, string>): string {
 		const keys = Object.keys(labels).sort();
 		const obj: Record<string, string> = {};
@@ -222,9 +220,7 @@
 		return formatLabelKeyBase(key) || m.probes_metric_labels_none();
 	}
 
-	// Unit-aware value formatting. The probe API gives us free-form unit
-	// strings; we special-case the common ones and fall back to "number unit"
-	// for everything else so unknown units still render readably.
+	// Free-form units: the common ones are special-cased, the rest pass through.
 	function normalizeUnit(unit: string | null | undefined): string {
 		return (unit ?? '').trim().toLowerCase();
 	}
@@ -243,9 +239,7 @@
 			case '':
 				return fmtScalar(value);
 			default:
-				// Pass arbitrary units through unchanged: `42 bans`, `127 scrapes`,
-				// `3 connections`. The probe is the source of truth for what the
-				// number means; we just spell it.
+				// The probe is the source of truth for what the number means.
 				return `${fmtScalar(value)} ${unit}`;
 		}
 	}
@@ -261,9 +255,7 @@
 		entries: ProbeMetric[];
 	};
 
-	// Bucket a flat metric list (one row per name × label-set) into one
-	// group per metric name. Lets the run panel render a single header per
-	// metric with the label rows underneath, instead of N×M flat cards.
+	// One group per metric name, so the panel renders a header with label rows.
 	function groupMetricsByName(metrics: ProbeMetric[]): MetricGroup[] {
 		const map = new Map<string, MetricGroup>();
 		for (const metric of metrics) {

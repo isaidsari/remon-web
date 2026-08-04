@@ -1,9 +1,7 @@
 import type { ProbeMetricPoint } from '$lib/types/api';
 import { fmtBytes, fmtPercent, fmtScalar } from './format';
 
-// Canonical JSON for a label set — keys sorted so the same logical label-set
-// always produces the same key regardless of insertion order. Used to group
-// multi-label probe metric streams and to persist a selected stream.
+// Canonical JSON: sorted keys, so insertion order cannot change the key.
 export function labelKey(labels: Record<string, string>): string {
 	const keys = Object.keys(labels).sort();
 	const obj: Record<string, string> = {};

@@ -31,9 +31,7 @@
 	let netRx = $derived(network.reduce((s, n) => s + n.rx_bytes_per_sec, 0));
 	let netTx = $derived(network.reduce((s, n) => s + n.tx_bytes_per_sec, 0));
 
-	// MetricCard ships no border/rounding of its own (it lived inside a shared
-	// hairline grid on the old overview). On the dashboard each KPI stands alone,
-	// so give it the same rounded surface + inset border as Card for consistency.
+	// MetricCard has no border of its own; on the dashboard each KPI stands alone.
 	const cardCls =
 		'h-full rounded-[var(--radius-card)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_var(--color-border)]';
 </script>

@@ -15,9 +15,7 @@
 
 	let { cpu, memory, io, class: klass = '' }: Props = $props();
 
-	// PSI explainer values: each resource exposes a `some` (any task stalled)
-	// and `full` (every task stalled, except CPU which the kernel doesn't
-	// emit). We focus on `some_avg10` — that's the most reactive signal.
+	// `some` = any task stalled; CPU emits no `full`. some_avg10 is the headline.
 
 	type Slot = {
 		key: PressureResource;

@@ -4,9 +4,7 @@
 
 	let { text }: { text: string } = $props();
 
-	// Answers come from the operator's own LLM provider, but they still pass
-	// through sanitize: a tool result could echo attacker-influenced strings
-	// (process names, log lines) that the model quotes back verbatim.
+	// A tool result can echo attacker-influenced strings the model quotes back.
 	const html = $derived(
 		DOMPurify.sanitize(marked.parse(text, { gfm: true, breaks: true, async: false }) as string)
 	);

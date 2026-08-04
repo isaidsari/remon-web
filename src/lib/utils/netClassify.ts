@@ -1,6 +1,5 @@
-// Mirrors is_virtual_interface() in remon-server/src/services/system.rs.
-// Client-side copy handles historic metric rows that pre-date server filters
-// and enables the physical/container/virtual three-way split (vs server's binary).
+// Mirrors is_virtual_interface() in remon-server, plus a three-way split the
+// server's binary one cannot express. Also covers rows from older servers.
 
 export type IfaceClass = 'physical' | 'container' | 'virtual';
 

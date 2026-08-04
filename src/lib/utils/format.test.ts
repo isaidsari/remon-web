@@ -1,10 +1,8 @@
 import { describe, it, expect } from 'bun:test';
 import { fmtBytes, fmtBps, fmtPercent, fmtNumber, fmtScalar, fmtDuration } from './format';
 
-// No locale is selected under bun, so these assert the base locale (en). The
-// point of the suite is that the numbers go through Intl at all: before this,
-// every figure in the UI was formatted with `toFixed` and a Turkish operator
-// read English decimals — `1.2 GB` where the language calls for `1,2 GB`.
+// Bun selects no locale, so these assert the base locale (en). The point is
+// that the figures go through Intl at all.
 describe('fmtBytes', () => {
 	it('scales by 1024 and labels in SI', () => {
 		expect(fmtBytes(1024)).toBe('1.0 KB');

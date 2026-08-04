@@ -1,6 +1,5 @@
-// EventSource can't send custom headers; @microsoft/fetch-event-source uses
-// fetch + ReadableStream instead. getAccessToken thunk means every reconnect
-// picks up the latest rotated token automatically.
+// EventSource cannot send headers; this lib uses fetch + ReadableStream, and
+// the token thunk means reconnects pick up a rotated token.
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 
 export interface SseSubscription {
@@ -27,9 +26,7 @@ export function openSseStream(opts: OpenSseOptions): SseSubscription {
 
 	void fetchEventSource(opts.url, {
 		signal: ctrl.signal,
-		// Keep the stream open even when the tab is hidden — we want
-		// the dashboard to be current when the user comes back. Browser
-		// throttling will slow timers but the SSE still drains.
+		// Stay open when hidden so the dashboard is current on return.
 		openWhenHidden: true,
 		fetch: (input, init) => {
 			const headers = new Headers(init?.headers);
@@ -52,9 +49,7 @@ export function openSseStream(opts: OpenSseOptions): SseSubscription {
 		},
 		onerror(err) {
 			opts.handlers.onError?.(err);
-			// Returning a number tells the lib how long to wait before retrying.
-			// Throwing would stop the loop forever — we never want that here;
-			// `close()` (AbortController) is the only stop signal.
+			// A number is the retry delay; throwing would end the loop for good.
 			return reconnectDelay;
 		},
 		onclose() {

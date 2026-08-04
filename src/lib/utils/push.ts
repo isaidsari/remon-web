@@ -1,6 +1,5 @@
-// Uint8Array<ArrayBuffer> return type is required for PushManager.subscribe's
-// applicationServerKey — TS 5+ widens the default to ArrayBufferLike which
-// includes SharedArrayBuffer, and the browser API rejects that.
+// The explicit Uint8Array<ArrayBuffer> matters: the default widens to
+// ArrayBufferLike, which applicationServerKey rejects.
 function urlBase64ToUint8Array(base64UrlString: string): Uint8Array<ArrayBuffer> {
 	const padding = '='.repeat((4 - (base64UrlString.length % 4)) % 4);
 	const base64 = (base64UrlString + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -91,22 +90,13 @@ const OWNER_KEY = 'remon.push.owner';
 
 export interface PushOwner {
 	serverId: string;
-	/** The subscription's endpoint at the time it was recorded — lets a
-	 *  caller confirm the live subscription still matches what's stored
-	 *  here, rather than trusting a serverId that could be stale. */
+	/** Endpoint as recorded, so a caller can tell a stale serverId apart. */
 	endpoint: string;
 }
 
-/**
- * Every server profile mints its own VAPID keypair, but a browser allows
- * exactly one PushManager subscription per service-worker registration —
- * and remon-web registers one SW for the whole app, shared across every
- * paired server. So "push is enabled" is a per-browser fact, not a
- * per-server one: subscribing a second server silently invalidates (or
- * outright fails to replace) the first. This records which paired server
- * the current subscription actually belongs to, so each server's settings
- * page can tell "enabled here" apart from "enabled for a different server".
- */
+/** A browser allows one push subscription per SW registration, and there is one
+ *  SW for every paired server — so "push is enabled" is a per-browser fact.
+ *  This records which server owns the current one. */
 export function getPushOwner(): PushOwner | null {
 	try {
 		const raw = localStorage.getItem(OWNER_KEY);

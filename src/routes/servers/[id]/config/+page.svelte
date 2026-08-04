@@ -110,9 +110,7 @@
 		form && !form.server_name.trim() ? m.config_validation_server_name_empty() : null
 	);
 
-	// Server enforces >= 1000 ms for collector intervals (sub-second sampling
-	// collides with second-resolution metric PKs) and >= 60 s for SMART
-	// (each poll shells out to every disk). Mirror both floors here.
+	// Mirrors the server's floors: 1000 ms for collectors, 60 s for SMART.
 	const MIN_INTERVAL_MS = 1000;
 	const MIN_SMART_INTERVAL_MS = 60_000;
 

@@ -94,9 +94,7 @@ export class LiveStats {
 		}
 		this.subscribers++;
 		if (this.subscribers === 1 && this.subscription === null) {
-			// Seed the sparkline buffers from history so they aren't empty for
-			// the first few minutes; fire-and-forget — SSE starts immediately
-			// and the prefetch merges in once it lands.
+			// Seed sparklines from history; fire-and-forget, SSE starts immediately.
 			void this.prefetchHistory();
 			this.openStream();
 		}
@@ -179,11 +177,8 @@ export class LiveStats {
 
 			const netByTs = new Map<number, { rx: number; tx: number }>();
 			for (const p of n.points) {
-				// Same cross-platform physical-NIC filter the live SSE path
-				// applies to its KPI totals — see $lib/utils/netClassify.ts for
-				// what's matched. Historic rollup rows from older server
-				// versions may still carry veth/Npcap/vEthernet entries, so
-				// we filter at read time rather than trusting the source.
+				// Same filter as the live path: rows from older servers may still
+				// carry veth/Npcap entries.
 				if (!isPhysicalInterface(p.interface_name)) continue;
 				const slot = netByTs.get(p.timestamp) ?? { rx: 0, tx: 0 };
 				slot.rx += p.rx_bytes_per_sec;
@@ -271,10 +266,7 @@ export class LiveStats {
 				break;
 			}
 			case 'Disk': {
-				// Server already filters out container-runtime overlay mounts
-				// (/var/lib/docker/, /var/lib/containers/), so what arrives
-				// here is the host's real disks. Aggregate without per-mount
-				// filtering.
+				// Server already drops container overlay mounts; aggregate as-is.
 				this.disks = event.data;
 				if (event.data.length > 0) {
 					const ts = event.data[0].timestamp;
@@ -296,14 +288,9 @@ export class LiveStats {
 				break;
 			}
 			case 'Network': {
-				// The full array is kept as-is — the network-detail widget wants
-				// every interface so it can group them by class. The KPI totals
-				// below re-filter through isPhysicalInterface() because the
-				// server's own filter (veth/br-/docker/tap/vmnet/vboxnet/virbr)
-				// is narrower than ours: Npcap shadow adapters and Windows
-				// pseudo-tunnels survive it and would double-count against the
-				// same traffic. Must stay in step with prefetchHistory(), or the
-				// sparkline jumps where seeded history meets live samples.
+				// Kept whole for the network widget; KPI totals re-filter because the
+				// server's filter is narrower (Npcap and pseudo-tunnels double-count).
+				// Must stay in step with prefetchHistory() or the sparkline jumps.
 				this.network = event.data;
 				if (event.data.length > 0) {
 					const ts = event.data[0].timestamp;
