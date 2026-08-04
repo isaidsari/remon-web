@@ -8,7 +8,6 @@
 	import LogStream from '$lib/components/common/LogStream.svelte';
 	import StatsPanel from '$lib/components/docker/StatsPanel.svelte';
 	import ContainerHistory from '$lib/components/docker/ContainerHistory.svelte';
-	import Terminal from '$lib/components/docker/Terminal.svelte';
 	import Banner from '$lib/components/ui/Banner.svelte';
 	import { profiles } from '$lib/stores/profiles.svelte';
 	import { connections } from '$lib/stores/connections.svelte';
@@ -408,7 +407,14 @@
 					</span>
 				</div>
 				{#if conn?.isAuthenticated && running}
-					<Terminal {conn} containerId={cid} />
+					<!--
+						xterm is ~360 KB of the parsed weight of this route. Imported
+						here rather than at the top so the page's own shell renders
+						without it, and a stopped container never pays for it at all.
+					-->
+					{#await import('$lib/components/docker/Terminal.svelte') then { default: Terminal }}
+						<Terminal {conn} containerId={cid} />
+					{/await}
 				{:else if !running}
 					<p class="text-sm text-[var(--color-fg-subtle)]">
 						{m.docker_container_console_not_running()}
