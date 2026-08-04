@@ -45,9 +45,18 @@
 	onMount(() => {
 		applyTheme(getTheme());
 		applyHtmlLang();
-		void loadEcharts().catch(() => {
-			/* no-op — chart components will retry on mount */
-		});
+
+		// Warming the chart bundle avoids pop-in on the pages that draw, but it
+		// is ~1 MB to parse and the service worker has already cached the bytes
+		// — so there is nothing to gain from doing it while the app is still
+		// getting interactive. Yield first; the timeout keeps the warm-up from
+		// being postponed indefinitely on a busy tab.
+		const warm = () =>
+			void loadEcharts().catch(() => {
+				/* no-op — chart components will retry on mount */
+			});
+		if (typeof requestIdleCallback === 'function') requestIdleCallback(warm, { timeout: 3000 });
+		else setTimeout(warm, 1200);
 	});
 
 	// View Transitions API — animation rules in app.css; no-ops on unsupported browsers.
