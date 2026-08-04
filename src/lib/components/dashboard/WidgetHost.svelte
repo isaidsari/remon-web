@@ -23,13 +23,7 @@
 	let config = $derived(widget.config);
 </script>
 
-<!--
-	One widget rendering badly must not cost the operator the whole dashboard —
-	an unexpected shape from a probe or a chart that cannot mount would
-	otherwise blank every panel on the page, including the ones reporting that
-	the host is on fire. The boundary is here rather than in the grid so every
-	widget kind, present and future, inherits it.
--->
+<!-- Here, not in the grid, so every widget kind inherits it. -->
 <svelte:boundary onerror={(e) => console.error('widget failed', widget.config.kind, e)}>
 	{#if config.kind === 'live-kpi'}
 		<LiveKpiWidget {conn} {config} />

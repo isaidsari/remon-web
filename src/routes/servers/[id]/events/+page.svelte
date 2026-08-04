@@ -42,9 +42,7 @@
 	let source = $state<SourceFilter>('all');
 	let range = $state<RangeKey>('24h');
 
-	/** One screenful. The server caps a page at 1000 and hands back a cursor
-	 *  whenever a full one came back, so a large page just delays the first
-	 *  paint — it never removes the need to follow the cursor. */
+	/** One screenful; the server caps a page at 1000 either way. */
 	const PAGE_SIZE = 200;
 
 	const query = createInfiniteQuery<ListEventsResponse, ApiError, InfiniteData<ListEventsResponse>>(
@@ -53,10 +51,8 @@
 			enabled: !!conn?.isAuthenticated,
 			initialPageParam: undefined,
 			getNextPageParam: (last: ListEventsResponse) => last.next_cursor,
-			// The window is read per fetch rather than frozen at page 1: that is
-			// what lets the poll below surface events that happened since. Only
-			// page 1 is bounded by `end` — every later page is bounded by its
-			// cursor, so a clock that moved between pages cannot skip a row.
+			// Read per fetch, not frozen: only page 1 is bounded by `end`, so the
+			// poll can surface new events without later pages skipping a row.
 			queryFn: async ({ pageParam, signal }) => {
 				const now = Math.floor(Date.now() / 1000);
 				return conn!.client.events(
@@ -70,10 +66,7 @@
 					{ signal }
 				);
 			},
-			// A poll refetches every loaded page. While the operator is reading
-			// further down the timeline that is both wasteful and disruptive, so
-			// paging past the first screenful stands the poll down until they
-			// refresh by hand.
+			// A poll refetches every loaded page — stand it down once paged.
 			refetchInterval: (q) => ((q.state.data?.pages.length ?? 1) > 1 ? false : 30_000)
 		})
 	);
@@ -82,12 +75,10 @@
 	let events = $derived<EventDto[] | null>(
 		query.data ? query.data.pages.flatMap((p) => p.events) : null
 	);
-	/** A failed background refetch keeps the last good pages on screen — the
-	 *  banner is what says they are no longer current. */
+	/** Last good pages stay on screen; the banner says they are stale. */
 	let loadFailed = $derived(query.isError);
 
-	// Only an explicit refresh spins the button; the 30s poll must not, or the
-	// page appears to refresh itself every half minute.
+	// Only an explicit refresh spins the button, not the 30s poll.
 	let busy = $state(false);
 	async function refresh() {
 		busy = true;

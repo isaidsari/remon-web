@@ -46,11 +46,7 @@
 		applyTheme(getTheme());
 		applyHtmlLang();
 
-		// Warming the chart bundle avoids pop-in on the pages that draw, but it
-		// is ~1 MB to parse and the service worker has already cached the bytes
-		// — so there is nothing to gain from doing it while the app is still
-		// getting interactive. Yield first; the timeout keeps the warm-up from
-		// being postponed indefinitely on a busy tab.
+		// ~1 MB to parse, already cached by the SW — warm it off the critical path.
 		const warm = () =>
 			void loadEcharts().catch(() => {
 				/* no-op — chart components will retry on mount */

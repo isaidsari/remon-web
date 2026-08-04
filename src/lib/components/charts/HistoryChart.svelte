@@ -35,6 +35,7 @@
 	import { loadEcharts } from '$lib/charts/echarts-lazy';
 	import { chartPalette } from '$lib/charts/chart-theme';
 	import { rgbAt } from '$lib/charts/color';
+	import { tabVisible } from '$lib/utils/visibility.svelte';
 
 	interface Props {
 		series: Series[];
@@ -323,7 +324,8 @@
 			void s.data.xs.length;
 			void s.data.ys.length;
 		}
-		if (!chart) return;
+		const visible = tabVisible();
+		if (!chart || !visible) return;
 		chart.setOption(buildOption(), { replaceMerge: ['series'] });
 	});
 </script>

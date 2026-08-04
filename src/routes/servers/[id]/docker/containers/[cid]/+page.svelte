@@ -407,11 +407,7 @@
 					</span>
 				</div>
 				{#if conn?.isAuthenticated && running}
-					<!--
-						xterm is ~360 KB of the parsed weight of this route. Imported
-						here rather than at the top so the page's own shell renders
-						without it, and a stopped container never pays for it at all.
-					-->
+					<!-- xterm is ~360 KB of this route's parse weight; keep it off the shell. -->
 					{#await import('$lib/components/docker/Terminal.svelte') then { default: Terminal }}
 						<Terminal {conn} containerId={cid} />
 					{/await}

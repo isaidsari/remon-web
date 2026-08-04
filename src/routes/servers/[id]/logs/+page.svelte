@@ -37,8 +37,7 @@
 		'30d': 2_592_000
 	};
 
-	/** The endpoint has no cursor, so a full page is the only signal that the
-	 *  range holds more than this — see the truncation hint below. */
+	/** No cursor on this endpoint; a full page is the only "there is more" signal. */
 	const LIMIT = 1000;
 
 	let level = $state<LogLevel>('info');
@@ -48,20 +47,17 @@
 	let entries = $state<LogEntry[] | null>(null);
 	let busy = $state(false);
 	let loadFailed = $state(false);
-	/** Bumped by every load. A poll that started under the old level must not
-	 *  land after a newer one: the filter would say `error` over `info` rows. */
+	/** Drops a poll that started under the old filter. */
 	let generation = 0;
 
-	/** `background` = the 30s poll: it must not put the Refresh button into a
-	 *  loading state, or the page appears to refresh itself every half minute. */
+	/** `background` = the 30s poll; it must not spin the Refresh button. */
 	async function fetchData(background = false) {
 		if (!conn?.isAuthenticated) return;
 		if (!background) busy = true;
 		const gen = ++generation;
 		const now = Math.floor(Date.now() / 1000);
 		try {
-			// `level` is a severity floor server-side: `warn` returns warn *and*
-			// error, not warn alone.
+			// `level` is a floor: `warn` returns warn and error.
 			const res = await conn.client.logs({
 				start: now - RANGE_SECS[range],
 				end: now,
@@ -89,8 +85,7 @@
 		return () => clearInterval(t);
 	});
 
-	// The endpoint takes no search term, so this narrows what was fetched and
-	// nothing more. The count line says so whenever it is doing anything.
+	// No server-side search: this narrows what was fetched, and the count says so.
 	let shown = $derived.by(() => {
 		const list = entries ?? [];
 		const needle = filter.trim().toLowerCase();
@@ -100,8 +95,7 @@
 		);
 	});
 
-	/** A full page means the window held at least this many — older entries were
-	 *  cut off, and with no cursor the only way further back is a tighter filter. */
+	/** A full page means older entries were cut off. */
 	let truncated = $derived((entries?.length ?? 0) >= LIMIT);
 
 	const levelOpts: SegmentOption<LogLevel>[] = [

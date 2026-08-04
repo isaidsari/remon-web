@@ -160,10 +160,8 @@ function humanize(code: ApiErrorCode, fallback: string): string {
 export function errorFromThrown(e: unknown): ApiError {
 	if (e instanceof ApiError) return e;
 	const message = e instanceof Error ? e.message : String(e);
-	// `AbortSignal.timeout` reports TimeoutError; a caller cancelling its own
-	// request (superseded query, unmounted page) reports AbortError. Both end
-	// the request without an answer, so they share a code — only the sentence
-	// shown to the operator differs.
+	// `AbortSignal.timeout` reports TimeoutError, a caller-side cancel reports
+	// AbortError. Same code, different sentence.
 	if (e instanceof DOMException && (e.name === 'TimeoutError' || e.name === 'AbortError')) {
 		return new ApiError({
 			code: 'TIMEOUT',

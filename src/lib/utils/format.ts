@@ -3,11 +3,7 @@ import { currentLocale, type Locale } from './lang';
 
 const BYTE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
 
-/**
- * `Intl.NumberFormat` construction is expensive and these run per table row and
- * per chart tick, so instances are kept per (locale, style, digits). Locale
- * changes reload the page, so an entry can never go stale.
- */
+// Constructing these is expensive and they run per row and per chart tick.
 const nfCache = new Map<string, Intl.NumberFormat>();
 function nf(locale: Locale, opts: Intl.NumberFormatOptions): Intl.NumberFormat {
 	const key = `${locale}|${opts.style ?? 'decimal'}|${opts.minimumFractionDigits}|${opts.maximumFractionDigits}`;
@@ -40,10 +36,7 @@ export function fmtBps(n: number, fractionDigits = 1): string {
 	return `${fmtBytes(n, fractionDigits)}/s`;
 }
 
-/**
- * Percent → ("12.3%" under en, "%12,3" under tr). Caller passes the percent
- * already (0–100); the sign's side of the number is the locale's business.
- */
+/** Percent, caller passes 0–100. The sign's side is the locale's business. */
 export function fmtPercent(p: number, fractionDigits = 1): string {
 	if (!Number.isFinite(p)) return '—';
 	return nf(currentLocale(), {
@@ -67,11 +60,7 @@ function durationParts(secs: number): DurationParts {
 	return { seconds: s };
 }
 
-/**
- * `Intl.DurationFormat` is newer than this app's baseline — a browser from
- * before it shipped would throw here rather than render an uptime. `null`
- * records the absence once so the fallback path is not a try/catch per call.
- */
+// Newer than this app's baseline; `null` records the absence once.
 const dfCache = new Map<string, Intl.DurationFormat | null>();
 function df(locale: Locale, keepZero: boolean): Intl.DurationFormat | null {
 	const key = `${locale}|${keepZero}`;
@@ -81,9 +70,8 @@ function df(locale: Locale, keepZero: boolean): Intl.DurationFormat | null {
 				key,
 				new Intl.DurationFormat(locale, {
 					style: 'narrow',
-					// Per-unit, not global: hiding zeroes is what turns `9d 0h`
-					// into `9d`, but a zero duration needs its one unit kept or
-					// it formats to an empty string.
+					// Per-unit, not global. Hiding zeroes turns `9d 0h` into `9d`,
+					// but an all-zero duration would format to an empty string.
 					secondsDisplay: keepZero ? 'always' : 'auto'
 				})
 			);
@@ -94,11 +82,7 @@ function df(locale: Locale, keepZero: boolean): Intl.DurationFormat | null {
 	return dfCache.get(key) ?? null;
 }
 
-/**
- * Seconds → compact duration ("2d 3h" under en, "2g 3s" under tr). The narrow
- * style is what the hand-rolled version was imitating: same width in English,
- * and the abbreviations a Turkish reader expects instead of English initials.
- */
+/** Compact duration: "2d 3h" under en, "2g 3s" under tr. */
 export function fmtDuration(secs: number): string {
 	const isZero = !Number.isFinite(secs) || secs <= 0;
 	const parts: DurationParts = isZero ? { seconds: 0 } : durationParts(secs);
@@ -116,11 +100,7 @@ export function fmtNumber(n: number, fractionDigits = 2): string {
 	return fixed(n, fractionDigits);
 }
 
-/**
- * A probe's own number: integers keep their exact shape, floats get two digits.
- * Both go through the locale, so a count and a rate don't disagree about what a
- * thousands separator looks like.
- */
+/** Integers stay whole, floats get two digits; both through the locale. */
 export function fmtScalar(value: number): string {
 	return Number.isInteger(value) ? fixed(value, 0) : fmtNumber(value, 2);
 }

@@ -815,9 +815,8 @@ export class ApiClient {
 			);
 		}
 
-		// The first settle wins and later ones are no-ops, which is exactly the
-		// semantics wanted here: a `done` frame followed by the stream closing
-		// must not turn a delivered answer into an error.
+		// First settle wins: a `done` followed by the stream closing must not
+		// turn a delivered answer into an error.
 		const { promise, resolve, reject } = Promise.withResolvers<AssistantAskResponse>();
 
 		void fetchEventSource(`${this.baseUrl}/assistant/stream`, {

@@ -4,6 +4,7 @@
 	import { loadEcharts } from '$lib/charts/echarts-lazy';
 	import { chartPalette } from '$lib/charts/chart-theme';
 	import { rgbAt } from '$lib/charts/color';
+	import { tabVisible } from '$lib/utils/visibility.svelte';
 	import type { TimeSeries } from '$lib/stores/livestats.svelte';
 
 	interface ExtraSeries {
@@ -184,7 +185,9 @@
 			void extra.data.xs.length;
 			void extra.data.ys.length;
 		}
-		if (!chart) return;
+		// SSE keeps arriving in a hidden tab by design; drawing it need not.
+		const visible = tabVisible();
+		if (!chart || !visible) return;
 		const updates: { data: [number, number | null][] }[] = [{ data: zip(data.xs, data.ys) }];
 		if (extra) updates.push({ data: zip(extra.data.xs, extra.data.ys) });
 		chart.setOption({ series: updates, yAxis: { max: effectiveMax() } });

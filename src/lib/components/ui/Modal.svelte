@@ -44,13 +44,10 @@
 		const el = dialogEl;
 		if (!open || !el) return;
 
-		// The top layer is what makes this modal: focus containment, inertness
-		// of everything behind it, and Escape all come from the platform. Only
-		// the two things it does not cover are done by hand below.
+		// Focus containment, inertness and Escape come from the top layer.
 		el.showModal();
 
-		// showModal() focuses the first control, which arms a destructive button
-		// on a confirm dialog. The dialog itself is the safer landing spot.
+		// showModal focuses the first control, which arms a confirm dialog's button.
 		el.focus({ preventScroll: true });
 
 		// The page behind a modal dialog is inert but still scrollable.
@@ -59,26 +56,19 @@
 
 		return () => {
 			document.body.style.overflow = prev;
-			// Runs after the outro, so closing here — rather than letting the
-			// element be removed while still open — is what hands focus back to
-			// whatever opened the dialog.
+			// Runs after the outro; closing (not removing) is what restores focus.
 			if (el.open) el.close();
 		};
 	});
 
-	/**
-	 * Escape and backdrop clicks report intent; they never close the dialog
-	 * themselves. Letting the platform close it would drop the element out of
-	 * the top layer while Svelte is still playing its outro, and the card would
-	 * reappear mid-page for the length of the transition.
-	 */
+	/** Report intent only: closing here would drop the dialog out of the top
+	 *  layer mid-outro and the card would flash in-page. */
 	function onCancel(e: Event) {
 		e.preventDefault();
 		if (closeOnEscape) onClose?.();
 	}
 
-	// A click on ::backdrop reports the dialog itself as the target; anything
-	// inside the card reports the child that was clicked.
+	// A ::backdrop click reports the dialog itself as the target.
 	function onClick(e: MouseEvent) {
 		if (closeOnBackdrop && e.target === dialogEl) onClose?.();
 	}
