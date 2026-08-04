@@ -53,17 +53,61 @@ export function fmtPercent(p: number, fractionDigits = 1): string {
 	}).format(p / 100);
 }
 
-/** Seconds → "h m s" compact form. */
-export function fmtDuration(secs: number): string {
-	if (!Number.isFinite(secs) || secs <= 0) return '0s';
+type DurationParts = Partial<Record<Intl.DurationFormatUnit, number>>;
+
+/** The two largest units that carry information, as a duration record. */
+function durationParts(secs: number): DurationParts {
 	const d = Math.floor(secs / 86400);
 	const h = Math.floor((secs % 86400) / 3600);
 	const mins = Math.floor((secs % 3600) / 60);
 	const s = Math.floor(secs % 60);
-	if (d > 0) return `${d}d ${h}h`;
-	if (h > 0) return `${h}h ${mins}m`;
-	if (mins > 0) return `${mins}m ${s}s`;
-	return `${s}s`;
+	if (d > 0) return { days: d, hours: h };
+	if (h > 0) return { hours: h, minutes: mins };
+	if (mins > 0) return { minutes: mins, seconds: s };
+	return { seconds: s };
+}
+
+/**
+ * `Intl.DurationFormat` is newer than this app's baseline — a browser from
+ * before it shipped would throw here rather than render an uptime. `null`
+ * records the absence once so the fallback path is not a try/catch per call.
+ */
+const dfCache = new Map<string, Intl.DurationFormat | null>();
+function df(locale: Locale, keepZero: boolean): Intl.DurationFormat | null {
+	const key = `${locale}|${keepZero}`;
+	if (!dfCache.has(key)) {
+		try {
+			dfCache.set(
+				key,
+				new Intl.DurationFormat(locale, {
+					style: 'narrow',
+					// Per-unit, not global: hiding zeroes is what turns `9d 0h`
+					// into `9d`, but a zero duration needs its one unit kept or
+					// it formats to an empty string.
+					secondsDisplay: keepZero ? 'always' : 'auto'
+				})
+			);
+		} catch {
+			dfCache.set(key, null);
+		}
+	}
+	return dfCache.get(key) ?? null;
+}
+
+/**
+ * Seconds → compact duration ("2d 3h" under en, "2g 3s" under tr). The narrow
+ * style is what the hand-rolled version was imitating: same width in English,
+ * and the abbreviations a Turkish reader expects instead of English initials.
+ */
+export function fmtDuration(secs: number): string {
+	const isZero = !Number.isFinite(secs) || secs <= 0;
+	const parts: DurationParts = isZero ? { seconds: 0 } : durationParts(secs);
+	const fmt = df(currentLocale(), isZero);
+	if (fmt) return fmt.format(parts);
+	// Pre-DurationFormat browsers keep the English abbreviations.
+	return Object.entries(parts)
+		.map(([unit, v]) => `${v}${unit[0]}`)
+		.join(' ');
 }
 
 /** Plain number at fixed digits, with the locale's separators and grouping. */

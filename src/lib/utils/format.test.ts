@@ -78,7 +78,17 @@ describe('fmtDuration', () => {
 		expect(fmtDuration(86_400 * 2 + 3600 * 3)).toBe('2d 3h');
 	});
 
-	it('floors to 0s rather than going negative', () => {
+	// The hand-rolled version padded these with a unit carrying no information.
+	it('drops a trailing zero unit', () => {
+		expect(fmtDuration(86_400 * 9)).toBe('9d');
+		expect(fmtDuration(3600)).toBe('1h');
+	});
+
+	// A zero duration is the one case where every unit is zero, and the
+	// formatter's `auto` display would render an empty string for it.
+	it('still says 0s for nothing', () => {
+		expect(fmtDuration(0)).toBe('0s');
 		expect(fmtDuration(-5)).toBe('0s');
+		expect(fmtDuration(Number.NaN)).toBe('0s');
 	});
 });
