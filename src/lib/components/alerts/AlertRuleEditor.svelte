@@ -229,7 +229,6 @@
 		builder = { ...builder, field };
 	}
 
-
 	// Windows are only accepted on the namespaces that keep sample history;
 	// the daemon publishes that list, and a server too old to publish it also
 	// cannot parse an aggregate, so the whole control stays hidden there.
@@ -682,11 +681,7 @@
 					</select>
 				</Field>
 				{#if builder.aggregate}
-					<Field
-						label={m.alerts_editor_field_window()}
-						hint={windowHint}
-						error={windowError}
-					>
+					<Field label={m.alerts_editor_field_window()} hint={windowHint} error={windowError}>
 						<Input
 							value={builder.window ?? ''}
 							oninput={(e) => {

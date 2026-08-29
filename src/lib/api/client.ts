@@ -720,7 +720,6 @@ export class ApiClient {
 		});
 	}
 
-
 	// ===== Alert actions =====
 	//
 	// Reads go through the 5s GET cache like everything else; every mutation
@@ -749,10 +748,7 @@ export class ApiClient {
 		return this.request<ActionBindingDto>(`/actions/bindings/${id}`);
 	}
 
-	createActionBinding(
-		ruleId: number,
-		req: CreateActionBindingRequest
-	): Promise<ActionBindingDto> {
+	createActionBinding(ruleId: number, req: CreateActionBindingRequest): Promise<ActionBindingDto> {
 		return this.request<ActionBindingDto>(`/alerts/${ruleId}/actions`, {
 			method: 'POST',
 			body: req

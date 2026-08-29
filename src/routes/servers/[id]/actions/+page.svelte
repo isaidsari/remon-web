@@ -520,7 +520,9 @@
 			{/if}
 
 			<section class="mb-6">
-				<h2 class="mb-2 text-[13px] font-semibold tracking-tight">{m.actions_bindings_heading()}</h2>
+				<h2 class="mb-2 text-[13px] font-semibold tracking-tight">
+					{m.actions_bindings_heading()}
+				</h2>
 				{#if bindings.length === 0}
 					<Card padding="lg">
 						<p class="text-sm text-[var(--color-fg-subtle)]">
@@ -699,7 +701,9 @@
 													</span>
 												{/if}
 											</td>
-											<td class="px-3 py-2.5 text-[12px] whitespace-nowrap text-[var(--color-fg-muted)]">
+											<td
+												class="px-3 py-2.5 text-[12px] whitespace-nowrap text-[var(--color-fg-muted)]"
+											>
 												{fmtRelative(run.created_at)}
 												{#if run.duration_ms !== null}
 													<span class="block font-mono text-[10px] text-[var(--color-fg-subtle)]">
@@ -815,11 +819,7 @@
 					<Input bind:value={fMaxRuns} inputmode="numeric" invalid={maxRuns === null} />
 				</Field>
 				<Field label={m.actions_field_failure_limit()} hint={m.actions_failure_limit_hint()}>
-					<Input
-						bind:value={fFailureLimit}
-						inputmode="numeric"
-						invalid={failureLimit === null}
-					/>
+					<Input bind:value={fFailureLimit} inputmode="numeric" invalid={failureLimit === null} />
 				</Field>
 			</div>
 
