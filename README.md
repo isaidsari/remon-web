@@ -11,7 +11,8 @@ Web UI for Remon — a self-hosted system monitoring platform. Connects to one o
 - **Processes** — flat and tree view, sort, filter, kill via modal
 - **Services** — systemd / OpenRC / SCM; timers, cron, live log streaming
 - **Docker / Podman** — container lifecycle, stats panel, exec terminal over WebSocket
-- **Alerts** — rule management (builder / template / raw modes), active state, event history, silence presets
+- **Alerts** — rule management (builder / template / raw modes), windowed aggregates (`max(cpu.usage_percent, 30s) > 80`), active state, event history, silence presets
+- **Alert actions** — bind a script or a service/container lifecycle call to a rule; proposals inbox with confirm/dismiss, dry-run and auto modes, per-binding guardrails, run history including refusals
 - **Notification channels** — Telegram, ntfy, webhook, FCM, Web Push; test-send
 - **Custom probes** — run history, metric charts, manifest viewer
 - **Multi-server** — pair unlimited servers; per-server accent color, independent SSE streams
