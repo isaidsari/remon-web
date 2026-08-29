@@ -21,6 +21,7 @@
 	import IconHeartPulse from '~icons/lucide/heart-pulse';
 	import IconContainer from '~icons/lucide/container';
 	import IconTriangleAlert from '~icons/lucide/triangle-alert';
+	import IconZap from '~icons/lucide/zap';
 	import IconScrollText from '~icons/lucide/scroll-text';
 	import IconFileText from '~icons/lucide/file-text';
 	import IconBell from '~icons/lucide/bell';
@@ -73,6 +74,7 @@
 		{ href: '/heartbeats', label: m.section_heartbeats(), icon: IconHeartPulse, enabled: true },
 		{ href: '/docker', label: m.section_docker(), icon: IconContainer, enabled: true },
 		{ href: '/alerts', label: m.section_alerts(), icon: IconTriangleAlert, enabled: true },
+		{ href: '/actions', label: m.section_actions(), icon: IconZap, enabled: true },
 		{ href: '/events', label: m.section_events(), icon: IconScrollText, enabled: true },
 		{ href: '/logs', label: m.section_logs(), icon: IconFileText, enabled: true },
 		{ href: '/notifications', label: m.section_notifications(), icon: IconBell, enabled: true },
@@ -114,6 +116,13 @@
 				void c.listAlertRules().catch(() => {});
 				void c.alertState().catch(() => {});
 				void c.alertEvents(100).catch(() => {});
+				break;
+			case '/actions':
+				// A daemon older than the action engine 404s these; the page
+				// says so for itself, and a failed prefetch is already silent.
+				void c.actionCatalog().catch(() => {});
+				void c.listActionBindings().catch(() => {});
+				void c.actionRuns({ limit: 100 }).catch(() => {});
 				break;
 			case '/events':
 				void c.events({ limit: 1000 }).catch(() => {});

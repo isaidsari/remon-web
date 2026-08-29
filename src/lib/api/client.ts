@@ -1,5 +1,9 @@
 import type { RawStats } from '$lib/utils/dockerStats';
 import type {
+	ActionBindingDto,
+	ActionCatalogResponse,
+	ActionRunDto,
+	ActionRunsQuery,
 	AlertRuleDto,
 	AssistantAskResponse,
 	AssistantDevOverrides,
@@ -9,6 +13,11 @@ import type {
 	BatchMetricsResponse,
 	CaptureIncidentRequest,
 	CaptureIncidentResponse,
+	CreateActionBindingRequest,
+	ListActionBindingsResponse,
+	ListActionRunsResponse,
+	ReloadActionsResponse,
+	UpdateActionBindingRequest,
 	ComponentsHistoryResponse,
 	ConfigResponse,
 	ContainerInspectInfo,
@@ -709,6 +718,89 @@ export class ApiClient {
 			method: 'POST',
 			body: req
 		});
+	}
+
+
+	// ===== Alert actions =====
+	//
+	// Reads go through the 5s GET cache like everything else; every mutation
+	// below busts it via `bypassCache` on the next read the caller issues.
+
+	/** What can be run on this host, plus the ceilings that decide whether it
+	 *  will be. Servers older than 0.21 404 here — callers treat that as
+	 *  "this daemon has no action engine" rather than an error. */
+	actionCatalog(): Promise<ActionCatalogResponse> {
+		return this.request<ActionCatalogResponse>('/actions');
+	}
+
+	reloadActions(): Promise<ReloadActionsResponse> {
+		return this.request<ReloadActionsResponse>('/actions/reload', { method: 'POST' });
+	}
+
+	listActionBindings(): Promise<ListActionBindingsResponse> {
+		return this.request<ListActionBindingsResponse>('/actions/bindings');
+	}
+
+	listActionBindingsForRule(ruleId: number): Promise<ListActionBindingsResponse> {
+		return this.request<ListActionBindingsResponse>(`/alerts/${ruleId}/actions`);
+	}
+
+	getActionBinding(id: number): Promise<ActionBindingDto> {
+		return this.request<ActionBindingDto>(`/actions/bindings/${id}`);
+	}
+
+	createActionBinding(
+		ruleId: number,
+		req: CreateActionBindingRequest
+	): Promise<ActionBindingDto> {
+		return this.request<ActionBindingDto>(`/alerts/${ruleId}/actions`, {
+			method: 'POST',
+			body: req
+		});
+	}
+
+	/** Full replace — send every field, the server does not merge. */
+	updateActionBinding(id: number, req: UpdateActionBindingRequest): Promise<ActionBindingDto> {
+		return this.request<ActionBindingDto>(`/actions/bindings/${id}`, {
+			method: 'PUT',
+			body: req
+		});
+	}
+
+	deleteActionBinding(id: number): Promise<void> {
+		return this.request<void>(`/actions/bindings/${id}`, { method: 'DELETE', parse: 'none' });
+	}
+
+	/** Run a binding now, on the operator's say-so. Bypasses the guardrails
+	 *  that restrain *unattended* repetition; resolves with the finished run. */
+	runActionBinding(id: number): Promise<ActionRunDto> {
+		return this.request<ActionRunDto>(`/actions/bindings/${id}/run`, { method: 'POST' });
+	}
+
+	/** The ledger. `status: 'pending'` is the operator's inbox of proposals. */
+	actionRuns(q: ActionRunsQuery = {}, opts: Cancellable = {}): Promise<ListActionRunsResponse> {
+		return this.request<ListActionRunsResponse>('/actions/runs', {
+			query: { ...q },
+			signal: opts.signal
+		});
+	}
+
+	getActionRun(id: number): Promise<ActionRunDto> {
+		return this.request<ActionRunDto>(`/actions/runs/${id}`);
+	}
+
+	/** Approve a proposal. Resolves once it has actually run — the response is
+	 *  the outcome, not an acknowledgement, so it can take as long as the
+	 *  remediation does. */
+	confirmActionRun(id: number): Promise<ActionRunDto> {
+		return this.request<ActionRunDto>(`/actions/runs/${id}/confirm`, {
+			method: 'POST',
+			timeoutMs: 120_000
+		});
+	}
+
+	dismissActionRun(id: number): Promise<ActionRunDto> {
+		return this.request<ActionRunDto>(`/actions/runs/${id}/dismiss`, { method: 'POST' });
 	}
 
 	listChannels(): Promise<ListChannelsResponse> {

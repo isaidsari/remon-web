@@ -1227,3 +1227,153 @@ export interface AssistantAskResponse {
 export type AssistantStreamStep =
 	| { kind: 'model'; step: number }
 	| { kind: 'tool'; step: number; name: string };
+
+// ===== Alert actions =====
+//
+// The other end of the alert fanout: a notification says who is told, a
+// binding says what happens. Both hang off the same rule transitions.
+
+/** What a binding runs: an operator-authored script from the daemon's actions
+ *  directory, or one entry of the built-in catalogue. */
+export type ActionKind = 'script' | 'service' | 'container';
+
+/** Which button the catalogue kinds press. Scripts carry no verb. */
+export type ActionVerb = 'start' | 'stop' | 'restart' | 'reload';
+
+/** Which side of the lifecycle a binding listens to. */
+export type ActionOnEvent = 'fired' | 'resolved' | 'both';
+
+/** How much authority a binding has. `manual` — the default — only ever
+ *  drafts a proposal and waits for a human. */
+export type ActionMode = 'manual' | 'auto' | 'dry_run';
+
+/** What drafted a run. `manual` means an operator ran the binding by id, with
+ *  no transition behind it. */
+export type ActionTrigger = 'fired' | 'resolved' | 'manual';
+
+/** Under whose authority a run actually executed. */
+export type ActionRunOrigin = 'auto' | 'confirmed' | 'dry_run';
+
+/** `pending` is a proposal awaiting an answer; `skipped` is a refusal the
+ *  daemon recorded rather than performed, and its `message` says which
+ *  guardrail stopped it. */
+export type ActionRunStatus =
+	| 'pending'
+	| 'running'
+	| 'succeeded'
+	| 'failed'
+	| 'skipped'
+	| 'expired'
+	| 'dismissed';
+
+export interface ActionCatalogEntry {
+	kind: ActionKind;
+	/** Script name; `null` for a catalogue kind whose target is chosen per
+	 *  binding (any unit, any container). */
+	target: string | null;
+	description: string | null;
+	/** Verbs this kind accepts; empty for scripts. */
+	verbs: ActionVerb[];
+	source_path: string | null;
+	timeout_ms: number | null;
+	platforms: string[];
+}
+
+export interface ActionCatalogResponse {
+	/** Master switch. `false` records proposals and history but runs nothing. */
+	enabled: boolean;
+	/** Whether `auto` bindings may run unattended on this host. */
+	auto: boolean;
+	proposal_ttl_secs: number;
+	entries: ActionCatalogEntry[];
+}
+
+export interface ReloadActionsResponse {
+	loaded: string[];
+	skipped_disabled: string[];
+	skipped_platform: string[];
+	failed: { path: string; error: string }[];
+}
+
+export interface ActionBindingDto {
+	id: number;
+	rule_id: number;
+	kind: ActionKind;
+	target: string;
+	verb: ActionVerb | null;
+	on_event: ActionOnEvent;
+	mode: ActionMode;
+	enabled: boolean;
+	/** Minimum spacing between runs for the same target, in seconds. */
+	cooldown_secs: number;
+	/** Ceiling across every target, over a trailing hour. */
+	max_runs_per_hour: number;
+	/** Consecutive failures that disarm the binding. */
+	failure_limit: number;
+	consecutive_failures: number;
+	/** Non-null means the binding turned *itself* off — an operator disabling
+	 *  it leaves this null. */
+	disabled_reason: string | null;
+	/** Rendered one-liner, e.g. `restart service nginx.service`. */
+	summary: string;
+	created_at: number;
+	updated_at: number;
+}
+
+export interface ListActionBindingsResponse {
+	bindings: ActionBindingDto[];
+}
+
+export interface CreateActionBindingRequest {
+	kind: ActionKind;
+	target: string;
+	verb?: ActionVerb | null;
+	on_event?: ActionOnEvent;
+	mode?: ActionMode;
+	enabled?: boolean;
+	cooldown_secs?: number;
+	max_runs_per_hour?: number;
+	failure_limit?: number;
+}
+
+/** Full replace, like `PUT /alerts/{id}` — send the whole binding. */
+export type UpdateActionBindingRequest = CreateActionBindingRequest;
+
+export interface ActionRunDto {
+	id: number;
+	/** `null` once the binding has been deleted; the run outlives it. */
+	action_id: number | null;
+	rule_id: number | null;
+	rule_name: string;
+	label_set: string;
+	kind: ActionKind;
+	target: string;
+	verb: ActionVerb | null;
+	trigger_event: ActionTrigger;
+	origin: ActionRunOrigin;
+	/** Device that confirmed or requested the run; null for unattended ones. */
+	requested_by: string | null;
+	status: ActionRunStatus;
+	/** Only set while `pending`: past this the proposal is no longer offered. */
+	expires_at: number | null;
+	started_at: number | null;
+	finished_at: number | null;
+	duration_ms: number | null;
+	exit_code: number | null;
+	/** One-line outcome, or the reason a `skipped` run never happened. */
+	message: string | null;
+	output_tail: string | null;
+	created_at: number;
+}
+
+export interface ListActionRunsResponse {
+	runs: ActionRunDto[];
+}
+
+export interface ActionRunsQuery {
+	status?: ActionRunStatus;
+	action_id?: number;
+	rule_id?: number;
+	limit?: number;
+	offset?: number;
+}

@@ -32,6 +32,8 @@
 				return m.section_notifications();
 			case 'config':
 				return m.section_config();
+			case 'actions':
+				return m.section_actions();
 			case 'alerts':
 				return m.section_alerts();
 			case 'processes':
