@@ -21,6 +21,7 @@
 		type AlertTemplate,
 		type ParsedExpression
 	} from '$lib/utils/alertExpression';
+	import { fmtDuration } from '$lib/utils/format';
 	import { cn } from '$lib/utils/cn';
 	import { m } from '$lib/paraglide/messages';
 
@@ -212,6 +213,9 @@
 		}
 	});
 
+	// A fresh namespace drops the aggregate with everything else: most
+	// namespaces reject a window outright, so carrying one across would build
+	// an expression the daemon refuses.
 	function selectNamespace(ns: string) {
 		builder = {
 			namespace: ns,
@@ -223,6 +227,46 @@
 	}
 	function selectField(field: string) {
 		builder = { ...builder, field };
+	}
+
+
+	// Windows are only accepted on the namespaces that keep sample history;
+	// the daemon publishes that list, and a server too old to publish it also
+	// cannot parse an aggregate, so the whole control stays hidden there.
+	let windowSupported = $derived<boolean>(
+		(schema?.aggregates?.length ?? 0) > 0 &&
+			(schema?.window_namespaces ?? []).includes(builder.namespace)
+	);
+
+	/** `30s` / `5m` / `1h` → seconds; null when it isn't a window at all. */
+	function windowSecs(v: string): number | null {
+		const m2 = v.trim().match(/^(\d+)([smh])$/);
+		if (!m2) return null;
+		const n = Number(m2[1]);
+		return m2[2] === 'h' ? n * 3600 : m2[2] === 'm' ? n * 60 : n;
+	}
+
+	let windowError = $derived.by(() => {
+		if (!builder.aggregate) return null;
+		const raw = (builder.window ?? '').trim();
+		if (raw === '') return m.alerts_editor_window_required();
+		const secs = windowSecs(raw);
+		if (secs === null || secs <= 0) return m.alerts_editor_window_malformed();
+		const max = schema?.max_window_secs ?? 3600;
+		if (secs > max) return m.alerts_editor_window_too_long({ max: fmtDuration(max) });
+		return null;
+	});
+
+	let windowHint = $derived(
+		m.alerts_editor_window_hint({ max: fmtDuration(schema?.max_window_secs ?? 3600) })
+	);
+
+	/** Clearing the function clears the window with it — half an aggregate is
+	 *  not an expression the daemon accepts. */
+	function setAggregate(next: string) {
+		builder = next
+			? { ...builder, aggregate: next, window: builder.window || '30s' }
+			: { ...builder, aggregate: '', window: '' };
 	}
 
 	let isBool = $derived(currentMetric?.value_type === 'bool');
@@ -338,6 +382,14 @@
 				return { level: 'error', hint };
 			}
 		}
+		// A window on a namespace with no sample history is a 400 at save
+		// time; say so here instead of letting the server be the first to
+		// mention it.
+		if (parsed.aggregate && !(schema.window_namespaces ?? []).includes(parsed.namespace))
+			return {
+				level: 'error',
+				hint: m.alerts_editor_expr_no_window({ ns: parsed.namespace })
+			};
 		return { level: 'ok', hint: m.alerts_editor_expr_ok() };
 	});
 
@@ -346,6 +398,7 @@
 		if (!builder.namespace || !builder.field) return null;
 		if (builder.threshold.trim() === '')
 			return { level: 'error', hint: m.alerts_editor_builder_missing_threshold() };
+		if (windowError) return { level: 'error', hint: windowError };
 		const requiredEmpty = currentLabels
 			.filter((l) => l.required && !(builder.labels[l.name] ?? '').trim())
 			.map((l) => l.name);
@@ -608,6 +661,42 @@
 						{/if}
 					</Field>
 				{/each}
+			</div>
+		{/if}
+
+		<!-- Windowed aggregate. Only offered on the namespaces that keep sample
+		     history — everywhere else the daemon rejects a window at write
+		     time, so an input here would be a trap. -->
+		{#if windowSupported}
+			<div class="grid grid-cols-1 gap-4 sm:grid-cols-[160px_1fr]">
+				<Field label={m.alerts_editor_field_aggregate()} hint={m.alerts_editor_aggregate_hint()}>
+					<select
+						value={builder.aggregate ?? ''}
+						onchange={(e) => setAggregate((e.currentTarget as HTMLSelectElement).value)}
+						class="h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] focus:border-[var(--color-accent)] focus:outline-none"
+					>
+						<option value="">{m.alerts_editor_aggregate_none()}</option>
+						{#each schema?.aggregates ?? [] as a (a.name)}
+							<option value={a.name}>{a.name} — {a.display}</option>
+						{/each}
+					</select>
+				</Field>
+				{#if builder.aggregate}
+					<Field
+						label={m.alerts_editor_field_window()}
+						hint={windowHint}
+						error={windowError}
+					>
+						<Input
+							value={builder.window ?? ''}
+							oninput={(e) => {
+								builder = { ...builder, window: (e.currentTarget as HTMLInputElement).value };
+							}}
+							placeholder="30s"
+							class="font-mono text-[12px]"
+						/>
+					</Field>
+				{/if}
 			</div>
 		{/if}
 

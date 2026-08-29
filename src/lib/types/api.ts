@@ -1032,6 +1032,20 @@ export interface ListAlertEventsResponse {
 export interface AlertsSchemaResponse {
 	namespaces: NamespaceSchema[];
 	comparators: ComparatorSchema[];
+	/** `agg(metric, window)` wrappers the daemon accepts. Absent on servers
+	 *  older than 0.20.2, which is why every reader treats it as optional. */
+	aggregates?: AggregateSchema[];
+	/** The only namespaces an aggregate window may be applied to — the ones
+	 *  that keep sample history. A window over any other is a 400. */
+	window_namespaces?: string[];
+	/** Ceiling on the window span, in seconds. */
+	max_window_secs?: number;
+}
+
+export interface AggregateSchema {
+	/** `max` | `min` | `avg` — the function name as written in the expression. */
+	name: string;
+	display: string;
 }
 
 export interface NamespaceSchema {

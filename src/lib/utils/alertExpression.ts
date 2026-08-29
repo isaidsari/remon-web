@@ -1,5 +1,5 @@
 /** Alert-rule editor helpers. Grammar mirrors the Rust resolver:
- *  `namespace.field{label="value", …}? comparator number`. */
+ *  `agg(namespace.field{label="value", …}, window)? comparator number`. */
 import type { AlertsSchemaResponse, NamespaceSchema } from '$lib/types/api';
 
 export interface ParsedExpression {
@@ -8,18 +8,31 @@ export interface ParsedExpression {
 	labels: Record<string, string>;
 	comparator: string;
 	threshold: string;
+	/** Optional `agg(metric, window)` wrapper: `'max'` | `'min'` | `'avg'`.
+	 *  Empty or absent means the bare metric — the value at the evaluation
+	 *  tick, which is what every rule written before 0.20.2 uses. */
+	aggregate?: string;
+	/** Window span as written, e.g. `'30s'`, `'5m'`, `'1h'`. Only meaningful
+	 *  alongside `aggregate`. */
+	window?: string;
 }
 
-// Threshold: int/decimal/scientific (1e9, 1.5e-3) so byte rules pretty-print.
+// The full operand grammar, mirroring `services/alerting/expression.rs`:
+//   operand := agg "(" metric_ref "," duration ")" | metric_ref
+// Threshold allows int/decimal/scientific (1e9, 1.5e-3) so byte rules
+// pretty-print. Capture order: agg, namespace, field, labels, window, op, thr.
 const EXPR_RE =
-	/^\s*([a-z][a-z0-9_]*)\.([a-z][a-z0-9_]*)(\{[^}]*\})?\s*(>=|<=|==|!=|>|<)\s*(-?(?:\d+(?:\.\d+)?|\.\d+)(?:[eE][+-]?\d+)?)\s*$/;
+	/^\s*(?:(max|min|avg)\s*\(\s*)?([a-z][a-z0-9_]*)\.([a-z][a-z0-9_]*)(\{[^}]*\})?\s*(?:,\s*(\d+[smh])\s*\))?\s*(>=|<=|==|!=|>|<)\s*(-?(?:\d+(?:\.\d+)?|\.\d+)(?:[eE][+-]?\d+)?)\s*$/;
 
 /** Best-effort parse. Returns null when the input doesn't match the grammar
  *  the resolver expects; caller should fall back to "raw" mode. */
 export function parseExpression(expr: string): ParsedExpression | null {
 	const m = expr.match(EXPR_RE);
 	if (!m) return null;
-	const [, namespace, field, rawLabels, comparator, threshold] = m;
+	const [, aggregate, namespace, field, rawLabels, window, comparator, threshold] = m;
+	// An aggregate without its window, or a window without its function, is
+	// half an expression the daemon would reject — don't pretend to parse it.
+	if (Boolean(aggregate) !== Boolean(window)) return null;
 	const labels: Record<string, string> = {};
 	if (rawLabels) {
 		// `{a="x",b="y"}` → strip braces, split by `,`, then `=`.
@@ -35,11 +48,22 @@ export function parseExpression(expr: string): ParsedExpression | null {
 			}
 		}
 	}
-	return { namespace, field, labels, comparator, threshold };
+	// Absent rather than empty when there is no wrapper: a bare metric and
+	// an aggregate-less one are the same thing, and callers comparing parsed
+	// shapes should not have to know which spelling this function chose.
+	return {
+		namespace,
+		field,
+		labels,
+		comparator,
+		threshold,
+		...(aggregate && window ? { aggregate, window } : {})
+	};
 }
 
 /** Form state → wire shape. Empty labels are dropped so a half-filled form
- *  still produces something valid. */
+ *  still produces something valid. An aggregate is emitted only when it has a
+ *  window to go with it. */
 export function buildExpression(parts: ParsedExpression): string {
 	const cleanLabels: string[] = [];
 	for (const [k, v] of Object.entries(parts.labels)) {
@@ -47,7 +71,10 @@ export function buildExpression(parts: ParsedExpression): string {
 	}
 	const labelBlock = cleanLabels.length > 0 ? `{${cleanLabels.join(',')}}` : '';
 	const thr = parts.threshold === '' ? '0' : parts.threshold;
-	return `${parts.namespace}.${parts.field}${labelBlock} ${parts.comparator} ${thr}`;
+	const metric = `${parts.namespace}.${parts.field}${labelBlock}`;
+	const operand =
+		parts.aggregate && parts.window ? `${parts.aggregate}(${metric}, ${parts.window})` : metric;
+	return `${operand} ${parts.comparator} ${thr}`;
 }
 
 /** One readable sentence for the rules list, e.g. `cpu.usage_percent > 80` →
@@ -85,7 +112,18 @@ export function describeExpression(expr: string, schema: AlertsSchemaResponse | 
 		.map(([k, v]) => `${k}=${v}`);
 	const labelSuffix = labelParts.length > 0 ? ` (${labelParts.join(', ')})` : '';
 
-	return `${metricLabel}${labelSuffix} ${opStr} ${p.threshold}${unitSuffix}`;
+	// The window is the difference between "was over 80 at the moment we
+	// looked" and "was over 80 at some point in the last 30s" — a rule reads
+	// wrong without it.
+	const aggPrefix: Record<string, string> = {
+		max: 'peak ',
+		min: 'lowest ',
+		avg: 'average '
+	};
+	const prefix = p.aggregate ? (aggPrefix[p.aggregate] ?? `${p.aggregate} `) : '';
+	const windowSuffix = p.aggregate && p.window ? ` in the last ${p.window}` : '';
+
+	return `${prefix}${metricLabel}${labelSuffix}${windowSuffix} ${opStr} ${p.threshold}${unitSuffix}`;
 }
 
 // dot-separated path walker; `[]` suffix means iterate array elements

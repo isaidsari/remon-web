@@ -91,3 +91,67 @@ describe('describeExpression', () => {
 		expect(describeExpression('cpu.usage_percent > 1e9', null)).toBe('cpu.usage_percent over 1e9');
 	});
 });
+
+describe('windowed aggregates', () => {
+	it('parses an aggregate with its window', () => {
+		expect(parseExpression('max(cpu.usage_percent, 30s) > 80')).toEqual({
+			namespace: 'cpu',
+			field: 'usage_percent',
+			labels: {},
+			comparator: '>',
+			threshold: '80',
+			aggregate: 'max',
+			window: '30s'
+		});
+	});
+
+	it('parses an aggregate over a labelled metric', () => {
+		const p = parseExpression('avg(disk.used_percent{mount_point="/"}, 5m) > 90');
+		expect(p?.aggregate).toBe('avg');
+		expect(p?.window).toBe('5m');
+		expect(p?.labels).toEqual({ mount_point: '/' });
+	});
+
+	it('leaves the aggregate fields absent on a bare metric', () => {
+		const p = parseExpression('cpu.usage_percent > 80');
+		expect(p).not.toBeNull();
+		expect(p?.aggregate).toBeUndefined();
+		expect(p?.window).toBeUndefined();
+	});
+
+	it('rejects half an aggregate, which the daemon would reject too', () => {
+		expect(parseExpression('max(cpu.usage_percent) > 80')).toBeNull();
+		expect(parseExpression('cpu.usage_percent, 30s > 80')).toBeNull();
+		expect(parseExpression('sum(cpu.usage_percent, 30s) > 80')).toBeNull();
+	});
+
+	it('round-trips', () => {
+		for (const expr of [
+			'max(cpu.usage_percent, 30s) > 80',
+			'min(memory.available_bytes, 1h) < 1e9',
+			'avg(disk.used_percent{mount_point="/"}, 5m) >= 90'
+		]) {
+			expect(buildExpression(parseExpression(expr)!)).toBe(expr);
+		}
+	});
+
+	it('emits no wrapper when the window is missing', () => {
+		expect(
+			buildExpression({
+				namespace: 'cpu',
+				field: 'usage_percent',
+				labels: {},
+				comparator: '>',
+				threshold: '80',
+				aggregate: 'max',
+				window: ''
+			})
+		).toBe('cpu.usage_percent > 80');
+	});
+
+	it('says which window a rule reads over', () => {
+		expect(describeExpression('max(cpu.usage_percent, 30s) > 80', null)).toBe(
+			'peak cpu.usage_percent in the last 30s over 80'
+		);
+	});
+});
