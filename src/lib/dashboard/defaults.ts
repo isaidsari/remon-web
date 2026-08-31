@@ -28,8 +28,8 @@ export function defaultDashboard(): DashboardLayout {
 			widget(8, 2, 4, 4, { kind: 'alert-timeline' }),
 			widget(0, 6, 6, 4, { kind: 'history-chart', resource: 'memory', range: '1h' }),
 			widget(6, 6, 6, 4, { kind: 'history-chart', resource: 'network', range: '1h' }),
-			widget(0, 10, 6, 4, { kind: 'history-chart', resource: 'disk', range: '1h' }),
-			widget(6, 10, 6, 4, { kind: 'status-summary', summary: 'host' })
+			widget(0, 10, 12, 4, { kind: 'history-chart', resource: 'disk', range: '1h' }),
+			widget(0, 14, 12, 2, { kind: 'status-summary', summary: 'host' })
 		]
 	};
 }
