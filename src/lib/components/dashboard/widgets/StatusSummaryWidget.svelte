@@ -89,7 +89,7 @@
 		{:else if counts}
 			<div class="flex flex-1 items-baseline gap-2">
 				<span
-					class="font-mono text-[30px] font-semibold tabular-nums leading-none"
+					class="font-mono text-[30px] leading-none font-semibold tabular-nums"
 					style="color: {meta.accent}"
 				>
 					{counts.active}

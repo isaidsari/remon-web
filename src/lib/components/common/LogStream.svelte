@@ -231,7 +231,7 @@
 			{#each lines as l (l.ts + ':' + l.text)}
 				<div
 					class={cn(
-						'whitespace-pre-wrap break-words',
+						'break-words whitespace-pre-wrap',
 						l.kind === 'error' && 'text-[var(--color-danger)]'
 					)}
 				>

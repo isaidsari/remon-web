@@ -568,7 +568,7 @@
 										class="border-t border-[var(--color-border)] transition hover:bg-[var(--color-surface-2)]/40"
 									>
 										<td
-											class="px-3 py-2 text-right font-mono tabular-nums text-[var(--color-fg-muted)]"
+											class="px-3 py-2 text-right font-mono text-[var(--color-fg-muted)] tabular-nums"
 											>{p.pid}</td
 										>
 										<!-- w-full + max-w-0: in auto table layout a cell's max-content
@@ -678,7 +678,7 @@
 										<td class="hidden px-3 py-2 text-[var(--color-fg-muted)] sm:table-cell"
 											>{p.user ?? '—'}</td
 										>
-										<td class="px-3 py-2 text-right font-mono tabular-nums whitespace-nowrap">
+										<td class="px-3 py-2 text-right font-mono whitespace-nowrap tabular-nums">
 											{fmtPercent(cpuDisplay, 1)}
 											{#if showSubtree}
 												<span
@@ -687,7 +687,7 @@
 												>
 											{/if}
 										</td>
-										<td class="px-3 py-2 text-right font-mono tabular-nums whitespace-nowrap">
+										<td class="px-3 py-2 text-right font-mono whitespace-nowrap tabular-nums">
 											{fmtBytes(p.memory_bytes)}
 										</td>
 										<td class="hidden px-3 py-2 md:table-cell">
@@ -701,7 +701,7 @@
 											</span>
 										</td>
 										<td
-											class="hidden px-3 py-2 text-right font-mono tabular-nums text-[var(--color-fg-muted)] md:table-cell"
+											class="hidden px-3 py-2 text-right font-mono text-[var(--color-fg-muted)] tabular-nums md:table-cell"
 											>{p.threads ?? '—'}</td
 										>
 										<td class="px-3 py-2 text-right">

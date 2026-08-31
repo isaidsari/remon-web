@@ -297,9 +297,9 @@
 						class={cn('overflow-hidden transition', !ch.enabled && 'opacity-60')}
 					>
 						<div class="flex items-center gap-4 px-4 py-3">
-							<div class="flex flex-1 flex-col gap-1 min-w-0">
+							<div class="flex min-w-0 flex-1 flex-col gap-1">
 								<div class="flex items-center gap-2">
-									<span class="font-medium truncate">{ch.name}</span>
+									<span class="truncate font-medium">{ch.name}</span>
 									{@render typePill(ch.type)}
 									{#if ch.min_severity}
 										<span

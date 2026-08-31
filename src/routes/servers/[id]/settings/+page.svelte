@@ -499,9 +499,9 @@
 				<dt class="text-[var(--color-fg-muted)]">{m.settings_pairing_display_name()}</dt>
 				<dd class="text-[var(--color-fg)]">{profile.name}</dd>
 				<dt class="text-[var(--color-fg-muted)]">{m.settings_pairing_base_url()}</dt>
-				<dd class="break-all font-mono text-[var(--color-fg)]">{profile.baseUrl}</dd>
+				<dd class="font-mono break-all text-[var(--color-fg)]">{profile.baseUrl}</dd>
 				<dt class="text-[var(--color-fg-muted)]">{m.settings_pairing_device_id()}</dt>
-				<dd class="break-all font-mono text-[var(--color-fg)]">{profile.deviceId}</dd>
+				<dd class="font-mono break-all text-[var(--color-fg)]">{profile.deviceId}</dd>
 				<dt class="text-[var(--color-fg-muted)]">{m.settings_pairing_paired_at()}</dt>
 				<dd class="text-[var(--color-fg)]">{new Date(profile.createdAt).toLocaleString()}</dd>
 			</dl>
@@ -606,7 +606,7 @@
 							<button
 								type="button"
 								onclick={() => revokeSession(s)}
-								class="shrink-0 rounded-md px-2 py-1 text-[12px] text-[var(--color-fg-subtle)] opacity-60 transition hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger)] hover:opacity-100 group-hover:opacity-100"
+								class="shrink-0 rounded-md px-2 py-1 text-[12px] text-[var(--color-fg-subtle)] opacity-60 transition group-hover:opacity-100 hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger)] hover:opacity-100"
 							>
 								{m.settings_devices_revoke()}
 							</button>

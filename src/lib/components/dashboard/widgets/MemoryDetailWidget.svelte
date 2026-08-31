@@ -77,7 +77,7 @@
 			<div class="mt-auto border-t border-[var(--color-border)] pt-4">
 				<div class="mb-1.5 flex items-baseline justify-between text-xs">
 					<span class="text-[var(--color-fg-subtle)]">{m.overview_mem_swap()}</span>
-					<span class="font-mono tabular-nums text-[var(--color-fg-muted)]">
+					<span class="font-mono text-[var(--color-fg-muted)] tabular-nums">
 						{fmtBytes(swapUsed)} / {fmtBytes(swapTotal)}
 						<span class="ml-2">{fmtPercent(swapPct, 0)}</span>
 					</span>

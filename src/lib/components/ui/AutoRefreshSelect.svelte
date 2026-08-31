@@ -102,7 +102,7 @@
 		<span class="shrink-0 text-[11px] tracking-[0.06em] text-[var(--color-fg-muted)]">
 			{label}
 		</span>
-		<span class="min-w-0 flex-1 truncate font-mono text-xs tabular-nums text-[var(--color-fg)]">
+		<span class="min-w-0 flex-1 truncate font-mono text-xs text-[var(--color-fg)] tabular-nums">
 			{selected?.label}
 		</span>
 		<IconChevronDown
@@ -114,7 +114,7 @@
 	{#if open}
 		<div
 			bind:this={listEl}
-			class="absolute right-0 top-[calc(100%+4px)] z-50 min-w-full overflow-hidden rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5 shadow-[0_12px_32px_rgba(0,0,0,0.35)]"
+			class="absolute top-[calc(100%+4px)] right-0 z-50 min-w-full overflow-hidden rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5 shadow-[0_12px_32px_rgba(0,0,0,0.35)]"
 			role="listbox"
 			aria-label={m.chart_autorefresh_aria()}
 		>
@@ -125,7 +125,7 @@
 					aria-selected={option.value === value}
 					onkeydown={onListKeydown}
 					class={cn(
-						'flex h-7 w-full items-center rounded-md px-2 font-mono text-xs tabular-nums whitespace-nowrap transition',
+						'flex h-7 w-full items-center rounded-md px-2 font-mono text-xs whitespace-nowrap tabular-nums transition',
 						option.value === value
 							? 'bg-[var(--color-surface-3)] text-[var(--color-fg)]'
 							: 'text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)]'

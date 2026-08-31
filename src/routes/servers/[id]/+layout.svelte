@@ -174,7 +174,7 @@
 				type="button"
 				onclick={() => sidebar.close()}
 				aria-label={m.header_close_menu()}
-				class="fixed inset-x-0 bottom-0 top-12 z-30 bg-black/50 backdrop-blur-sm md:hidden"
+				class="fixed inset-x-0 top-12 bottom-0 z-30 bg-black/50 backdrop-blur-sm md:hidden"
 			></button>
 		{/if}
 		<aside
@@ -182,7 +182,7 @@
 				'flex flex-col border-r border-[var(--color-border)] px-4 py-6',
 				'bg-[var(--color-bg)]',
 				'md:bg-[var(--color-bg-soft)]/30 md:backdrop-blur-sm',
-				'fixed inset-y-0 left-0 top-12 z-40 w-64 transform transition-transform duration-[var(--dur-mid)] ease-[var(--ease-snap)]',
+				'fixed inset-y-0 top-12 left-0 z-40 w-64 transform transition-transform duration-[var(--dur-mid)] ease-[var(--ease-snap)]',
 				sidebar.open ? 'translate-x-0' : '-translate-x-full',
 				'md:relative md:top-0 md:z-auto md:translate-x-0 md:transition-none'
 			)}
@@ -201,7 +201,7 @@
 			<div class="mb-6 px-2">
 				<div class="flex items-center gap-2">
 					<h2
-						class="min-w-0 flex-1 truncate text-[15px] font-semibold tracking-tight leading-tight"
+						class="min-w-0 flex-1 truncate text-[15px] leading-tight font-semibold tracking-tight"
 					>
 						{displayName}
 					</h2>

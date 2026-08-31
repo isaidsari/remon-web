@@ -447,7 +447,7 @@
 					{#if tab === 'services'}
 						<select
 							bind:value={stateFilter}
-							class="h-9 rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-3 text-sm text-[var(--color-fg)] focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
+							class="h-9 rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-3 text-sm text-[var(--color-fg)] focus:ring-2 focus:ring-[var(--color-ring)] focus:outline-none"
 						>
 							{#each stateOptions as opt (opt)}
 								<option value={opt}>{stateLabel(opt)}</option>

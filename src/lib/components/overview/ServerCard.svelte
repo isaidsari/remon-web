@@ -191,7 +191,7 @@
 						<button
 							type="button"
 							onclick={handleRepairClick}
-							class="shrink-0 rounded-md border border-[var(--color-warning)]/40 bg-[var(--color-warning)]/10 px-2 py-0.5 font-mono text-[10px] tracking-wide text-[var(--color-warning)] transition-all duration-[var(--dur-fast)] hover:bg-[var(--color-warning)]/15 hover:border-[var(--color-warning)]/60"
+							class="shrink-0 rounded-md border border-[var(--color-warning)]/40 bg-[var(--color-warning)]/10 px-2 py-0.5 font-mono text-[10px] tracking-wide text-[var(--color-warning)] transition-all duration-[var(--dur-fast)] hover:border-[var(--color-warning)]/60 hover:bg-[var(--color-warning)]/15"
 						>
 							{m.servercard_repair_button()}
 						</button>
@@ -203,7 +203,7 @@
 			<button
 				type="button"
 				onclick={handleRemoveClick}
-				class="grid h-7 w-7 shrink-0 place-items-center rounded-md text-[var(--color-fg-subtle)] opacity-60 transition-all duration-[var(--dur-fast)] hover:bg-[var(--color-surface-3)] hover:text-[var(--color-danger)] hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-100"
+				class="grid h-7 w-7 shrink-0 place-items-center rounded-md text-[var(--color-fg-subtle)] opacity-60 transition-all duration-[var(--dur-fast)] group-hover:opacity-100 hover:bg-[var(--color-surface-3)] hover:text-[var(--color-danger)] hover:opacity-100 focus-visible:opacity-100"
 				aria-label={m.servercard_aria_remove()}
 				title={m.servercard_remove_title()}
 			>
@@ -292,7 +292,7 @@
 			/>
 		</div>
 		<div
-			class="flex min-w-[88px] flex-col items-end gap-0.5 font-mono text-[11px] tabular-nums leading-tight"
+			class="flex min-w-[88px] flex-col items-end gap-0.5 font-mono text-[11px] leading-tight tabular-nums"
 		>
 			<span class="flex items-center gap-1 text-[var(--color-fg)]">
 				<span class="text-[var(--color-fg-subtle)]">↓</span>

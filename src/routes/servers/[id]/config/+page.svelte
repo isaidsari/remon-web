@@ -554,9 +554,9 @@
 						<table class="w-full min-w-[480px] text-sm">
 							<thead>
 								<tr class="text-left text-[11px] tracking-wide text-[var(--color-fg-subtle)]">
-									<th class="pb-2 pr-4 font-normal">{m.config_retention_header_resource()}</th>
+									<th class="pr-4 pb-2 font-normal">{m.config_retention_header_resource()}</th>
 									{#each RESOLUTION_ORDER as res (res)}
-										<th class="pb-2 pr-3 font-normal">{res}</th>
+										<th class="pr-3 pb-2 font-normal">{res}</th>
 									{/each}
 								</tr>
 							</thead>

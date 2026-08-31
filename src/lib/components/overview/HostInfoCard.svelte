@@ -54,7 +54,7 @@
 {#snippet hostnameCell()}
 	<div class="relative flex flex-col gap-1.5 overflow-hidden bg-[var(--color-surface)] px-4 py-3.5">
 		<IconServer
-			class="pointer-events-none absolute right-2 top-1/2 size-16 -translate-y-1/2 opacity-[0.15]"
+			class="pointer-events-none absolute top-1/2 right-2 size-16 -translate-y-1/2 opacity-[0.15]"
 			stroke-width="1"
 		/>
 		<span
@@ -79,7 +79,7 @@
 {#snippet memoryCell()}
 	<div class="relative flex flex-col gap-1.5 overflow-hidden bg-[var(--color-surface)] px-4 py-3.5">
 		<IconMemoryStick
-			class="pointer-events-none absolute right-2 top-1/2 size-16 -translate-y-1/2 opacity-[0.15]"
+			class="pointer-events-none absolute top-1/2 right-2 size-16 -translate-y-1/2 opacity-[0.15]"
 			stroke-width="1"
 		/>
 		<span
@@ -98,7 +98,7 @@
 		{#if info}
 			<CpuIcon
 				model={info.hardware.cpu_model}
-				class="pointer-events-none absolute right-2 top-1/2 size-16 -translate-y-1/2 opacity-[0.28]"
+				class="pointer-events-none absolute top-1/2 right-2 size-16 -translate-y-1/2 opacity-[0.28]"
 			/>
 		{/if}
 		<span
@@ -126,7 +126,7 @@
 			<OsIcon
 				os={info.description.os}
 				version={info.description.os_version}
-				class="pointer-events-none absolute right-2 top-1/2 size-16 -translate-y-1/2 opacity-[0.28]"
+				class="pointer-events-none absolute top-1/2 right-2 size-16 -translate-y-1/2 opacity-[0.28]"
 			/>
 		{/if}
 		<span

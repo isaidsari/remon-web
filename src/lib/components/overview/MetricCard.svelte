@@ -63,7 +63,7 @@
 			{value}
 			{format}
 			{duration}
-			class="font-mono text-[22px] font-semibold leading-[1.1] tracking-[-0.02em] tabular-nums"
+			class="font-mono text-[22px] leading-[1.1] font-semibold tracking-[-0.02em] tabular-nums"
 			style="color: {color}"
 		/>
 	{/if}

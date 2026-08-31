@@ -105,7 +105,7 @@
 							<span>60s {fmtNumber(last.some_avg60, 1)}</span>
 							<span>300s {fmtNumber(last.some_avg300, 1)}</span>
 						</div>
-						<div class="mt-3 -mx-1">
+						<div class="-mx-1 mt-3">
 							<Sparkline data={series} color={s.color} height={48} min={0} window={60} />
 						</div>
 					{:else}

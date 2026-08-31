@@ -112,7 +112,7 @@
 		<p class="py-2 text-[11px] text-[var(--color-fg-subtle)]">{m.probes_metric_no_data()}</p>
 	{:else if config.viz === 'scalar'}
 		<div class="flex flex-1 flex-col items-start justify-center">
-			<span class="font-mono text-[28px] font-semibold tabular-nums text-[var(--color-fg)]">
+			<span class="font-mono text-[28px] font-semibold text-[var(--color-fg)] tabular-nums">
 				{latest ? fmt(latest.value) : '—'}
 			</span>
 		</div>

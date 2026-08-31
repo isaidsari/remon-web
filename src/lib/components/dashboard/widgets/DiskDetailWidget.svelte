@@ -50,12 +50,12 @@
 					/>
 					<span class="truncate font-mono">{shortenMount(d.mount_point)}</span>
 				</span>
-				<span class="shrink-0 text-xs tabular-nums text-[var(--color-fg-muted)]">
+				<span class="shrink-0 text-xs text-[var(--color-fg-muted)] tabular-nums">
 					R {fmtBps(d.read_bytes_per_sec, 0)} · W {fmtBps(d.write_bytes_per_sec, 0)}
 				</span>
 			</div>
 			<div
-				class="flex items-baseline justify-between pl-[20px] text-xs tabular-nums text-[var(--color-fg-muted)]"
+				class="flex items-baseline justify-between pl-[20px] text-xs text-[var(--color-fg-muted)] tabular-nums"
 			>
 				<span class="font-medium text-[var(--color-fg)]">
 					{fmtBytes(d.used_bytes)} / {fmtBytes(d.total_bytes)}

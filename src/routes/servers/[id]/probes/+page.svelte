@@ -503,7 +503,7 @@
 								<div class="flex min-w-0 flex-1 flex-col">
 									<div class="flex flex-wrap items-center gap-2">
 										<span
-											class="font-mono text-[13px] font-medium text-[var(--color-fg)] break-all"
+											class="font-mono text-[13px] font-medium break-all text-[var(--color-fg)]"
 										>
 											{p.name}
 										</span>
@@ -532,14 +532,14 @@
 							</div>
 							<dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">
 								<dt class="text-[var(--color-fg-subtle)]">{m.probes_card_schedule_label()}</dt>
-								<dd class="font-mono text-[var(--color-fg-muted)] break-all">{p.schedule}</dd>
+								<dd class="font-mono break-all text-[var(--color-fg-muted)]">{p.schedule}</dd>
 								<dt class="text-[var(--color-fg-subtle)]">{m.probes_card_last_run_label()}</dt>
 								<dd class="font-mono text-[var(--color-fg-muted)]">
 									{p.last_run_at ? fmtRelative(p.last_run_at) : '—'}
 								</dd>
 								{#if p.last_message}
 									<dt class="text-[var(--color-fg-subtle)]">{m.probes_table_message()}</dt>
-									<dd class="text-[var(--color-fg-muted)] break-words">{p.last_message}</dd>
+									<dd class="break-words text-[var(--color-fg-muted)]">{p.last_message}</dd>
 								{/if}
 							</dl>
 						</button>
@@ -579,7 +579,7 @@
 				>
 					{m.probes_detail_schedule()}
 				</dt>
-				<dd class="mt-0.5 font-mono text-[var(--color-fg)] break-all">{d.schedule}</dd>
+				<dd class="mt-0.5 font-mono break-all text-[var(--color-fg)]">{d.schedule}</dd>
 			</div>
 			<div class="flex flex-col">
 				<dt
@@ -614,7 +614,7 @@
 					{m.probes_detail_command()}
 				</dt>
 				<dd
-					class="mt-0.5 rounded bg-[var(--color-surface-2)] px-2 py-1.5 font-mono text-[11px] leading-relaxed text-[var(--color-fg)] break-all whitespace-pre-wrap shadow-[inset_0_0_0_1px_var(--color-border)]"
+					class="mt-0.5 rounded bg-[var(--color-surface-2)] px-2 py-1.5 font-mono text-[11px] leading-relaxed break-all whitespace-pre-wrap text-[var(--color-fg)] shadow-[inset_0_0_0_1px_var(--color-border)]"
 				>
 					{d.command.join(' ')}
 				</dd>
@@ -671,7 +671,7 @@
 					<div class="rounded border border-[var(--color-border)] bg-[var(--color-surface)]">
 						<div class="flex items-baseline justify-between gap-2 px-3 py-1.5">
 							<span
-								class="font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)] break-all"
+								class="font-mono text-[11px] font-medium tracking-[0.08em] break-all text-[var(--color-fg-muted)]"
 							>
 								{g.name}
 							</span>
@@ -680,7 +680,7 @@
 							{/if}
 						</div>
 						{#if singleUnlabelled}
-							<div class="px-3 pb-2 font-mono text-[14px] tabular-nums text-[var(--color-fg)]">
+							<div class="px-3 pb-2 font-mono text-[14px] text-[var(--color-fg)] tabular-nums">
 								{formatMetricValue(g.entries[0].value, g.unit)}
 							</div>
 						{:else}
@@ -695,7 +695,7 @@
 										>
 											{formatLabels(entry.labels) || m.probes_metric_labels_none()}
 										</dt>
-										<dd class="shrink-0 font-mono text-[13px] tabular-nums text-[var(--color-fg)]">
+										<dd class="shrink-0 font-mono text-[13px] text-[var(--color-fg)] tabular-nums">
 											{formatMetricValue(entry.value, g.unit)}
 										</dd>
 									</div>
@@ -823,7 +823,7 @@
 					<div class="flex flex-wrap items-baseline justify-between gap-2">
 						<div class="flex items-baseline gap-2">
 							<span
-								class="font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)] break-all"
+								class="font-mono text-[11px] font-medium tracking-[0.08em] break-all text-[var(--color-fg-muted)]"
 							>
 								{metric.name}
 							</span>

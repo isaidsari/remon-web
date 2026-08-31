@@ -55,7 +55,7 @@
 							{fmtPercent(s.data.some_avg10, 1)}
 						</p>
 						<div
-							class="mt-1 flex items-center gap-3 text-[11px] tabular-nums text-[var(--color-fg-subtle)]"
+							class="mt-1 flex items-center gap-3 text-[11px] text-[var(--color-fg-subtle)] tabular-nums"
 						>
 							<span>10s {fmtNumber(s.data.some_avg10, 1)}</span>
 							<span>60s {fmtNumber(s.data.some_avg60, 1)}</span>

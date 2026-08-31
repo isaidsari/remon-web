@@ -496,7 +496,7 @@
 												>
 													<div>
 														<span
-															class="block text-[10px] uppercase tracking-wide text-[var(--color-fg-subtle)]"
+															class="block text-[10px] tracking-wide text-[var(--color-fg-subtle)] uppercase"
 														>
 															{m.heartbeats_meta_last_fail()}
 														</span>
@@ -504,7 +504,7 @@
 													</div>
 													<div>
 														<span
-															class="block text-[10px] uppercase tracking-wide text-[var(--color-fg-subtle)]"
+															class="block text-[10px] tracking-wide text-[var(--color-fg-subtle)] uppercase"
 														>
 															{m.heartbeats_meta_created()}
 														</span>
@@ -513,7 +513,7 @@
 													{#if c.paused}
 														<div>
 															<span
-																class="block text-[10px] uppercase tracking-wide text-[var(--color-fg-subtle)]"
+																class="block text-[10px] tracking-wide text-[var(--color-fg-subtle)] uppercase"
 															>
 																{m.heartbeats_meta_pause()}
 															</span>
@@ -548,7 +548,7 @@
 
 												<div>
 													<h3
-														class="mb-2 text-[11px] font-medium uppercase tracking-wide text-[var(--color-fg-subtle)]"
+														class="mb-2 text-[11px] font-medium tracking-wide text-[var(--color-fg-subtle)] uppercase"
 													>
 														{m.heartbeats_pings_title()}
 													</h3>
@@ -564,7 +564,7 @@
 														<div class="overflow-x-auto">
 															<table class="w-full text-[12px]">
 																<thead
-																	class="text-left text-[10px] uppercase tracking-wide text-[var(--color-fg-subtle)]"
+																	class="text-left text-[10px] tracking-wide text-[var(--color-fg-subtle)] uppercase"
 																>
 																	<tr>
 																		<th class="py-1 pr-4 font-medium">{m.heartbeats_ping_kind()}</th

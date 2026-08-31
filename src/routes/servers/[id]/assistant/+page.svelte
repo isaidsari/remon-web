@@ -707,8 +707,7 @@
 						'max-h-40 min-h-10 flex-1 resize-none overflow-y-hidden bg-transparent px-3 py-2 text-[16px] text-[var(--color-fg)] md:text-[13.5px]',
 						'placeholder:overflow-hidden placeholder:text-ellipsis placeholder:whitespace-nowrap',
 						'placeholder:text-[var(--color-fg-faint)] focus:outline-none disabled:opacity-50'
-					)}
-				></textarea>
+					)}></textarea>
 				<!-- While a question runs the send button becomes a stop control:
 				     same footprint, so nothing shifts — and the 150 s timeout is
 				     never a lock-out. -->

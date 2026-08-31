@@ -161,7 +161,7 @@
 		role="status"
 		aria-live="polite"
 		transition:fly={{ y: 12, duration: 200 }}
-		class="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg bg-[var(--color-surface-2)] px-4 py-2.5 text-sm shadow-lg shadow-black/20 ring-1 ring-[var(--color-accent)]/40"
+		class="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg bg-[var(--color-surface-2)] px-4 py-2.5 text-sm shadow-lg ring-1 shadow-black/20 ring-[var(--color-accent)]/40"
 	>
 		<IconDownload class="size-[15px] shrink-0 text-[var(--color-accent)]" stroke-width="2.25" />
 		<span class="font-medium text-[var(--color-fg)]">{m.update_available()}</span>

@@ -470,14 +470,7 @@ export interface SummaryResponse {
 }
 
 export type ServiceState =
-	| 'running'
-	| 'stopped'
-	| 'starting'
-	| 'stopping'
-	| 'paused'
-	| 'failed'
-	| 'reloading'
-	| 'unknown';
+	'running' | 'stopped' | 'starting' | 'stopping' | 'paused' | 'failed' | 'reloading' | 'unknown';
 
 /** `unknown` is what a host with no recognised init backend reports. */
 export type ServiceBackend = 'systemd' | 'openrc' | 'windows_scm' | 'unknown';
@@ -1225,8 +1218,7 @@ export interface AssistantAskResponse {
 
 /** SSE `step` frame. Text arrives as `delta`; `done` carries the full response. */
 export type AssistantStreamStep =
-	| { kind: 'model'; step: number }
-	| { kind: 'tool'; step: number; name: string };
+	{ kind: 'model'; step: number } | { kind: 'tool'; step: number; name: string };
 
 // ===== Alert actions =====
 //
@@ -1258,13 +1250,7 @@ export type ActionRunOrigin = 'auto' | 'confirmed' | 'dry_run';
  *  daemon recorded rather than performed, and its `message` says which
  *  guardrail stopped it. */
 export type ActionRunStatus =
-	| 'pending'
-	| 'running'
-	| 'succeeded'
-	| 'failed'
-	| 'skipped'
-	| 'expired'
-	| 'dismissed';
+	'pending' | 'running' | 'succeeded' | 'failed' | 'skipped' | 'expired' | 'dismissed';
 
 export interface ActionCatalogEntry {
 	kind: ActionKind;

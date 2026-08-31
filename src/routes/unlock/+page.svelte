@@ -57,7 +57,7 @@
 <div class="app-content grid min-h-screen place-items-center px-6 py-12">
 	<div class="w-full max-w-md">
 		<header class="mb-8">
-			<h1 class="text-[32px] font-semibold tracking-[-0.02em] leading-tight">
+			<h1 class="text-[32px] leading-tight font-semibold tracking-[-0.02em]">
 				{m.unlock_title()}
 			</h1>
 			<p class="mt-3 max-w-sm text-[15px] leading-relaxed text-[var(--color-fg-muted)]">

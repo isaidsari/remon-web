@@ -606,7 +606,7 @@
 					/>
 				</div>
 				<div
-					class="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] tabular-nums text-[var(--color-fg-subtle)] lg:justify-end"
+					class="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-[var(--color-fg-subtle)] tabular-nums lg:justify-end"
 				>
 					{#if resolution}
 						<span>
@@ -661,7 +661,7 @@
 						{/key}
 						{#if hasKernelRateData && lastCpu}
 							<div
-								class="mt-3 flex items-center justify-end gap-4 border-t border-[var(--color-border)] pt-2.5 font-mono text-[11px] tabular-nums text-[var(--color-fg-muted)]"
+								class="mt-3 flex items-center justify-end gap-4 border-t border-[var(--color-border)] pt-2.5 font-mono text-[11px] text-[var(--color-fg-muted)] tabular-nums"
 							>
 								{#if lastCpu.context_switches_per_sec != null}
 									<span>
@@ -775,7 +775,7 @@
 														{shortenMount(r.mount)}
 													</span>
 													<div
-														class="flex items-center gap-3 tabular-nums text-[var(--color-fg-subtle)]"
+														class="flex items-center gap-3 text-[var(--color-fg-subtle)] tabular-nums"
 													>
 														<span class="text-[rgb(251,191,36)]">↓ {fmtRate(r.readIops)}</span>
 														<span class="text-[rgb(244,114,182)]">↑ {fmtRate(r.writeIops)}</span>
@@ -916,7 +916,7 @@
 
 				{#if smart !== null}
 					<Card class="xl:col-span-2" padding="none">
-						<div class="px-4 py-3 border-b border-[var(--color-border)]">
+						<div class="border-b border-[var(--color-border)] px-4 py-3">
 							<h2 class="text-sm font-medium text-[var(--color-fg)]">
 								{m.metrics_smart_title()}
 							</h2>
@@ -1010,7 +1010,7 @@
 													{dev.temperature_c != null ? `${dev.temperature_c.toFixed(0)} °C` : '—'}
 												</td>
 												<td
-													class="px-3 py-2.5 text-right font-mono text-xs tabular-nums text-[var(--color-fg-muted)]"
+													class="px-3 py-2.5 text-right font-mono text-xs text-[var(--color-fg-muted)] tabular-nums"
 												>
 													{dev.power_on_hours != null
 														? `${dev.power_on_hours.toLocaleString()} h`
@@ -1052,7 +1052,7 @@
 														{dev.percentage_used != null ? `${dev.percentage_used}%` : '—'}
 													</td>
 													<td
-														class="px-3 py-2.5 text-right font-mono text-xs tabular-nums text-[var(--color-fg-muted)]"
+														class="px-3 py-2.5 text-right font-mono text-xs text-[var(--color-fg-muted)] tabular-nums"
 													>
 														{dev.available_spare_percent != null
 															? `${dev.available_spare_percent}%`

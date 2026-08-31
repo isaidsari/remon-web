@@ -467,7 +467,7 @@
 						<span class="text-sm font-medium text-[var(--color-fg)]">{templateTitle(t.id)}</span>
 						<span
 							class={cn(
-								'rounded-full px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide',
+								'rounded-full px-1.5 py-0.5 font-mono text-[10px] tracking-wide uppercase',
 								t.severity === 'crit'
 									? 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]'
 									: 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]'
@@ -751,7 +751,7 @@
 		<div
 			class="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2"
 		>
-			<div class="mb-0.5 text-[10px] uppercase tracking-wide text-[var(--color-fg-subtle)]">
+			<div class="mb-0.5 text-[10px] tracking-wide text-[var(--color-fg-subtle)] uppercase">
 				{m.alerts_editor_expression_preview_label()}
 			</div>
 			<code class="block font-mono text-[12px] text-[var(--color-fg)]">{expression || '—'}</code>

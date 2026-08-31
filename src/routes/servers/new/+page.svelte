@@ -253,7 +253,7 @@
 						step === s.n
 							? 'bg-[var(--color-accent)] text-[var(--color-accent-fg)] shadow-[0_0_18px_-2px_var(--color-accent-glow)]'
 							: step > s.n
-								? 'bg-[var(--color-success)]/15 text-[var(--color-success)] border border-[var(--color-success)]/30'
+								? 'border border-[var(--color-success)]/30 bg-[var(--color-success)]/15 text-[var(--color-success)]'
 								: 'border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-fg-subtle)]'
 					)}
 				>
@@ -330,7 +330,7 @@
 			{#if pairExpiresAt > 0 && !expired}
 				<div class="mb-5 flex items-center justify-between text-xs text-[var(--color-fg-muted)]">
 					<span>{m.pair_code_expires_in()}</span>
-					<span class="font-mono text-sm tabular-nums text-[var(--color-fg)]">
+					<span class="font-mono text-sm text-[var(--color-fg)] tabular-nums">
 						{Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')}
 					</span>
 				</div>

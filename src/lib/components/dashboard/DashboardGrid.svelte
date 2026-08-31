@@ -31,7 +31,7 @@
 			style="--gx: {widget.x + 1}; --gy: {widget.y + 1}; --gw: {widget.w}; --gh: {widget.h};"
 		>
 			{#if editing}
-				<div class="absolute right-1.5 top-1.5 z-10 flex items-center gap-1">
+				<div class="absolute top-1.5 right-1.5 z-10 flex items-center gap-1">
 					<button
 						type="button"
 						onclick={() => onConfigure?.(widget.id)}
