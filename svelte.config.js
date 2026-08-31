@@ -13,6 +13,17 @@ const config = {
 		}),
 		alias: {
 			$lib: 'src/lib'
+		},
+		// SvelteKit 2 defaults `relative` to true, which makes vite's base
+		// relative — and vite-plugin-pwa then registers the worker as
+		// `./sw.js`. Below the root that resolves to e.g.
+		// /servers/{id}/sw.js, which the SPA fallback answers with
+		// index.html; a service worker script served as text/html is
+		// rejected, and Firefox reports it as a bare SecurityError. The app
+		// is always served from the origin root, so absolute paths are both
+		// correct and the only ones the worker can register from.
+		paths: {
+			relative: false
 		}
 	}
 };
