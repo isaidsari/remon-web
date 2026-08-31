@@ -10,8 +10,6 @@
 
 	interface Props {
 		conn: Connection | null;
-		// Config-less widget; accepted for a uniform widget signature.
-		config?: unknown;
 	}
 
 	let { conn }: Props = $props();
