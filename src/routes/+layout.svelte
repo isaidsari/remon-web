@@ -14,6 +14,9 @@
 	import { useRegisterSW } from 'virtual:pwa-register/svelte';
 	import { QueryClientProvider } from '@tanstack/svelte-query';
 	import { createQueryClient } from '$lib/api/query';
+	import { toast } from '$lib/stores/toast.svelte';
+	import { fly } from 'svelte/transition';
+	import IconDownload from '~icons/lucide/download';
 	import { m } from '$lib/paraglide/messages';
 
 	let { children } = $props();
@@ -23,7 +26,12 @@
 	// This tab stays open for weeks; the browser only looks for a new SW on load.
 	const SW_UPDATE_INTERVAL_MS = 60 * 60 * 1000;
 
-	const { needRefresh, updateServiceWorker } = useRegisterSW({
+	// `updateServiceWorker` from the plugin is deliberately unused: it routes
+	// through the plugin's own registration, and when that registration failed
+	// it resolves to `sendSkipWaitingMessage?.()` — a button that silently does
+	// nothing. `applyUpdate` below talks to the registration the browser
+	// actually holds, so it works either way and always does something visible.
+	const { needRefresh } = useRegisterSW({
 		onRegisteredSW(_url, registration) {
 			if (!registration) return;
 			const check = () => {
@@ -35,10 +43,35 @@
 				if (document.visibilityState === 'visible') check();
 			});
 		},
+		// A console warning nobody reads is how a broken registration went
+		// unnoticed for a whole release. Say it out loud instead.
 		onRegisterError(e) {
 			console.warn('SW registration failed', e);
+			toast.warning(m.update_sw_unavailable(), {
+				description: e instanceof Error ? e.message : String(e)
+			});
 		}
 	});
+
+	let applying = $state(false);
+
+	/** Hand the waiting worker its cue, then reload when it takes over. */
+	async function applyUpdate() {
+		applying = true;
+		const reg = await navigator.serviceWorker?.getRegistration().catch(() => undefined);
+		if (!reg?.waiting) {
+			// Nothing is waiting: the banner outlived its worker, or the update
+			// already activated. A plain reload lands on whatever is current.
+			location.reload();
+			return;
+		}
+		navigator.serviceWorker.addEventListener('controllerchange', () => location.reload(), {
+			once: true
+		});
+		reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+		// If the worker never answers, the button must not sit there spinning.
+		setTimeout(() => location.reload(), 3000);
+	}
 
 	onMount(() => {
 		applyTheme(getTheme());
@@ -121,12 +154,17 @@
 </QueryClientProvider>
 
 {#if $needRefresh}
+	<!-- Bottom-centre, but no longer whispering: an accent edge, an icon and a
+	     slide-in, because the previous flat surface-2 bar read as chrome and
+	     went unnoticed on a busy dashboard. -->
 	<div
 		role="status"
 		aria-live="polite"
-		class="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-4 py-2.5 text-sm shadow-lg"
+		transition:fly={{ y: 12, duration: 200 }}
+		class="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg bg-[var(--color-surface-2)] px-4 py-2.5 text-sm shadow-lg shadow-black/20 ring-1 ring-[var(--color-accent)]/40"
 	>
-		<span class="text-[var(--color-fg-muted)]">{m.update_available()}</span>
+		<IconDownload class="size-[15px] shrink-0 text-[var(--color-accent)]" stroke-width="2.25" />
+		<span class="font-medium text-[var(--color-fg)]">{m.update_available()}</span>
 		<button
 			onclick={() => needRefresh.set(false)}
 			class="text-[var(--color-fg-subtle)] transition hover:text-[var(--color-fg)]"
@@ -134,10 +172,11 @@
 			{m.common_dismiss()}
 		</button>
 		<button
-			onclick={() => updateServiceWorker(true)}
-			class="rounded-md bg-[var(--color-accent)] px-3 py-1 text-xs font-medium text-[var(--color-accent-fg)] transition hover:bg-[var(--color-accent-hover)]"
+			onclick={applyUpdate}
+			disabled={applying}
+			class="rounded-md bg-[var(--color-accent)] px-3 py-1 text-xs font-medium text-[var(--color-accent-fg)] transition hover:bg-[var(--color-accent-hover)] disabled:opacity-60"
 		>
-			{m.update_reload()}
+			{applying ? m.update_reloading() : m.update_reload()}
 		</button>
 	</div>
 {/if}

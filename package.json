@@ -6,7 +6,7 @@
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",
-		"postbuild": "bash scripts/deploy-caddy.sh || true",
+		"postbuild": "bun scripts/verify-build.js && (bash scripts/deploy-caddy.sh || true)",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo '' && lefthook install",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",

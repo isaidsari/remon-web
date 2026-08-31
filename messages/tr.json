@@ -1240,5 +1240,7 @@
 	"overview_quick_ask": "asistana sor",
 	"overview_quick_aria": "hızlı erişim",
 	"update_available": "güncelleme hazır",
-	"update_reload": "yenile"
+	"update_reload": "yenile",
+	"update_reloading": "yenileniyor…",
+	"update_sw_unavailable": "bu tarayıcıda çevrimdışı destek ve güncelleme uyarıları çalışmıyor"
 }

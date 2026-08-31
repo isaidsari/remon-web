@@ -1240,5 +1240,7 @@
 	"overview_quick_ask": "ask the assistant",
 	"overview_quick_aria": "quick access",
 	"update_available": "update ready",
-	"update_reload": "reload"
+	"update_reload": "reload",
+	"update_reloading": "reloading…",
+	"update_sw_unavailable": "offline support and update alerts are unavailable in this browser"
 }
