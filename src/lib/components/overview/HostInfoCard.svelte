@@ -39,20 +39,24 @@
 
 <div
 	class={cn(
-		'overflow-hidden rounded-[var(--radius-card)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_var(--color-border)]',
-		'hairline-grid',
-		'grid-cols-2 lg:grid-cols-4',
+		'@container overflow-hidden rounded-[var(--radius-card)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_var(--color-border)]',
 		klass
 	)}
 >
-	{@render hostnameCell()}
-	{@render osCell()}
-	{@render cpuCell()}
-	{@render memoryCell()}
+	<!-- Columns track the card's own width, not the viewport: the same card is a
+	     half-width dashboard widget in one place and a full-width strip in another. -->
+	<div class="hairline-grid h-full grid-cols-1 @sm:grid-cols-2 @5xl:grid-cols-4">
+		{@render hostnameCell()}
+		{@render osCell()}
+		{@render cpuCell()}
+		{@render memoryCell()}
+	</div>
 </div>
 
 {#snippet hostnameCell()}
-	<div class="relative flex flex-col gap-1.5 overflow-hidden bg-[var(--color-surface)] px-4 py-3.5">
+	<div
+		class="relative flex flex-col justify-center gap-1.5 overflow-hidden bg-[var(--color-surface)] px-4 py-3.5"
+	>
 		<IconServer
 			class="pointer-events-none absolute top-1/2 right-2 size-16 -translate-y-1/2 opacity-[0.15]"
 			stroke-width="1"
@@ -77,7 +81,9 @@
 {/snippet}
 
 {#snippet memoryCell()}
-	<div class="relative flex flex-col gap-1.5 overflow-hidden bg-[var(--color-surface)] px-4 py-3.5">
+	<div
+		class="relative flex flex-col justify-center gap-1.5 overflow-hidden bg-[var(--color-surface)] px-4 py-3.5"
+	>
 		<IconMemoryStick
 			class="pointer-events-none absolute top-1/2 right-2 size-16 -translate-y-1/2 opacity-[0.15]"
 			stroke-width="1"
@@ -94,7 +100,9 @@
 {/snippet}
 
 {#snippet cpuCell()}
-	<div class="relative flex flex-col gap-1.5 overflow-hidden bg-[var(--color-surface)] px-4 py-3.5">
+	<div
+		class="relative flex flex-col justify-center gap-1.5 overflow-hidden bg-[var(--color-surface)] px-4 py-3.5"
+	>
 		{#if info}
 			<CpuIcon
 				model={info.hardware.cpu_model}
@@ -121,7 +129,9 @@
 {/snippet}
 
 {#snippet osCell()}
-	<div class="relative flex flex-col gap-1.5 overflow-hidden bg-[var(--color-surface)] px-4 py-3.5">
+	<div
+		class="relative flex flex-col justify-center gap-1.5 overflow-hidden bg-[var(--color-surface)] px-4 py-3.5"
+	>
 		{#if info}
 			<OsIcon
 				os={info.description.os}
