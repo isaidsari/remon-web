@@ -55,7 +55,7 @@
 
 	let viewMode = $state<'flat' | 'tree'>('flat');
 	// collapsed is an exception list (present = collapsed); seeded on first load to hide noise.
-	let collapsed = $state(new SvelteSet<number>());
+	let collapsed = new SvelteSet<number>();
 	let initialCollapseDone = $state(false);
 
 	let autoRefresh = $state(false);
@@ -175,14 +175,15 @@
 			// Precompute parent pids so the has-children test is O(1), not O(n²).
 			const parentPids = new Set<number>();
 			for (const p of processes) if (p.parent_pid != null) parentPids.add(p.parent_pid);
-			const seen = new SvelteSet<number>();
+			const seen = new Set<number>();
 			for (const p of processes) {
 				const isRoot = p.parent_pid == null || !byPid.has(p.parent_pid);
 				const hasChildren = parentPids.has(p.pid);
 				if (hasChildren && !isRoot) seen.add(p.pid);
 			}
 			if (byPid.has(2)) seen.add(2); // kernel thread root — noisy, default closed
-			collapsed = seen;
+			collapsed.clear();
+			for (const pid of seen) collapsed.add(pid);
 			initialCollapseDone = true;
 		});
 	});
@@ -331,15 +332,14 @@
 	}
 
 	function collapseAll() {
-		const childrenSeen = new Set<number>();
+		collapsed.clear();
 		for (const p of processes) {
-			if (p.parent_pid != null) childrenSeen.add(p.parent_pid);
+			if (p.parent_pid != null) collapsed.add(p.parent_pid);
 		}
-		collapsed = new SvelteSet(childrenSeen);
 	}
 
 	function expandAll() {
-		collapsed = new SvelteSet();
+		collapsed.clear();
 	}
 
 	let killTarget = $state<{ pid: number; name: string } | null>(null);
