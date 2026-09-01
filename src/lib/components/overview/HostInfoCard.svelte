@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { fmtBytes, fmtDuration } from '$lib/utils/format';
 	import { cn } from '$lib/utils/cn';
-	import type { SystemInfoResponse } from '$lib/types/api';
+	import { m } from '$lib/paraglide/messages';
+	import type { AlertSeverity, SystemInfoResponse } from '$lib/types/api';
 	import OsIcon from './OsIcon.svelte';
 	import CpuIcon from './CpuIcon.svelte';
 	import IconServer from '~icons/lucide/server';
@@ -11,10 +12,43 @@
 		info: SystemInfoResponse | null;
 		/** Epoch ms when `info` was fetched. Used to advance uptime locally without re-hitting the server. */
 		fetchedAt?: number;
+		/** Firing alert count and worst severity. `firing: null` means still loading;
+		 *  omit the prop entirely to leave the status bar off. */
+		health?: { firing: number | null; severity: AlertSeverity | null } | null;
 		class?: string;
 	}
 
-	let { info, fetchedAt = 0, class: klass = '' }: Props = $props();
+	let { info, fetchedAt = 0, health = null, class: klass = '' }: Props = $props();
+
+	let healthTone = $derived(
+		!health || health.firing === null
+			? 'muted'
+			: health.firing === 0
+				? 'ok'
+				: health.severity === 'crit'
+					? 'crit'
+					: 'warn'
+	);
+
+	let healthColor = $derived(
+		healthTone === 'ok'
+			? 'var(--color-success)'
+			: healthTone === 'crit'
+				? 'var(--color-danger)'
+				: healthTone === 'warn'
+					? 'var(--color-warning)'
+					: 'var(--color-fg-subtle)'
+	);
+
+	let healthBg = $derived(
+		healthTone === 'ok'
+			? 'var(--color-success-bg)'
+			: healthTone === 'crit'
+				? 'var(--color-danger-bg)'
+				: healthTone === 'warn'
+					? 'var(--color-warning-bg)'
+					: 'transparent'
+	);
 
 	let now = $state(Date.now());
 	$effect(() => {
@@ -39,13 +73,33 @@
 
 <div
 	class={cn(
-		'@container overflow-hidden rounded-[var(--radius-card)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_var(--color-border)]',
+		'@container flex flex-col overflow-hidden rounded-[var(--radius-card)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_var(--color-border)]',
 		klass
 	)}
 >
+	{#if health}
+		<div
+			class="flex shrink-0 items-center gap-2 border-b border-[var(--color-hairline)] px-4 py-2"
+			style="background: {healthBg}"
+		>
+			<span class="size-1.5 shrink-0 rounded-full" style="background: {healthColor}"></span>
+			<span class="font-mono text-[11.5px] font-medium" style="color: {healthColor}">
+				{health.firing === null
+					? m.host_status_unknown()
+					: health.firing === 0
+						? m.host_status_ok()
+						: m.host_status_firing({ count: health.firing })}
+			</span>
+			{#if info}
+				<span class="ml-auto shrink-0 font-mono text-[11px] text-[var(--color-fg-subtle)]">
+					up {fmtDuration(liveUptime)}
+				</span>
+			{/if}
+		</div>
+	{/if}
 	<!-- Columns track the card's own width, not the viewport: the same card is a
 	     half-width dashboard widget in one place and a full-width strip in another. -->
-	<div class="hairline-grid h-full grid-cols-1 @sm:grid-cols-2 @5xl:grid-cols-4">
+	<div class="hairline-grid flex-1 grid-cols-1 @sm:grid-cols-2 @5xl:grid-cols-4">
 		{@render hostnameCell()}
 		{@render osCell()}
 		{@render cpuCell()}
@@ -72,7 +126,7 @@
 		>
 			{info?.description.hostname ?? '—'}
 		</span>
-		{#if info}
+		{#if info && !health}
 			<span class="relative truncate font-mono text-[11px] text-[var(--color-fg-subtle)]">
 				up {fmtDuration(liveUptime)}
 			</span>
