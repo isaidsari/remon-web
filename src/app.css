@@ -50,10 +50,14 @@
 	--radius-input: 6px;
 	--radius-pill: 999px;
 
+	/* Top-edge sheen, on its own so a card with a custom border colour can still
+	   pick up the theme-correct highlight. */
+	--shadow-inset-hi: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+	--shadow-inset-hi-strong: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+
 	/* 1px outline instead of a real border — swap on hover without layout shift */
-	--shadow-flat: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 0 0 1px var(--color-border);
-	--shadow-flat-hover:
-		inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 0 0 1px var(--color-border-strong);
+	--shadow-flat: var(--shadow-inset-hi), 0 0 0 1px var(--color-border);
+	--shadow-flat-hover: var(--shadow-inset-hi-strong), 0 0 0 1px var(--color-border-strong);
 
 	--ease-snap: cubic-bezier(0.32, 0.72, 0, 1);
 	--ease-out-fast: cubic-bezier(0.22, 1, 0.36, 1);
@@ -111,9 +115,10 @@
 	--color-cyan: #0891b2;
 	--color-cyan-bg: rgba(8, 145, 178, 0.1);
 
-	/* inset highlight is dark in light mode — no white-on-white sheen */
-	--shadow-flat: inset 0 1px 0 rgba(0, 0, 0, 0.02), 0 0 0 1px var(--color-border);
-	--shadow-flat-hover: inset 0 1px 0 rgba(0, 0, 0, 0.03), 0 0 0 1px var(--color-border-strong);
+	/* inset highlight is dark in light mode — no white-on-white sheen.
+	   --shadow-flat composes from these, so it follows on its own. */
+	--shadow-inset-hi: inset 0 1px 0 rgba(0, 0, 0, 0.02);
+	--shadow-inset-hi-strong: inset 0 1px 0 rgba(0, 0, 0, 0.03);
 }
 
 @layer base {

@@ -32,8 +32,7 @@
 	let netTx = $derived(network.reduce((s, n) => s + n.tx_bytes_per_sec, 0));
 
 	// MetricCard has no border of its own; on the dashboard each KPI stands alone.
-	const cardCls =
-		'h-full rounded-[var(--radius-card)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_var(--color-border)]';
+	const cardCls = 'h-full rounded-[var(--radius-card)] shadow-[var(--shadow-flat)]';
 </script>
 
 {#if config.source === 'cpu'}

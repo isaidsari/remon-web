@@ -152,9 +152,9 @@
 	onfocus={prefetchOverview}
 	class={cn(
 		'group enter relative block overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-surface)]',
-		'shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_var(--card-border,var(--color-border))]',
+		'shadow-[var(--shadow-inset-hi),0_0_0_1px_var(--card-border,var(--color-border))]',
 		'transition-shadow duration-[var(--dur-mid)] ease-[var(--ease-snap)]',
-		'hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_0_1px_var(--card-border-strong,var(--color-border-strong))]',
+		'hover:shadow-[var(--shadow-inset-hi-strong),0_0_0_1px_var(--card-border-strong,var(--color-border-strong))]',
 		'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-ring)]'
 	)}
 	style={profile.accent

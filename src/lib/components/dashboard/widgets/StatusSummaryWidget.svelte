@@ -73,7 +73,7 @@
 
 {#if config.summary === 'host'}
 	<HostInfoCard
-		class="h-full rounded-[var(--radius-card)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_var(--color-border)]"
+		class="h-full rounded-[var(--radius-card)] shadow-[var(--shadow-flat)]"
 		info={conn?.systemInfo?.data ?? null}
 		fetchedAt={conn?.systemInfo?.fetchedAt ?? 0}
 	/>
