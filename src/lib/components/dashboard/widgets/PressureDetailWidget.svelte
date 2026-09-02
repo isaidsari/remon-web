@@ -33,7 +33,7 @@
 	}
 </script>
 
-<Card class="flex h-full flex-col">
+<Card class="flex h-full flex-col" padding="sm">
 	<div class="mb-3">
 		<h2 class="text-sm font-medium text-[var(--color-fg)]">{m.pressurecard_title()}</h2>
 		<p class="mt-0.5 text-xs text-[var(--color-fg-muted)]">{m.pressurecard_description()}</p>

@@ -79,7 +79,7 @@
 	/>
 {:else}
 	{@const Icon = meta.Icon}
-	<Card class="flex h-full flex-col">
+	<Card class="flex h-full flex-col" padding="sm">
 		<div class="mb-2 flex items-center gap-2">
 			<Icon class="size-[15px] shrink-0" style="color: {meta.accent}" stroke-width="2" />
 			<h2 class="text-sm font-medium text-[var(--color-fg)]">{meta.label}</h2>

@@ -28,7 +28,7 @@
 	let swapPct = $derived(swapTotal > 0 ? (swapUsed / swapTotal) * 100 : 0);
 </script>
 
-<Card class="flex h-full flex-col">
+<Card class="flex h-full flex-col" padding="sm">
 	<p class="mb-3 text-xs tracking-wide text-[var(--color-fg-muted)]">
 		{m.overview_card_memory_title()}
 	</p>

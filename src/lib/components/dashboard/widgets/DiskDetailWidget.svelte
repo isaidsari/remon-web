@@ -74,7 +74,7 @@
 	</div>
 {/snippet}
 
-<Card class="flex h-full flex-col">
+<Card class="flex h-full flex-col" padding="sm">
 	<p class="mb-4 text-xs tracking-wide text-[var(--color-fg-muted)]">
 		{m.overview_card_storage_title()}
 	</p>

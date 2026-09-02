@@ -148,8 +148,8 @@
 	let seriesKey = $derived(series.map((s) => s.name).join('|'));
 </script>
 
-<Card class="flex h-full flex-col">
-	<div class="mb-2 flex items-baseline justify-between gap-2">
+<Card class="flex h-full flex-col" padding="sm">
+	<div class="mb-1.5 flex items-baseline justify-between gap-2">
 		<h2 class="text-sm font-medium text-[var(--color-fg)]">{title}</h2>
 		<span class="font-mono text-[10px] text-[var(--color-fg-subtle)]">{config.range}</span>
 	</div>

@@ -29,7 +29,7 @@
 	}
 </script>
 
-<Card class="flex h-full flex-col">
+<Card class="flex h-full flex-col" padding="sm">
 	<div class="mb-4 flex items-center justify-between">
 		<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">{m.overview_card_cpu_title()}</p>
 		{#if cpu}

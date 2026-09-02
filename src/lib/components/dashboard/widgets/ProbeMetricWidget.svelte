@@ -75,8 +75,8 @@
 	let activeLabel = $derived(activeGroup ? formatLabelKey(activeGroup.key) : '');
 </script>
 
-<Card class="flex h-full flex-col">
-	<div class="mb-2 flex items-baseline justify-between gap-2">
+<Card class="flex h-full flex-col" padding="sm">
+	<div class="mb-1.5 flex items-baseline justify-between gap-2">
 		<div class="flex min-w-0 items-baseline gap-2">
 			<h2
 				class="truncate font-mono text-[12px] font-medium text-[var(--color-fg)]"

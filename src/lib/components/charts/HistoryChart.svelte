@@ -149,9 +149,20 @@
 		}
 
 		const palette = chartPalette();
+		// One series needs no legend: the card title already names what is plotted.
+		const hasLegend = series.length > 1;
 		return {
 			animation: false,
-			grid: { left: 56, right: 16, top: 28, bottom: 28 },
+			// outerBoundsMode 'same' lets the axis labels shrink the plot to fit
+			// rather than budgeting a fixed margin wide enough for the worst label.
+			grid: {
+				left: 4,
+				right: 10,
+				top: hasLegend ? 20 : 6,
+				bottom: 4,
+				outerBoundsMode: 'same',
+				outerBoundsContain: 'axisLabel'
+			},
 			tooltip: {
 				trigger: 'axis',
 				axisPointer: {
@@ -166,7 +177,10 @@
 				valueFormatter: valueFormatter ? (v: unknown) => valueFormatter(v as number) : undefined
 			},
 			legend: {
-				show: series.length > 1,
+				show: hasLegend,
+				// Scrolls instead of wrapping: a second legend row would sit on the plot,
+				// because the grid reserves one row's worth of space and no more.
+				type: 'scroll',
 				top: 0,
 				left: 'left',
 				textStyle: { color: palette.legendText, fontSize: 11 },
