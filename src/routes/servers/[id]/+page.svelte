@@ -162,7 +162,7 @@
 {#if profile}
 	<div class="px-4 py-6 md:px-8 md:py-8">
 		<header class="mb-6 flex items-center justify-between gap-3">
-			<h1 class="text-[24px] font-semibold tracking-tight">{m.section_overview()}</h1>
+			<h1 class="text-2xl font-semibold tracking-tight">{m.section_overview()}</h1>
 			{#if conn?.isAuthenticated}
 				<div class="flex items-center gap-2">
 					{#if editing}

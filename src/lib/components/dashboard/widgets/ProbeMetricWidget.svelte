@@ -79,25 +79,19 @@
 	<div class="mb-1.5 flex items-baseline justify-between gap-2">
 		<div class="flex min-w-0 items-baseline gap-2">
 			<h2
-				class="truncate font-mono text-[12px] font-medium text-[var(--color-fg)]"
+				class="truncate font-mono text-xs font-medium text-[var(--color-fg)]"
 				title={config.probe}
 			>
 				{config.metric}
 			</h2>
-			{#if unit}<span class="font-mono text-[10px] text-[var(--color-fg-subtle)]">{unit}</span>{/if}
+			{#if unit}<span class="text-3xs font-mono text-[var(--color-fg-subtle)]">{unit}</span>{/if}
 		</div>
 		<div class="flex min-w-0 flex-col items-end">
-			<span
-				class="truncate font-mono text-[10px] text-[var(--color-fg-subtle)]"
-				title={config.probe}
-			>
+			<span class="text-3xs truncate font-mono text-[var(--color-fg-subtle)]" title={config.probe}>
 				{config.probe}
 			</span>
 			{#if activeLabel}
-				<span
-					class="truncate font-mono text-[10px] text-[var(--color-fg-faint)]"
-					title={activeLabel}
-				>
+				<span class="text-3xs truncate font-mono text-[var(--color-fg-faint)]" title={activeLabel}>
 					{activeLabel}
 				</span>
 			{/if}
@@ -107,12 +101,12 @@
 	{#if loading && !data}
 		<Skeleton class="h-full min-h-[80px] w-full" rounded="lg" />
 	{:else if failed}
-		<p class="py-2 text-[11px] text-[var(--color-fg-subtle)]">{m.probes_metric_unavailable()}</p>
+		<p class="text-2xs py-2 text-[var(--color-fg-subtle)]">{m.probes_metric_unavailable()}</p>
 	{:else if !activeGroup || activeGroup.points.length === 0}
-		<p class="py-2 text-[11px] text-[var(--color-fg-subtle)]">{m.probes_metric_no_data()}</p>
+		<p class="text-2xs py-2 text-[var(--color-fg-subtle)]">{m.probes_metric_no_data()}</p>
 	{:else if config.viz === 'scalar'}
 		<div class="flex flex-1 flex-col items-start justify-center">
-			<span class="font-mono text-[28px] font-semibold text-[var(--color-fg)] tabular-nums">
+			<span class="text-hero font-mono font-semibold text-[var(--color-fg)] tabular-nums">
 				{latest ? fmt(latest.value) : '—'}
 			</span>
 		</div>

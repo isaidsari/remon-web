@@ -246,7 +246,7 @@
 {#snippet typePill(type: NotificationChannelType)}
 	{@const Icon = TYPE_ICONS[type]}
 	<span
-		class="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-surface-2)] px-2.5 py-0.5 font-mono text-[10px] text-[var(--color-fg-muted)]"
+		class="text-3xs inline-flex items-center gap-1.5 rounded-full bg-[var(--color-surface-2)] px-2.5 py-0.5 font-mono text-[var(--color-fg-muted)]"
 	>
 		<Icon class="size-[10px]" stroke-width="2" />
 		{TYPE_LABELS[type]()}
@@ -257,7 +257,7 @@
 	<div class="px-4 py-6 md:px-8 md:py-8">
 		<header class="mb-6 flex items-end justify-between gap-4">
 			<div>
-				<h1 class="text-[24px] font-semibold tracking-tight">{m.notifications_page_title()}</h1>
+				<h1 class="text-2xl font-semibold tracking-tight">{m.notifications_page_title()}</h1>
 				<p class="mt-1.5 text-sm text-[var(--color-fg-muted)]">
 					{m.notifications_page_subtitle()}
 				</p>
@@ -304,7 +304,7 @@
 									{#if ch.min_severity}
 										<span
 											class={cn(
-												'rounded-full px-2 py-0.5 font-mono text-[10px] tracking-wide',
+												'text-3xs rounded-full px-2 py-0.5 font-mono tracking-wide',
 												ch.min_severity === 'crit'
 													? 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]'
 													: 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]'
@@ -312,7 +312,7 @@
 										>
 									{/if}
 								</div>
-								<p class="font-mono text-[11px] text-[var(--color-fg-subtle)]">
+								<p class="text-2xs font-mono text-[var(--color-fg-subtle)]">
 									{#if ch.type === 'telegram'}
 										chat_id: {(ch.config.chat_id as string) || '—'}
 									{:else if ch.type === 'ntfy'}
@@ -333,7 +333,7 @@
 									{@const tr = testResults.get(ch.id)!}
 									<p
 										class={cn(
-											'mt-1 text-[11px]',
+											'text-2xs mt-1',
 											tr.ok ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'
 										)}
 									>
@@ -427,7 +427,7 @@
 			<Field label={m.notifications_field_type()}>
 				<select
 					bind:value={formType}
-					class="h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] text-[var(--color-fg)] focus:border-[var(--color-accent)] focus:outline-none"
+					class="text-md h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[var(--color-fg)] focus:border-[var(--color-accent)] focus:outline-none"
 				>
 					<option value="telegram">Telegram</option>
 					<option value="ntfy">ntfy</option>
@@ -445,7 +445,7 @@
 					placeholder={m.notifications_field_chat_id_placeholder()}
 					class="font-mono"
 				/>
-				<p class="mt-1 text-[12px] text-[var(--color-fg-muted)]">
+				<p class="mt-1 text-xs text-[var(--color-fg-muted)]">
 					{m.notifications_hint_telegram_pre()}
 					<code class="font-mono">api.telegram.org/bot&lt;token&gt;/getUpdates</code>.
 					{m.notifications_hint_telegram_post()}
@@ -457,7 +457,7 @@
 			</Field>
 			<Field label={m.notifications_field_topic()} required>
 				<Input bind:value={cfgNtfyTopic} placeholder="my-alerts" class="font-mono" />
-				<p class="mt-1 text-[12px] text-[var(--color-fg-muted)]">
+				<p class="mt-1 text-xs text-[var(--color-fg-muted)]">
 					{m.notifications_hint_ntfy_pre()}
 					<code class="font-mono">notifications.ntfy.token</code>.
 				</p>
@@ -469,7 +469,7 @@
 					placeholder="https://example.com/hook"
 					class="font-mono"
 				/>
-				<p class="mt-1 text-[12px] text-[var(--color-fg-muted)]">
+				<p class="mt-1 text-xs text-[var(--color-fg-muted)]">
 					{m.notifications_hint_webhook_pre()}
 					<code class="font-mono">&#123; event, severity, title, body, timestamp &#125;</code>.
 					{m.notifications_hint_webhook_mid()}
@@ -479,7 +479,7 @@
 		{:else if formType === 'fcm'}
 			<Banner variant="info" title={m.notifications_banner_no_config_title()}>
 				{m.notifications_banner_fcm_body_pre()}
-				<code class="font-mono text-[11px]">notifications.fcm.service_account_path</code>.
+				<code class="text-2xs font-mono">notifications.fcm.service_account_path</code>.
 			</Banner>
 		{:else if formType === 'web-push'}
 			<Banner variant="info" title={m.notifications_banner_no_config_title()}>
@@ -491,7 +491,7 @@
 			<Field label={m.notifications_field_min_severity()}>
 				<select
 					bind:value={formMinSeverity}
-					class="h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] text-[var(--color-fg)] focus:border-[var(--color-accent)] focus:outline-none"
+					class="text-md h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[var(--color-fg)] focus:border-[var(--color-accent)] focus:outline-none"
 				>
 					<option value="">{m.notifications_severity_all()}</option>
 					<option value="warn">{m.notifications_severity_warn_and_above()}</option>

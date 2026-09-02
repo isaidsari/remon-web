@@ -324,19 +324,19 @@
 		<header class="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
 			<div>
 				<h1
-					class="flex items-baseline gap-2.5 text-[22px] font-semibold tracking-tight sm:text-[24px]"
+					class="text-figure flex items-baseline gap-2.5 font-semibold tracking-tight sm:text-2xl"
 				>
 					{m.section_heartbeats()}
 					<span
-						class="rounded-md bg-[var(--color-surface-2)] px-2 py-0.5 font-mono text-[12px] font-medium text-[var(--color-fg-muted)] shadow-[inset_0_0_0_1px_var(--color-border)]"
+						class="rounded-md bg-[var(--color-surface-2)] px-2 py-0.5 font-mono text-xs font-medium text-[var(--color-fg-muted)] shadow-[inset_0_0_0_1px_var(--color-border)]"
 					>
 						{checks.length}
 					</span>
 				</h1>
-				<p class="mt-1.5 max-w-md text-[13px] text-[var(--color-fg-muted)]">
+				<p class="text-md mt-1.5 max-w-md text-[var(--color-fg-muted)]">
 					{m.heartbeats_page_description()}
 					{#if lastFetched}
-						<span class="ml-2 text-[12px] text-[var(--color-fg-subtle)]">
+						<span class="ml-2 text-xs text-[var(--color-fg-subtle)]">
 							{m.heartbeats_updated_at({ time: new Date(lastFetched).toLocaleTimeString() })}
 						</span>
 					{/if}
@@ -392,7 +392,7 @@
 				<div class="max-h-[max(18rem,calc(100dvh-20rem))] overflow-auto">
 					<table class="w-full text-sm">
 						<thead
-							class="sticky top-0 z-10 bg-[var(--color-surface-2)] text-[11px] font-medium tracking-[0.06em] text-[var(--color-fg-muted)]"
+							class="text-2xs sticky top-0 z-10 bg-[var(--color-surface-2)] font-medium tracking-[0.06em] text-[var(--color-fg-muted)]"
 						>
 							<tr>
 								<th class="px-3 py-2.5 text-left font-medium">{m.heartbeats_table_state()}</th>
@@ -424,13 +424,11 @@
 									<td class="px-3 py-2.5"><HeartbeatStateBadge state={c.state} /></td>
 									<td class="px-3 py-2.5">
 										<div class="flex flex-col">
-											<span class="font-mono text-[12px] font-medium text-[var(--color-fg)]">
+											<span class="font-mono text-xs font-medium text-[var(--color-fg)]">
 												{c.name}
 											</span>
 											{#if c.description}
-												<span
-													class="max-w-[28ch] truncate text-[11px] text-[var(--color-fg-subtle)]"
-												>
+												<span class="text-2xs max-w-[28ch] truncate text-[var(--color-fg-subtle)]">
 													{c.description}
 												</span>
 											{/if}
@@ -439,7 +437,7 @@
 											     repeats them — on a phone they were unreachable. Restate each
 											     one at exactly the width where its own column disappears. -->
 											<dl
-												class="mt-1.5 grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 text-[10px] md:hidden"
+												class="text-3xs mt-1.5 grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 md:hidden"
 											>
 												<dt class="text-[var(--color-fg-subtle)]">
 													{m.heartbeats_table_period()}
@@ -463,21 +461,17 @@
 										</div>
 									</td>
 									<td
-										class="hidden px-3 py-2.5 font-mono text-[12px] text-[var(--color-fg-muted)] md:table-cell"
+										class="hidden px-3 py-2.5 font-mono text-xs text-[var(--color-fg-muted)] md:table-cell"
 									>
 										{fmtDuration(c.period_secs)}
 										<span class="text-[var(--color-fg-subtle)]">
 											+ {fmtDuration(c.grace_secs)}
 										</span>
 									</td>
-									<td
-										class="hidden px-3 py-2.5 text-[12px] text-[var(--color-fg-muted)] sm:table-cell"
-									>
+									<td class="hidden px-3 py-2.5 text-xs text-[var(--color-fg-muted)] sm:table-cell">
 										{c.last_ping_at ? fmtRelative(c.last_ping_at) : m.heartbeats_never_pinged()}
 									</td>
-									<td
-										class="hidden px-3 py-2.5 text-[12px] text-[var(--color-fg-muted)] md:table-cell"
-									>
+									<td class="hidden px-3 py-2.5 text-xs text-[var(--color-fg-muted)] md:table-cell">
 										{deadlineText(c)}
 									</td>
 									<td class="px-2 py-2.5 text-[var(--color-fg-subtle)]">
@@ -492,11 +486,11 @@
 										<td colspan="6" class="px-4 py-4">
 											<div class="flex flex-col gap-4">
 												<div
-													class="grid grid-cols-2 gap-x-6 gap-y-2 text-[12px] text-[var(--color-fg-muted)] sm:grid-cols-3 lg:grid-cols-4"
+													class="grid grid-cols-2 gap-x-6 gap-y-2 text-xs text-[var(--color-fg-muted)] sm:grid-cols-3 lg:grid-cols-4"
 												>
 													<div>
 														<span
-															class="block text-[10px] tracking-wide text-[var(--color-fg-subtle)] uppercase"
+															class="text-3xs block tracking-wide text-[var(--color-fg-subtle)] uppercase"
 														>
 															{m.heartbeats_meta_last_fail()}
 														</span>
@@ -504,7 +498,7 @@
 													</div>
 													<div>
 														<span
-															class="block text-[10px] tracking-wide text-[var(--color-fg-subtle)] uppercase"
+															class="text-3xs block tracking-wide text-[var(--color-fg-subtle)] uppercase"
 														>
 															{m.heartbeats_meta_created()}
 														</span>
@@ -513,7 +507,7 @@
 													{#if c.paused}
 														<div>
 															<span
-																class="block text-[10px] tracking-wide text-[var(--color-fg-subtle)] uppercase"
+																class="text-3xs block tracking-wide text-[var(--color-fg-subtle)] uppercase"
 															>
 																{m.heartbeats_meta_pause()}
 															</span>
@@ -548,23 +542,23 @@
 
 												<div>
 													<h3
-														class="mb-2 text-[11px] font-medium tracking-wide text-[var(--color-fg-subtle)] uppercase"
+														class="text-2xs mb-2 font-medium tracking-wide text-[var(--color-fg-subtle)] uppercase"
 													>
 														{m.heartbeats_pings_title()}
 													</h3>
 													{#if pingsLoading[c.id]}
-														<p class="text-[12px] text-[var(--color-fg-subtle)]">…</p>
+														<p class="text-xs text-[var(--color-fg-subtle)]">…</p>
 													{:else if pings && 'error' in pings}
-														<p class="text-[12px] text-[var(--color-danger)]">{pings.error}</p>
+														<p class="text-xs text-[var(--color-danger)]">{pings.error}</p>
 													{:else if pings && pings.length === 0}
-														<p class="text-[12px] text-[var(--color-fg-subtle)]">
+														<p class="text-xs text-[var(--color-fg-subtle)]">
 															{m.heartbeats_pings_empty()}
 														</p>
 													{:else if pings}
 														<div class="overflow-x-auto">
-															<table class="w-full text-[12px]">
+															<table class="w-full text-xs">
 																<thead
-																	class="text-left text-[10px] tracking-wide text-[var(--color-fg-subtle)] uppercase"
+																	class="text-3xs text-left tracking-wide text-[var(--color-fg-subtle)] uppercase"
 																>
 																	<tr>
 																		<th class="py-1 pr-4 font-medium">{m.heartbeats_ping_kind()}</th
@@ -585,7 +579,7 @@
 																			<td class="py-1.5 pr-4">
 																				<span
 																					class={cn(
-																						'font-mono text-[11px]',
+																						'text-2xs font-mono',
 																						p.kind === 'success' && 'text-[var(--color-success)]',
 																						p.kind === 'fail' && 'text-[var(--color-danger)]',
 																						(p.kind === 'pause' || p.kind === 'resume') &&
@@ -601,11 +595,11 @@
 																			<td class="py-1.5 pr-4 font-mono">
 																				{p.exit_code ?? '—'}
 																			</td>
-																			<td class="py-1.5 pr-4 font-mono text-[11px]">
+																			<td class="text-2xs py-1.5 pr-4 font-mono">
 																				{p.source_ip ?? '—'}
 																			</td>
 																			<td
-																				class="max-w-[36ch] truncate py-1.5 font-mono text-[11px]"
+																				class="text-2xs max-w-[36ch] truncate py-1.5 font-mono"
 																				title={p.body ?? ''}
 																			>
 																				{p.body ?? '—'}
@@ -661,7 +655,7 @@
 				</Field>
 			</div>
 			{#if editing}
-				<label class="flex items-center gap-2 text-[13px] text-[var(--color-fg-muted)]">
+				<label class="text-md flex items-center gap-2 text-[var(--color-fg-muted)]">
 					<input
 						type="checkbox"
 						bind:checked={fEnabled}
@@ -671,7 +665,7 @@
 					{m.heartbeats_field_enabled()}
 				</label>
 			{:else}
-				<label class="flex items-start gap-2 text-[13px] text-[var(--color-fg-muted)]">
+				<label class="text-md flex items-start gap-2 text-[var(--color-fg-muted)]">
 					<input
 						type="checkbox"
 						bind:checked={fCreatePaused}
@@ -680,7 +674,7 @@
 					/>
 					<span>
 						{m.heartbeats_field_create_paused()}
-						<span class="block text-[11px] text-[var(--color-fg-subtle)]">
+						<span class="text-2xs block text-[var(--color-fg-subtle)]">
 							{m.heartbeats_field_create_paused_hint()}
 						</span>
 					</span>
@@ -719,7 +713,7 @@
 			<Field label={m.heartbeats_slug_ping_url()}>
 				<div class="flex items-center gap-2">
 					<code
-						class="min-w-0 flex-1 truncate rounded-[var(--radius-input)] bg-[var(--color-surface-2)] px-3 py-2 font-mono text-[12px] shadow-[inset_0_0_0_1px_var(--color-border)]"
+						class="min-w-0 flex-1 truncate rounded-[var(--radius-input)] bg-[var(--color-surface-2)] px-3 py-2 font-mono text-xs shadow-[inset_0_0_0_1px_var(--color-border)]"
 					>
 						{slugUrl}
 					</code>
@@ -732,7 +726,7 @@
 			<Field label={m.heartbeats_slug_curl_label()} hint={m.heartbeats_slug_curl_hint()}>
 				<div class="flex items-center gap-2">
 					<code
-						class="min-w-0 flex-1 truncate rounded-[var(--radius-input)] bg-[var(--color-surface-2)] px-3 py-2 font-mono text-[12px] text-[var(--color-fg-muted)] shadow-[inset_0_0_0_1px_var(--color-border)]"
+						class="min-w-0 flex-1 truncate rounded-[var(--radius-input)] bg-[var(--color-surface-2)] px-3 py-2 font-mono text-xs text-[var(--color-fg-muted)] shadow-[inset_0_0_0_1px_var(--color-border)]"
 					>
 						curl -fsS {slugUrl}
 					</code>

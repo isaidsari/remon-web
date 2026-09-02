@@ -104,7 +104,7 @@
 					type="button"
 					onclick={() => onResetNow?.()}
 					class={cn(
-						'h-7 min-w-[4.75rem] flex-1 rounded-md px-2 font-mono text-[10px] tracking-wide tabular-nums transition sm:flex-none',
+						'text-3xs h-7 min-w-[4.75rem] flex-1 rounded-md px-2 font-mono tracking-wide tabular-nums transition sm:flex-none',
 						offsetSecs === 0
 							? 'cursor-default text-[var(--color-fg-subtle)]'
 							: 'text-[var(--color-warning)] hover:bg-[var(--color-surface-2)]'

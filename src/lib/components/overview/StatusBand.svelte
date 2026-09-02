@@ -116,12 +116,12 @@
 				></span>
 				<div class="min-w-0">
 					<p
-						class="truncate text-[14.5px] font-semibold tracking-tight"
+						class="truncate text-sm font-semibold tracking-tight"
 						style="color: {TONE_COLOR[tone]}"
 					>
 						{verdict}
 					</p>
-					<p class="mt-0.5 truncate font-mono text-[11px] text-[var(--color-fg-subtle)]">
+					<p class="text-2xs mt-0.5 truncate font-mono text-[var(--color-fg-subtle)]">
 						remon v{summary.version}
 					</p>
 				</div>
@@ -134,7 +134,7 @@
 				<a
 					href={link.href}
 					class={cn(
-						'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium transition-all duration-[var(--dur-fast)]',
+						'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-[var(--dur-fast)]',
 						link.tone === 'danger'
 							? 'bg-[var(--color-danger-bg)] text-[var(--color-danger)] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-danger)_35%,transparent)]'
 							: link.tone === 'accent'
@@ -146,7 +146,7 @@
 					{link.label}
 					{#if link.badge}
 						<span
-							class="rounded-full bg-[var(--color-danger)] px-1.5 text-[10px] font-semibold text-white tabular-nums"
+							class="text-3xs rounded-full bg-[var(--color-danger)] px-1.5 font-semibold text-white tabular-nums"
 						>
 							{link.badge}
 						</span>

@@ -49,7 +49,7 @@
 		<h2 class="flex-1 text-sm font-medium text-[var(--color-fg)]">{m.overview_events_title()}</h2>
 		<a
 			href={conn ? `/servers/${conn.serverId}/events` : '#'}
-			class="group inline-flex items-center gap-1 text-[11px] text-[var(--color-fg-subtle)] transition-colors hover:text-[var(--color-fg)]"
+			class="group text-2xs inline-flex items-center gap-1 text-[var(--color-fg-subtle)] transition-colors hover:text-[var(--color-fg)]"
 		>
 			{m.overview_events_all()}
 			<IconArrowRight
@@ -67,7 +67,7 @@
 	{:else if events.length === 0}
 		<div class="flex flex-1 flex-col items-center justify-center gap-1 px-4 pb-6 text-center">
 			<span class="relative inline-flex size-2 rounded-full bg-[var(--color-success)]"></span>
-			<p class="mt-2 text-[12.5px] text-[var(--color-fg-muted)]">{m.overview_events_empty()}</p>
+			<p class="mt-2 text-xs text-[var(--color-fg-muted)]">{m.overview_events_empty()}</p>
 		</div>
 	{:else}
 		<!-- Timeline: hairline rail on the left, one row per host event. -->

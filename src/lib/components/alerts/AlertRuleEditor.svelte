@@ -467,7 +467,7 @@
 						<span class="text-sm font-medium text-[var(--color-fg)]">{templateTitle(t.id)}</span>
 						<span
 							class={cn(
-								'rounded-full px-1.5 py-0.5 font-mono text-[10px] tracking-wide uppercase',
+								'text-3xs rounded-full px-1.5 py-0.5 font-mono tracking-wide uppercase',
 								t.severity === 'crit'
 									? 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]'
 									: 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]'
@@ -476,13 +476,13 @@
 							{t.severity}
 						</span>
 					</div>
-					<span class="text-[11px] leading-relaxed text-[var(--color-fg-muted)]"
+					<span class="text-2xs leading-relaxed text-[var(--color-fg-muted)]"
 						>{templateSummary(t.id)}</span
 					>
 				</button>
 			{/each}
 		</div>
-		<p class="text-[11px] text-[var(--color-fg-subtle)]">
+		<p class="text-2xs text-[var(--color-fg-subtle)]">
 			{m.alerts_editor_templates_footer()}
 		</p>
 	{:else if mode === 'builder'}
@@ -492,7 +492,7 @@
 				<select
 					value={builder.namespace}
 					onchange={(e) => selectNamespace((e.currentTarget as HTMLSelectElement).value)}
-					class="h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] focus:border-[var(--color-accent)] focus:outline-none"
+					class="text-md h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 focus:border-[var(--color-accent)] focus:outline-none"
 				>
 					<option value="" disabled>{m.alerts_editor_select_resource()}</option>
 					{#each schema?.namespaces ?? [] as ns (ns.name)}
@@ -500,7 +500,7 @@
 					{/each}
 				</select>
 				{#if currentNamespace}
-					<p class="mt-1 text-[11px] leading-relaxed text-[var(--color-fg-muted)]">
+					<p class="text-2xs mt-1 leading-relaxed text-[var(--color-fg-muted)]">
 						{currentNamespace.description}
 					</p>
 				{/if}
@@ -513,7 +513,7 @@
 							value={selectorValue}
 							onchange={(e) =>
 								setLabel(selectorLabel!.name, (e.currentTarget as HTMLSelectElement).value)}
-							class="h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] focus:border-[var(--color-accent)] focus:outline-none"
+							class="text-md h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 focus:border-[var(--color-accent)] focus:outline-none"
 						>
 							<option value="">{m.alerts_editor_label_pick_one()}</option>
 							{#each labelOptions[selectorLabel.name] as opt (opt)}
@@ -526,7 +526,7 @@
 							oninput={(e) =>
 								setLabel(selectorLabel!.name, (e.currentTarget as HTMLInputElement).value)}
 							placeholder={m.alerts_editor_label_required_placeholder()}
-							class="font-mono text-[12px]"
+							class="font-mono text-xs"
 						/>
 					{/if}
 				</Field>
@@ -536,7 +536,7 @@
 						<select
 							value={builder.field}
 							onchange={(e) => selectField((e.currentTarget as HTMLSelectElement).value)}
-							class="h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] focus:border-[var(--color-accent)] focus:outline-none"
+							class="text-md h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 focus:border-[var(--color-accent)] focus:outline-none"
 						>
 							<option value="" disabled>{m.alerts_editor_select_metric()}</option>
 							{#each dynamicMetricOptions as opt (opt)}
@@ -548,14 +548,14 @@
 							value={builder.field}
 							oninput={(e) => selectField((e.currentTarget as HTMLInputElement).value)}
 							placeholder={m.alerts_editor_metric_dynamic_placeholder()}
-							class="font-mono text-[12px]"
+							class="font-mono text-xs"
 						/>
 					{:else}
 						<select
 							value={builder.field}
 							disabled={!currentNamespace}
 							onchange={(e) => selectField((e.currentTarget as HTMLSelectElement).value)}
-							class="h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] focus:border-[var(--color-accent)] focus:outline-none disabled:opacity-50"
+							class="text-md h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 focus:border-[var(--color-accent)] focus:outline-none disabled:opacity-50"
 						>
 							<option value="" disabled>{m.alerts_editor_select_metric()}</option>
 							{#each currentNamespace?.metrics ?? [] as opt (opt.name)}
@@ -564,7 +564,7 @@
 						</select>
 					{/if}
 					{#if currentMetric?.description}
-						<p class="mt-1 text-[11px] leading-relaxed text-[var(--color-fg-muted)]">
+						<p class="text-2xs mt-1 leading-relaxed text-[var(--color-fg-muted)]">
 							{currentMetric.description}
 						</p>
 					{/if}
@@ -577,7 +577,7 @@
 				{#if metricDisabledByGate}
 					<select
 						disabled
-						class="h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] opacity-50"
+						class="text-md h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 opacity-50"
 					>
 						<option
 							>{m.alerts_editor_metric_pick_selector_first({
@@ -589,7 +589,7 @@
 					<select
 						value={builder.field}
 						onchange={(e) => selectField((e.currentTarget as HTMLSelectElement).value)}
-						class="h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] focus:border-[var(--color-accent)] focus:outline-none"
+						class="text-md h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 focus:border-[var(--color-accent)] focus:outline-none"
 					>
 						<option value="" disabled>{m.alerts_editor_select_metric()}</option>
 						{#each dynamicMetricOptions as opt (opt)}
@@ -601,9 +601,9 @@
 						value={builder.field}
 						oninput={(e) => selectField((e.currentTarget as HTMLInputElement).value)}
 						placeholder={m.alerts_editor_metric_dynamic_placeholder()}
-						class="font-mono text-[12px]"
+						class="font-mono text-xs"
 					/>
-					<p class="mt-1 text-[11px] leading-relaxed text-[var(--color-fg-muted)]">
+					<p class="text-2xs mt-1 leading-relaxed text-[var(--color-fg-muted)]">
 						{m.alerts_editor_metric_no_snapshot()}
 					</p>
 				{/if}
@@ -616,7 +616,7 @@
 							<select
 								value={builder.labels[label.name] ?? ''}
 								onchange={(e) => setLabel(label.name, (e.currentTarget as HTMLSelectElement).value)}
-								class="h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] focus:border-[var(--color-accent)] focus:outline-none"
+								class="text-md h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 focus:border-[var(--color-accent)] focus:outline-none"
 							>
 								<option value="">{m.alerts_editor_label_any()}</option>
 								{#each label.values as opt (opt)}
@@ -637,7 +637,7 @@
 							<select
 								value={builder.labels[label.name] ?? ''}
 								onchange={(e) => setLabel(label.name, (e.currentTarget as HTMLSelectElement).value)}
-								class="h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] focus:border-[var(--color-accent)] focus:outline-none"
+								class="text-md h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 focus:border-[var(--color-accent)] focus:outline-none"
 							>
 								<option value=""
 									>{label.required
@@ -655,7 +655,7 @@
 								placeholder={label.required
 									? m.alerts_editor_label_required_placeholder()
 									: m.alerts_editor_label_optional_placeholder()}
-								class="font-mono text-[12px]"
+								class="font-mono text-xs"
 							/>
 						{/if}
 					</Field>
@@ -672,7 +672,7 @@
 					<select
 						value={builder.aggregate ?? ''}
 						onchange={(e) => setAggregate((e.currentTarget as HTMLSelectElement).value)}
-						class="h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] focus:border-[var(--color-accent)] focus:outline-none"
+						class="text-md h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 focus:border-[var(--color-accent)] focus:outline-none"
 					>
 						<option value="">{m.alerts_editor_aggregate_none()}</option>
 						{#each schema?.aggregates ?? [] as a (a.name)}
@@ -688,7 +688,7 @@
 								builder = { ...builder, window: (e.currentTarget as HTMLInputElement).value };
 							}}
 							placeholder="30s"
-							class="font-mono text-[12px]"
+							class="font-mono text-xs"
 						/>
 					</Field>
 				{/if}
@@ -702,7 +702,7 @@
 					onchange={(e) => {
 						builder = { ...builder, comparator: (e.currentTarget as HTMLSelectElement).value };
 					}}
-					class="h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] focus:border-[var(--color-accent)] focus:outline-none"
+					class="text-md h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 focus:border-[var(--color-accent)] focus:outline-none"
 				>
 					{#each schema?.comparators ?? [] as c (c.op)}
 						<option value={c.op}>{c.op}</option>
@@ -751,26 +751,26 @@
 		<div
 			class="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2"
 		>
-			<div class="mb-0.5 text-[10px] tracking-wide text-[var(--color-fg-subtle)] uppercase">
+			<div class="text-3xs mb-0.5 tracking-wide text-[var(--color-fg-subtle)] uppercase">
 				{m.alerts_editor_expression_preview_label()}
 			</div>
-			<code class="block font-mono text-[12px] text-[var(--color-fg)]">{expression || '—'}</code>
+			<code class="block font-mono text-xs text-[var(--color-fg)]">{expression || '—'}</code>
 		</div>
 		{#if builderValidation}
-			<p class="text-[11px] text-[var(--color-danger)]">{builderValidation.hint}</p>
+			<p class="text-2xs text-[var(--color-danger)]">{builderValidation.hint}</p>
 		{/if}
 	{:else}
 		<Field label={m.alerts_form_expression_label()} required>
 			<Input
 				bind:value={expression}
 				placeholder="cpu.usage_percent > 80"
-				class="font-mono text-[12px]"
+				class="font-mono text-xs"
 				invalid={rawValidation?.level === 'error'}
 			/>
 			{#if rawValidation}
 				<p
 					class={cn(
-						'mt-1 text-[11px]',
+						'text-2xs mt-1',
 						rawValidation.level === 'error'
 							? 'text-[var(--color-danger)]'
 							: 'text-[var(--color-success)]'
@@ -779,7 +779,7 @@
 					{rawValidation.hint}
 				</p>
 			{:else}
-				<p class="mt-1 text-[11px] leading-relaxed text-[var(--color-fg-muted)]">
+				<p class="text-2xs mt-1 leading-relaxed text-[var(--color-fg-muted)]">
 					{m.alerts_editor_raw_help_prefix()}
 					<code class="font-mono">namespace.field&#123;label="value"&#125; comparator number</code>.
 					{m.alerts_editor_raw_help_suffix()}
@@ -802,7 +802,7 @@
 				<Field label={m.alerts_form_severity_label()}>
 					<select
 						bind:value={severity}
-						class="h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] focus:border-[var(--color-accent)] focus:outline-none"
+						class="text-md h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 focus:border-[var(--color-accent)] focus:outline-none"
 					>
 						<option value="warn">{m.alerts_severity_warn()}</option>
 						<option value="crit">{m.alerts_severity_crit()}</option>

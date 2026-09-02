@@ -40,7 +40,7 @@
 					↑ {fmtBps(n.tx_bytes_per_sec)}
 				</span>
 			</span>
-			<span class="flex items-center gap-3 text-[10px] text-[var(--color-fg-subtle)]">
+			<span class="text-3xs flex items-center gap-3 text-[var(--color-fg-subtle)]">
 				<span title={m.overview_iface_total_rx()}>↓ {fmtBytes(n.rx_bytes_total)}</span>
 				<span title={m.overview_iface_total_tx()}>↑ {fmtBytes(n.tx_bytes_total)}</span>
 			</span>
@@ -62,7 +62,7 @@
 		{#if containerNet.length > 0}
 			<details class="mt-3 border-t border-[var(--color-border)] pt-3">
 				<summary
-					class="cursor-pointer font-mono text-[10px] tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
+					class="text-3xs cursor-pointer font-mono tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
 				>
 					{m.overview_network_group_container({ count: containerNet.length })}
 				</summary>
@@ -76,7 +76,7 @@
 		{#if virtualNet.length > 0}
 			<details class="mt-2">
 				<summary
-					class="cursor-pointer font-mono text-[10px] tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
+					class="text-3xs cursor-pointer font-mono tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
 				>
 					{m.overview_network_group_virtual({ count: virtualNet.length })}
 				</summary>

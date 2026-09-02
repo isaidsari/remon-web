@@ -443,7 +443,7 @@
 {#if profile}
 	<div class="mx-auto max-w-3xl px-4 py-8 md:px-8 md:py-10">
 		<header class="mb-8">
-			<h1 class="text-[24px] font-semibold tracking-tight">{m.section_settings()}</h1>
+			<h1 class="text-2xl font-semibold tracking-tight">{m.section_settings()}</h1>
 			<p class="mt-1.5 max-w-md text-sm leading-relaxed text-[var(--color-fg-muted)]">
 				{m.settings_page_description()}
 			</p>
@@ -516,7 +516,7 @@
 					type="button"
 					onclick={fetchSessions}
 					disabled={sessionsLoading}
-					class="inline-flex items-center gap-1 text-[11px] text-[var(--color-fg-subtle)] transition hover:text-[var(--color-fg)] disabled:opacity-50"
+					class="text-2xs inline-flex items-center gap-1 text-[var(--color-fg-subtle)] transition hover:text-[var(--color-fg)] disabled:opacity-50"
 					title={m.settings_devices_refresh_title()}
 				>
 					<IconRefreshCw
@@ -526,16 +526,16 @@
 					{m.settings_devices_refresh()}
 				</button>
 			</div>
-			<p class="mb-3 max-w-md text-[12px] text-[var(--color-fg-muted)]">
+			<p class="mb-3 max-w-md text-xs text-[var(--color-fg-muted)]">
 				{m.settings_devices_description()}
 			</p>
 
 			{#if sessionsError}
-				<p class="text-[12px] text-[var(--color-danger)]">{sessionsError}</p>
+				<p class="text-xs text-[var(--color-danger)]">{sessionsError}</p>
 			{:else if sessionsLoading && sessions.length === 0}
-				<p class="text-[12px] text-[var(--color-fg-subtle)]">{m.settings_devices_loading()}</p>
+				<p class="text-xs text-[var(--color-fg-subtle)]">{m.settings_devices_loading()}</p>
 			{:else if sessions.length === 0}
-				<p class="text-[12px] text-[var(--color-fg-subtle)]">{m.settings_devices_empty()}</p>
+				<p class="text-xs text-[var(--color-fg-subtle)]">{m.settings_devices_empty()}</p>
 			{:else}
 				<ul class="-mx-2 flex flex-col">
 					{#each sessions as s (s.id)}
@@ -560,13 +560,13 @@
 													editingId = null;
 												}
 											}}
-											class="h-7 w-48 text-[13px]"
+											class="text-md h-7 w-48"
 										/>
 									{:else}
 										<button
 											type="button"
 											onclick={() => startRename(s)}
-											class="truncate text-[14px] font-medium text-[var(--color-fg)] transition hover:text-[var(--color-accent)]"
+											class="truncate text-sm font-medium text-[var(--color-fg)] transition hover:text-[var(--color-accent)]"
 											title={m.settings_devices_rename_title()}
 										>
 											{s.name}
@@ -574,21 +574,21 @@
 									{/if}
 									{#if s.is_current}
 										<span
-											class="rounded bg-[var(--color-accent)]/15 px-1.5 py-0.5 font-mono text-[10px] tracking-wide text-[var(--color-accent)]"
+											class="text-3xs rounded bg-[var(--color-accent)]/15 px-1.5 py-0.5 font-mono tracking-wide text-[var(--color-accent)]"
 										>
 											{m.settings_devices_this_device()}
 										</span>
 									{/if}
 									{#if !s.is_active}
 										<span
-											class="rounded bg-[var(--color-fg-subtle)]/15 px-1.5 py-0.5 font-mono text-[10px] tracking-wide text-[var(--color-fg-subtle)]"
+											class="text-3xs rounded bg-[var(--color-fg-subtle)]/15 px-1.5 py-0.5 font-mono tracking-wide text-[var(--color-fg-subtle)]"
 										>
 											{m.settings_devices_inactive()}
 										</span>
 									{/if}
 								</div>
 								<p
-									class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[var(--color-fg-subtle)]"
+									class="text-2xs mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[var(--color-fg-subtle)]"
 								>
 									<span>{m.settings_devices_last_seen({ time: fmtRelative(s.last_seen) })}</span>
 									{#if s.last_ip}
@@ -606,7 +606,7 @@
 							<button
 								type="button"
 								onclick={() => revokeSession(s)}
-								class="shrink-0 rounded-md px-2 py-1 text-[12px] text-[var(--color-fg-subtle)] opacity-60 transition group-hover:opacity-100 hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger)] hover:opacity-100"
+								class="shrink-0 rounded-md px-2 py-1 text-xs text-[var(--color-fg-subtle)] opacity-60 transition group-hover:opacity-100 hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger)] hover:opacity-100"
 							>
 								{m.settings_devices_revoke()}
 							</button>
@@ -624,7 +624,7 @@
 				{#if pushSupported}
 					<span
 						class={cn(
-							'text-[11px]',
+							'text-2xs',
 							pushState === 'this'
 								? 'text-[var(--color-success)]'
 								: pushState === 'other'
@@ -640,21 +640,21 @@
 					</span>
 				{/if}
 			</div>
-			<p class="mb-3 max-w-md text-[12px] text-[var(--color-fg-muted)]">
+			<p class="mb-3 max-w-md text-xs text-[var(--color-fg-muted)]">
 				{m.settings_push_description()}
 			</p>
 
 			{#if !pushSupported}
-				<p class="text-[12px] text-[var(--color-fg-subtle)]">
+				<p class="text-xs text-[var(--color-fg-subtle)]">
 					{m.settings_push_unsupported()}
 				</p>
 			{:else if pushPermission === 'denied'}
-				<p class="text-[12px] text-[var(--color-warning)]">
+				<p class="text-xs text-[var(--color-warning)]">
 					{m.settings_push_blocked()}
 				</p>
 			{:else}
 				{#if pushState === 'other'}
-					<p class="mb-3 max-w-md text-[12px] text-[var(--color-warning)]">
+					<p class="mb-3 max-w-md text-xs text-[var(--color-warning)]">
 						{pushOtherName
 							? m.settings_push_other_body_named({ name: pushOtherName })
 							: m.settings_push_other_body_unknown()}
@@ -688,7 +688,7 @@
 				<div class="flex items-center gap-2">
 					<span
 						class={cn(
-							'text-[11px]',
+							'text-2xs',
 							vault.isTrusted ? 'text-[var(--color-success)]' : 'text-[var(--color-fg-subtle)]'
 						)}
 					>
@@ -696,13 +696,13 @@
 							? m.settings_autounlock_status_on()
 							: m.settings_autounlock_status_off()}
 					</span>
-					<span class="text-[11px] text-[var(--color-fg-faint)]" aria-hidden="true">·</span>
-					<span class="text-[11px] text-[var(--color-fg-subtle)]">
+					<span class="text-2xs text-[var(--color-fg-faint)]" aria-hidden="true">·</span>
+					<span class="text-2xs text-[var(--color-fg-subtle)]">
 						{m.settings_applies_to_all()}
 					</span>
 				</div>
 			</div>
-			<p class="mb-3 max-w-md text-[12px] text-[var(--color-fg-muted)]">
+			<p class="mb-3 max-w-md text-xs text-[var(--color-fg-muted)]">
 				{m.settings_autounlock_description()}
 			</p>
 			{#if vault.isTrusted}
@@ -721,11 +721,11 @@
 				<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">
 					{m.settings_appearance_eyebrow()}
 				</p>
-				<span class="text-[11px] text-[var(--color-fg-subtle)]">
+				<span class="text-2xs text-[var(--color-fg-subtle)]">
 					{m.settings_applies_to_all()}
 				</span>
 			</div>
-			<p class="mb-3 max-w-md text-[12px] text-[var(--color-fg-muted)]">
+			<p class="mb-3 max-w-md text-xs text-[var(--color-fg-muted)]">
 				{m.settings_appearance_description_prefix()}
 				<span class="font-mono">{m.settings_theme_auto()}</span>
 				{m.settings_appearance_description_suffix()}
@@ -748,7 +748,7 @@
 					<button
 						type="button"
 						onclick={() => setAccent(null)}
-						class="inline-flex items-center gap-1 text-[11px] text-[var(--color-fg-subtle)] transition hover:text-[var(--color-fg)]"
+						class="text-2xs inline-flex items-center gap-1 text-[var(--color-fg-subtle)] transition hover:text-[var(--color-fg)]"
 						title={m.settings_accent_reset_title()}
 					>
 						<IconRotateCcw class="size-[11px]" stroke-width="2.25" />
@@ -756,7 +756,7 @@
 					</button>
 				{/if}
 			</div>
-			<p class="mb-3 max-w-md text-[12px] text-[var(--color-fg-muted)]">
+			<p class="mb-3 max-w-md text-xs text-[var(--color-fg-muted)]">
 				{m.settings_accent_description()}
 			</p>
 
@@ -782,7 +782,7 @@
 			</div>
 
 			<div class="mt-4 flex items-end gap-2">
-				<label class="flex-1 text-[11px] font-medium tracking-wide text-[var(--color-fg-muted)]">
+				<label class="text-2xs flex-1 font-medium tracking-wide text-[var(--color-fg-muted)]">
 					{m.settings_accent_custom_hex_label()}
 					<Input bind:value={customHex} placeholder="#38bdf8" class="mt-1 font-mono" />
 				</label>
@@ -797,11 +797,11 @@
 				<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">
 					{m.settings_language_eyebrow()}
 				</p>
-				<span class="text-[11px] text-[var(--color-fg-subtle)]">
+				<span class="text-2xs text-[var(--color-fg-subtle)]">
 					{m.settings_applies_to_all()}
 				</span>
 			</div>
-			<p class="mb-3 max-w-md text-[12px] text-[var(--color-fg-muted)]">
+			<p class="mb-3 max-w-md text-xs text-[var(--color-fg-muted)]">
 				{m.settings_language_description()}
 			</p>
 			<div
@@ -822,13 +822,13 @@
 				<dd class="flex flex-wrap items-baseline gap-x-2 font-mono text-[var(--color-fg)]">
 					<span>{serverVersion ? `v${serverVersion}` : '—'}</span>
 					{#if serverMode}
-						<span class="text-[11px] tracking-wide text-[var(--color-fg-muted)]">
+						<span class="text-2xs tracking-wide text-[var(--color-fg-muted)]">
 							{serverMode}
 						</span>
 					{/if}
 					{#if serverBuiltAt}
 						<span
-							class="text-[11px] text-[var(--color-fg-subtle)]"
+							class="text-2xs text-[var(--color-fg-subtle)]"
 							title={new Date(serverBuiltAt * 1000).toLocaleString()}
 						>
 							{m.settings_versions_built({ time: fmtRelative(serverBuiltAt) })}
@@ -839,12 +839,12 @@
 				<dt class="text-[var(--color-fg-muted)]">remon-web</dt>
 				<dd class="flex flex-wrap items-baseline gap-x-2 font-mono text-[var(--color-fg)]">
 					<span>v{WEB_VERSION}</span>
-					<span class="text-[11px] tracking-wide text-[var(--color-fg-muted)]">
+					<span class="text-2xs tracking-wide text-[var(--color-fg-muted)]">
 						{WEB_BUILD_MODE}
 					</span>
 					{#if WEB_BUILT_AT > 0}
 						<span
-							class="text-[11px] text-[var(--color-fg-subtle)]"
+							class="text-2xs text-[var(--color-fg-subtle)]"
 							title={new Date(WEB_BUILT_AT * 1000).toLocaleString()}
 						>
 							{m.settings_versions_built({ time: fmtRelative(WEB_BUILT_AT) })}
@@ -909,7 +909,7 @@
 		type="button"
 		onclick={() => setTheme(mode)}
 		class={cn(
-			'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium transition',
+			'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition',
 			active
 				? 'bg-[var(--color-surface)] text-[var(--color-fg)] shadow-[0_0_0_1px_var(--color-border)]'
 				: 'text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]'
@@ -968,7 +968,7 @@
 		type="button"
 		onclick={() => setLang(code)}
 		class={cn(
-			'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium transition',
+			'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition',
 			active
 				? 'bg-[var(--color-surface)] text-[var(--color-fg)] shadow-[0_0_0_1px_var(--color-border)]'
 				: 'text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]'

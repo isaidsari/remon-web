@@ -223,7 +223,7 @@
 
 	<div
 		bind:this={scroller}
-		class="h-[480px] overflow-auto rounded-[var(--radius-input)] border border-[var(--color-border)] bg-black/40 px-4 py-3 font-mono text-[12px] leading-[1.55]"
+		class="h-[480px] overflow-auto rounded-[var(--radius-input)] border border-[var(--color-border)] bg-black/40 px-4 py-3 font-mono text-xs leading-[1.55]"
 	>
 		{#if lines.length === 0}
 			<p class="text-[var(--color-fg-subtle)]">{m.log_empty_state()}</p>

@@ -365,7 +365,7 @@
 	>
 		<div class="flex min-w-0 items-center gap-2">
 			<IconBotMessageSquare class="size-4 shrink-0 text-[var(--color-accent)]" />
-			<h1 class="truncate text-[13px] font-semibold tracking-tight">{m.assistant_title()}</h1>
+			<h1 class="text-md truncate font-semibold tracking-tight">{m.assistant_title()}</h1>
 			<span
 				class={cn(
 					'ml-0.5 size-2 shrink-0 rounded-full',
@@ -421,10 +421,10 @@
 					>
 						<IconBotMessageSquare class="size-5 text-[var(--color-accent)]" />
 					</span>
-					<p class="mt-4 max-w-sm text-[13px] leading-relaxed text-[var(--color-fg-muted)]">
+					<p class="text-md mt-4 max-w-sm leading-relaxed text-[var(--color-fg-muted)]">
 						{m.assistant_intro()}
 					</p>
-					<p class="mt-7 text-[11px] font-medium tracking-wide text-[var(--color-fg-subtle)]">
+					<p class="text-2xs mt-7 font-medium tracking-wide text-[var(--color-fg-subtle)]">
 						{m.assistant_empty_hint()}
 					</p>
 					<div
@@ -437,7 +437,7 @@
 								onclick={() => ask(ex.label)}
 								disabled={!conn?.isAuthenticated}
 								class={cn(
-									'group flex items-center gap-2.5 rounded-xl bg-[var(--color-surface)] px-3.5 py-2.5 text-left text-[13px] text-[var(--color-fg-muted)]',
+									'group text-md flex items-center gap-2.5 rounded-xl bg-[var(--color-surface)] px-3.5 py-2.5 text-left text-[var(--color-fg-muted)]',
 									'shadow-[var(--shadow-flat)] transition-all duration-[var(--dur-fast)]',
 									'hover:text-[var(--color-fg)] hover:shadow-[var(--shadow-flat-hover)]',
 									'disabled:cursor-not-allowed disabled:opacity-40',
@@ -459,7 +459,7 @@
 					<!-- Operator question: wears the server's accent -->
 					<div class="flex justify-end">
 						<div
-							class="max-w-[85%] rounded-2xl rounded-br-md bg-[var(--color-accent)] px-4 py-2.5 text-[13px] leading-relaxed break-words whitespace-pre-wrap text-[var(--color-accent-fg)] md:max-w-[75%]"
+							class="text-md max-w-[85%] rounded-2xl rounded-br-md bg-[var(--color-accent)] px-4 py-2.5 leading-relaxed break-words whitespace-pre-wrap text-[var(--color-accent-fg)] md:max-w-[75%]"
 						>
 							{entry.question}
 						</div>
@@ -472,7 +472,7 @@
 							{#if entry.answer}
 								<!-- Answer text streaming in — rendered live, replaced by
 								     the authoritative final answer on completion. -->
-								<div class="text-[13.5px] leading-relaxed">
+								<div class="text-md leading-relaxed">
 									<Markdown text={entry.answer} />
 								</div>
 							{/if}
@@ -484,7 +484,7 @@
 								<span class="think-dots text-[var(--color-accent)]" aria-hidden="true">
 									<i></i><i></i><i></i>
 								</span>
-								<span class="font-mono text-[11px] text-[var(--color-fg-subtle)] tabular-nums">
+								<span class="text-2xs font-mono text-[var(--color-fg-subtle)] tabular-nums">
 									{entry.activity ?? m.assistant_thinking()}{elapsedSeconds(entry) >= 3
 										? ` · ${elapsedSeconds(entry)}s`
 										: ''}
@@ -493,7 +493,7 @@
 						{:else if entry.error}
 							<Banner variant="danger">{entry.error}</Banner>
 						{:else}
-							<div class="text-[13.5px] leading-relaxed">
+							<div class="text-md leading-relaxed">
 								<Markdown text={entry.answer} />
 							</div>
 
@@ -502,7 +502,7 @@
 									type="button"
 									onclick={() => copyAnswer(entry.answer)}
 									class={cn(
-										'inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] text-[var(--color-fg-faint)]',
+										'text-2xs inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[var(--color-fg-faint)]',
 										'transition-all duration-[var(--dur-fast)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)]',
 										'md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100'
 									)}
@@ -517,11 +517,11 @@
 									class="rounded-lg bg-[var(--color-surface)] px-3 py-2 shadow-[var(--shadow-flat)]"
 								>
 									<summary
-										class="cursor-pointer text-[11px] text-[var(--color-fg-subtle)] select-none"
+										class="text-2xs cursor-pointer text-[var(--color-fg-subtle)] select-none"
 									>
 										{m.assistant_trace()} · {entry.trace.length}
 									</summary>
-									<ol class="mt-2 space-y-1.5 font-mono text-[10.5px] leading-relaxed">
+									<ol class="text-3xs mt-2 space-y-1.5 font-mono leading-relaxed">
 										{#each entry.trace as step, si (si)}
 											<li class="text-[var(--color-fg-muted)]">
 												{#if step.type === 'tool'}
@@ -560,35 +560,35 @@
 								<div class="flex items-center gap-2 bg-[var(--color-warning-bg)] px-3.5 py-2">
 									<IconZap class="size-3.5 shrink-0 text-[var(--color-warning)]" />
 									<span
-										class="min-w-0 flex-1 truncate text-[11px] font-medium tracking-wide text-[var(--color-warning)]"
+										class="text-2xs min-w-0 flex-1 truncate font-medium tracking-wide text-[var(--color-warning)]"
 									>
 										{m.assistant_action()}
 									</span>
 									{#if p.state === 'done'}
 										<span
-											class="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-[var(--color-success)]"
+											class="text-2xs inline-flex shrink-0 items-center gap-1 font-medium text-[var(--color-success)]"
 										>
 											<IconCheck class="size-3" />
 											{m.assistant_action_applied()}
 										</span>
 									{:else if p.state === 'dismissed'}
 										<span
-											class="inline-flex shrink-0 items-center gap-1 text-[11px] text-[var(--color-fg-subtle)]"
+											class="text-2xs inline-flex shrink-0 items-center gap-1 text-[var(--color-fg-subtle)]"
 										>
 											<IconX class="size-3" />
 											{m.assistant_action_dismissed()}
 										</span>
 									{:else if p.state === 'applying'}
-										<span class="shrink-0 text-[11px] text-[var(--color-fg-subtle)]">
+										<span class="text-2xs shrink-0 text-[var(--color-fg-subtle)]">
 											{m.assistant_action_applying()}
 										</span>
 									{/if}
 								</div>
 								<div class="px-3.5 py-3">
-									<p class="text-[13px] font-medium text-[var(--color-fg)]">{p.summary}</p>
+									<p class="text-md font-medium text-[var(--color-fg)]">{p.summary}</p>
 									<p class="mt-1.5">
 										<span
-											class="inline-block max-w-full truncate rounded-md bg-[var(--color-surface-2)] px-2 py-1 align-bottom font-mono text-[10.5px] text-[var(--color-fg-subtle)]"
+											class="text-3xs inline-block max-w-full truncate rounded-md bg-[var(--color-surface-2)] px-2 py-1 align-bottom font-mono text-[var(--color-fg-subtle)]"
 										>
 											{p.method}
 											{p.path}
@@ -598,12 +598,12 @@
 									{#if p.body != null}
 										<details class="mt-1.5">
 											<summary
-												class="cursor-pointer text-[11px] text-[var(--color-fg-subtle)] select-none"
+												class="text-2xs cursor-pointer text-[var(--color-fg-subtle)] select-none"
 											>
 												{m.assistant_action_payload()}
 											</summary>
 											<pre
-												class="mt-1 max-h-40 overflow-auto rounded-lg bg-[var(--color-surface-2)] p-2 font-mono text-[10.5px] leading-relaxed break-all whitespace-pre-wrap text-[var(--color-fg-subtle)]">{JSON.stringify(
+												class="text-3xs mt-1 max-h-40 overflow-auto rounded-lg bg-[var(--color-surface-2)] p-2 font-mono leading-relaxed break-all whitespace-pre-wrap text-[var(--color-fg-subtle)]">{JSON.stringify(
 													p.body,
 													null,
 													2
@@ -666,21 +666,21 @@
 					class="mb-2 rounded-xl bg-[var(--color-surface)] p-2.5"
 					style="box-shadow: inset 0 0 0 1px var(--color-warning)"
 				>
-					<p class="mb-1.5 text-[11px] font-medium text-[var(--color-warning)]">
+					<p class="text-2xs mb-1.5 font-medium text-[var(--color-warning)]">
 						{m.assistant_dev()}
 					</p>
 					<textarea
 						bind:value={devSystem}
 						rows="2"
 						placeholder={m.assistant_dev_system_placeholder()}
-						class="w-full resize-y rounded-lg bg-[var(--color-surface-2)] px-2.5 py-2 font-mono text-[11.5px] text-[var(--color-fg)] placeholder:text-[var(--color-fg-faint)] focus:outline-none"
+						class="text-2xs w-full resize-y rounded-lg bg-[var(--color-surface-2)] px-2.5 py-2 font-mono text-[var(--color-fg)] placeholder:text-[var(--color-fg-faint)] focus:outline-none"
 					></textarea>
 					<input
 						bind:value={devModel}
 						placeholder={m.assistant_dev_model_placeholder()}
-						class="mt-1.5 w-full rounded-lg bg-[var(--color-surface-2)] px-2.5 py-1.5 font-mono text-[11.5px] text-[var(--color-fg)] placeholder:text-[var(--color-fg-faint)] focus:outline-none"
+						class="text-2xs mt-1.5 w-full rounded-lg bg-[var(--color-surface-2)] px-2.5 py-1.5 font-mono text-[var(--color-fg)] placeholder:text-[var(--color-fg-faint)] focus:outline-none"
 					/>
-					<p class="mt-1 text-[10.5px] text-[var(--color-fg-faint)]">
+					<p class="text-3xs mt-1 text-[var(--color-fg-faint)]">
 						{m.assistant_dev_note()}
 					</p>
 				</div>
@@ -704,7 +704,7 @@
 					enterkeyhint="send"
 					placeholder={m.assistant_placeholder()}
 					class={cn(
-						'max-h-40 min-h-10 flex-1 resize-none overflow-y-hidden bg-transparent px-3 py-2 text-[16px] text-[var(--color-fg)] md:text-[13.5px]',
+						'md:text-md max-h-40 min-h-10 flex-1 resize-none overflow-y-hidden bg-transparent px-3 py-2 text-base text-[var(--color-fg)]',
 						'placeholder:overflow-hidden placeholder:text-ellipsis placeholder:whitespace-nowrap',
 						'placeholder:text-[var(--color-fg-faint)] focus:outline-none disabled:opacity-50'
 					)}></textarea>
@@ -733,7 +733,7 @@
 					</Button>
 				{/if}
 			</div>
-			<p class="mt-1.5 px-1 text-center text-[10.5px] text-[var(--color-fg-subtle)] md:text-[11px]">
+			<p class="text-3xs md:text-2xs mt-1.5 px-1 text-center text-[var(--color-fg-subtle)]">
 				{m.assistant_readonly_note()}
 			</p>
 		</div>

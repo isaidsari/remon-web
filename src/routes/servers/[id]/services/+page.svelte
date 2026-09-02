@@ -426,8 +426,8 @@
 {#if profile}
 	<div class="px-4 py-6 md:px-8 md:py-8">
 		<header class="mb-6">
-			<h1 class="text-[24px] font-semibold tracking-tight">{m.section_services()}</h1>
-			<p class="mt-1.5 max-w-md text-[14px] leading-relaxed text-[var(--color-fg-muted)]">
+			<h1 class="text-2xl font-semibold tracking-tight">{m.section_services()}</h1>
+			<p class="mt-1.5 max-w-md text-sm leading-relaxed text-[var(--color-fg-muted)]">
 				{m.services_page_subtitle({ backend: serviceBackend ?? 'systemd / OpenRC / Windows' })}
 			</p>
 		</header>
@@ -550,12 +550,12 @@
 											aria-expanded={expanded === s.name}
 											class="flex flex-col text-left"
 										>
-											<span class="font-mono text-[12px] font-medium text-[var(--color-fg)]"
+											<span class="font-mono text-xs font-medium text-[var(--color-fg)]"
 												>{s.name}</span
 											>
 											{#if s.description}
 												<span
-													class="mt-0.5 text-[11px] text-[var(--color-fg-muted)]"
+													class="text-2xs mt-0.5 text-[var(--color-fg-muted)]"
 													title={s.description}
 												>
 													{s.description.length > 60
@@ -568,7 +568,7 @@
 									<td class="px-3 py-2.5">
 										<ServiceStateBadge state={s.state} />
 									</td>
-									<td class="px-3 py-2.5 font-mono text-[11px] text-[var(--color-fg-muted)]">
+									<td class="text-2xs px-3 py-2.5 font-mono text-[var(--color-fg-muted)]">
 										{#if s.enabled_at_boot === null}
 											—
 										{:else if enabled}
@@ -595,7 +595,7 @@
 												<button
 													type="button"
 													onclick={() => toggleExpand(s.name)}
-													class="text-[11px] tracking-wide text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)]"
+													class="text-2xs tracking-wide text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)]"
 												>
 													{m.services_action_collapse()}
 												</button>
@@ -603,7 +603,7 @@
 											{#if canStreamLogs && conn}
 												<LogStream {conn} path={`/services/${s.name}/logs`} initialTail={100} />
 											{:else}
-												<p class="text-[12px] text-[var(--color-fg-muted)]">
+												<p class="text-xs text-[var(--color-fg-muted)]">
 													{m.services_logs_journalctl_only_prefix()}
 													<span class="font-mono text-[var(--color-fg)]">{s.backend}</span>.
 												</p>
@@ -664,9 +664,9 @@
 						>
 							<div class="flex items-start justify-between gap-2">
 								<div class="flex min-w-0 flex-1 flex-col">
-									<span class="font-mono text-[13px] font-medium break-all">{s.name}</span>
+									<span class="text-md font-mono font-medium break-all">{s.name}</span>
 									{#if s.description}
-										<span class="mt-0.5 text-[11px] leading-snug text-[var(--color-fg-muted)]">
+										<span class="text-2xs mt-0.5 leading-snug text-[var(--color-fg-muted)]">
 											{s.description}
 										</span>
 									{/if}
@@ -679,7 +679,7 @@
 									stroke-width="2"
 								/>
 							</div>
-							<dl class="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1.5 text-[11px]">
+							<dl class="text-2xs grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1.5">
 								<dt class="text-[var(--color-fg-subtle)]">{m.services_table_state()}</dt>
 								<dd><ServiceStateBadge state={s.state} /></dd>
 								<dt class="text-[var(--color-fg-subtle)]">{m.services_table_at_boot()}</dt>
@@ -705,14 +705,14 @@
 							<div
 								class="border-t border-[var(--color-border)] bg-[var(--color-bg-soft)]/40 px-3.5 py-3"
 							>
-								<div class="mb-2 font-mono text-[11px] text-[var(--color-fg-subtle)]">
+								<div class="text-2xs mb-2 font-mono text-[var(--color-fg-subtle)]">
 									{m.services_raw_state_label()}
 									<span class="text-[var(--color-fg-muted)]">{s.raw_state}</span>
 								</div>
 								{#if canStreamLogs && conn}
 									<LogStream {conn} path={`/services/${s.name}/logs`} initialTail={100} />
 								{:else}
-									<p class="text-[12px] text-[var(--color-fg-muted)]">
+									<p class="text-xs text-[var(--color-fg-muted)]">
 										{m.services_logs_journalctl_only_prefix()}
 										<span class="font-mono text-[var(--color-fg)]">{s.backend}</span>.
 									</p>
@@ -732,7 +732,7 @@
 		type="button"
 		onclick={() => toggleTimer(t)}
 		class={cn(
-			'rounded-full border px-2.5 py-0.5 font-mono text-[10px] tracking-wide transition',
+			'text-3xs rounded-full border px-2.5 py-0.5 font-mono tracking-wide transition',
 			enabled
 				? 'border-[var(--color-success)]/40 bg-[var(--color-success)]/15 text-[var(--color-success)] hover:bg-[var(--color-success)]/25'
 				: 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-fg-subtle)] hover:border-[var(--color-border-strong)]'
@@ -783,24 +783,24 @@
 								>
 									<td class="px-3 py-2.5">
 										<div class="flex flex-col">
-											<span class="font-mono text-[12px] text-[var(--color-fg)]">{t.name}</span>
+											<span class="font-mono text-xs text-[var(--color-fg)]">{t.name}</span>
 											{#if t.description}
-												<span class="mt-0.5 text-[11px] text-[var(--color-fg-muted)]"
+												<span class="text-2xs mt-0.5 text-[var(--color-fg-muted)]"
 													>{t.description}</span
 												>
 											{/if}
 										</div>
 									</td>
-									<td class="px-3 py-2.5 font-mono text-[11px] text-[var(--color-fg-muted)]">
+									<td class="text-2xs px-3 py-2.5 font-mono text-[var(--color-fg-muted)]">
 										{t.service ?? '—'}
 									</td>
 									<td class="px-3 py-2.5">
 										<ServiceStateBadge state={t.state} />
 									</td>
-									<td class="px-3 py-2.5 font-mono text-[11px] text-[var(--color-fg-muted)]">
+									<td class="text-2xs px-3 py-2.5 font-mono text-[var(--color-fg-muted)]">
 										{fmtNextRun(t.next_run)}
 									</td>
-									<td class="px-3 py-2.5 font-mono text-[11px] text-[var(--color-fg-muted)]">
+									<td class="text-2xs px-3 py-2.5 font-mono text-[var(--color-fg-muted)]">
 										{t.last_run ? fmtRelative(t.last_run) : '—'}
 									</td>
 									<td class="px-3 py-2.5">
@@ -847,18 +847,18 @@
 						<div class="flex flex-col gap-2 px-3.5 py-3">
 							<div class="flex items-start justify-between gap-2">
 								<div class="flex min-w-0 flex-1 flex-col">
-									<span class="font-mono text-[12px] break-all text-[var(--color-fg)]">
+									<span class="font-mono text-xs break-all text-[var(--color-fg)]">
 										{t.name}
 									</span>
 									{#if t.description}
-										<span class="mt-0.5 text-[11px] leading-snug text-[var(--color-fg-muted)]">
+										<span class="text-2xs mt-0.5 leading-snug text-[var(--color-fg-muted)]">
 											{t.description}
 										</span>
 									{/if}
 								</div>
 								<ServiceStateBadge state={t.state} />
 							</div>
-							<dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">
+							<dl class="text-2xs grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
 								<dt class="text-[var(--color-fg-subtle)]">{m.services_table_service()}</dt>
 								<dd class="font-mono break-all text-[var(--color-fg-muted)]">
 									{t.service ?? '—'}
@@ -874,7 +874,7 @@
 						<div
 							class="flex items-center gap-2 border-t border-[var(--color-border)] px-3.5 py-2.5"
 						>
-							<span class="text-[11px] text-[var(--color-fg-subtle)]">
+							<span class="text-2xs text-[var(--color-fg-subtle)]">
 								{m.services_table_boot()}
 							</span>
 							{@render bootToggle(t, enabled)}
@@ -928,10 +928,9 @@
 								<tr
 									class="border-t border-[var(--color-border)] transition hover:bg-[var(--color-surface-2)]/40"
 								>
-									<td class="px-3 py-2.5 font-mono text-[11px] text-[var(--color-fg)]"
-										>{j.schedule}</td
+									<td class="text-2xs px-3 py-2.5 font-mono text-[var(--color-fg)]">{j.schedule}</td
 									>
-									<td class="px-3 py-2.5 font-mono text-[11px] text-[var(--color-fg-muted)]">
+									<td class="text-2xs px-3 py-2.5 font-mono text-[var(--color-fg-muted)]">
 										{j.user ?? '—'}
 									</td>
 									<!-- w-full + max-w-0, same reason as the process argv column: without
@@ -939,13 +938,13 @@
 									     below never gets a chance to bite. -->
 									<td class="w-full max-w-0 px-3 py-2.5">
 										<span
-											class="block truncate font-mono text-[11px] text-[var(--color-fg)]"
+											class="text-2xs block truncate font-mono text-[var(--color-fg)]"
 											title={j.command}
 										>
 											{j.command}
 										</span>
 									</td>
-									<td class="px-3 py-2.5 font-mono text-[11px] text-[var(--color-fg-subtle)]">
+									<td class="text-2xs px-3 py-2.5 font-mono text-[var(--color-fg-subtle)]">
 										{j.source}
 									</td>
 								</tr>
@@ -985,17 +984,17 @@
 					<Card padding="none">
 						<div class="flex flex-col gap-2 px-3.5 py-3">
 							<div class="flex items-center justify-between gap-2">
-								<span class="font-mono text-[12px] font-medium text-[var(--color-fg)]">
+								<span class="font-mono text-xs font-medium text-[var(--color-fg)]">
 									{j.schedule}
 								</span>
-								<span class="font-mono text-[10px] text-[var(--color-fg-subtle)]">{j.source}</span>
+								<span class="text-3xs font-mono text-[var(--color-fg-subtle)]">{j.source}</span>
 							</div>
 							<!-- Wrapped, not truncated: on a card there is room, and the
 							     command is the whole reason to look at a cron entry. -->
-							<code class="font-mono text-[11px] break-all text-[var(--color-fg)]">
+							<code class="text-2xs font-mono break-all text-[var(--color-fg)]">
 								{j.command}
 							</code>
-							<dl class="grid grid-cols-[auto_1fr] gap-x-3 text-[11px]">
+							<dl class="text-2xs grid grid-cols-[auto_1fr] gap-x-3">
 								<dt class="text-[var(--color-fg-subtle)]">{m.services_table_user()}</dt>
 								<dd class="font-mono text-[var(--color-fg-muted)]">{j.user ?? '—'}</dd>
 							</dl>

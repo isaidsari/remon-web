@@ -182,7 +182,7 @@
 		{#if connecting}
 			<span class="text-xs text-[var(--color-fg-muted)]">{m.terminal_status_opening()}</span>
 		{/if}
-		<span class="ml-auto text-[10px] tracking-wide text-[var(--color-fg-subtle)]">
+		<span class="text-3xs ml-auto tracking-wide text-[var(--color-fg-subtle)]">
 			{m.terminal_hint_args()}
 		</span>
 	</div>

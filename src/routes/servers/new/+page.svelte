@@ -226,7 +226,7 @@
 	<button
 		type="button"
 		onclick={() => goto('/servers')}
-		class="group mb-6 inline-flex items-center gap-1.5 text-[12px] text-[var(--color-fg-subtle)] transition-colors duration-[var(--dur-fast)] hover:text-[var(--color-fg-muted)]"
+		class="group mb-6 inline-flex items-center gap-1.5 text-xs text-[var(--color-fg-subtle)] transition-colors duration-[var(--dur-fast)] hover:text-[var(--color-fg-muted)]"
 	>
 		<IconChevronLeft
 			class="size-[14px] transition-transform duration-[var(--dur-fast)] group-hover:-translate-x-0.5"
@@ -235,7 +235,7 @@
 		{m.pair_back_link()}
 	</button>
 
-	<h1 class="text-[28px] font-semibold tracking-tight">
+	<h1 class="text-hero font-semibold tracking-tight">
 		{isReplacing && replacingProfile
 			? m.pair_title_replace({ name: replacingProfile.name })
 			: m.pair_title_add()}
@@ -249,7 +249,7 @@
 			<div class="flex items-center gap-2.5">
 				<span
 					class={cn(
-						'grid h-7 w-7 place-items-center rounded-full font-mono text-[11px] font-semibold transition-all duration-[var(--dur-mid)]',
+						'text-2xs grid h-7 w-7 place-items-center rounded-full font-mono font-semibold transition-all duration-[var(--dur-mid)]',
 						step === s.n
 							? 'bg-[var(--color-accent)] text-[var(--color-accent-fg)] shadow-[0_0_18px_-2px_var(--color-accent-glow)]'
 							: step > s.n
@@ -265,7 +265,7 @@
 				</span>
 				<span
 					class={cn(
-						'text-[11px] font-medium tracking-[0.06em] transition-colors',
+						'text-2xs font-medium tracking-[0.06em] transition-colors',
 						step === s.n
 							? 'text-[var(--color-fg)]'
 							: step > s.n

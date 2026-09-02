@@ -113,7 +113,7 @@
 <div class="px-4 py-6 md:px-8 md:py-8">
 	<header class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
 		<div>
-			<h1 class="text-[24px] font-semibold tracking-tight">{m.events_title()}</h1>
+			<h1 class="text-2xl font-semibold tracking-tight">{m.events_title()}</h1>
 			<p class="mt-1.5 text-sm text-[var(--color-fg-muted)]">{m.events_subtitle()}</p>
 		</div>
 		<Button variant="secondary" size="sm" onclick={refresh} loading={busy}>
@@ -140,7 +140,7 @@
 				ariaLabel={m.events_range_24h()}
 			/>
 			{#if events && events.length > 0}
-				<span class="ml-auto text-[11px] text-[var(--color-fg-subtle)] tabular-nums">
+				<span class="text-2xs ml-auto text-[var(--color-fg-subtle)] tabular-nums">
 					{m.events_count({ count: events.length })}
 				</span>
 			{/if}
@@ -167,7 +167,7 @@
 			{:else if events.length === 0}
 				<div class="flex flex-col items-center justify-center gap-2 px-4 py-14 text-center">
 					<span class="inline-flex size-2 rounded-full bg-[var(--color-success)]"></span>
-					<p class="text-[13px] text-[var(--color-fg-muted)]">{m.events_empty()}</p>
+					<p class="text-md text-[var(--color-fg-muted)]">{m.events_empty()}</p>
 				</div>
 			{:else}
 				<ol class="px-4 py-3">

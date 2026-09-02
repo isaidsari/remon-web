@@ -165,7 +165,7 @@
 	<header class="flex items-start gap-3 px-4 pt-4">
 		<div class="min-w-0 flex-1">
 			<h3
-				class="flex items-center gap-2 font-mono text-[14px] font-semibold tracking-[0.01em] text-[var(--color-fg)]"
+				class="flex items-center gap-2 font-mono text-sm font-semibold tracking-[0.01em] text-[var(--color-fg)]"
 			>
 				{#if sysInfo}
 					<OsIcon
@@ -176,13 +176,13 @@
 				{/if}
 				<span class="truncate">{displayName}</span>
 			</h3>
-			<p class="mt-1 truncate font-mono text-[11px] text-[var(--color-fg-muted)]">
+			<p class="text-2xs mt-1 truncate font-mono text-[var(--color-fg-muted)]">
 				{profile.baseUrl}
 			</p>
 			{#if !conn.isAuthenticated && conn.error}
 				<div class="mt-1.5 flex items-center gap-2">
 					<p
-						class="min-w-0 flex-1 truncate font-mono text-[10px] text-[var(--color-danger)]/80"
+						class="text-3xs min-w-0 flex-1 truncate font-mono text-[var(--color-danger)]/80"
 						title={conn.error.userMessage}
 					>
 						{conn.error.userMessage}
@@ -191,7 +191,7 @@
 						<button
 							type="button"
 							onclick={handleRepairClick}
-							class="shrink-0 rounded-md border border-[var(--color-warning)]/40 bg-[var(--color-warning)]/10 px-2 py-0.5 font-mono text-[10px] tracking-wide text-[var(--color-warning)] transition-all duration-[var(--dur-fast)] hover:border-[var(--color-warning)]/60 hover:bg-[var(--color-warning)]/15"
+							class="text-3xs shrink-0 rounded-md border border-[var(--color-warning)]/40 bg-[var(--color-warning)]/10 px-2 py-0.5 font-mono tracking-wide text-[var(--color-warning)] transition-all duration-[var(--dur-fast)] hover:border-[var(--color-warning)]/60 hover:bg-[var(--color-warning)]/15"
 						>
 							{m.servercard_repair_button()}
 						</button>
@@ -229,7 +229,7 @@
 	</div>
 
 	<footer
-		class="mt-2.5 flex items-center gap-2 border-t border-[var(--color-border)] px-4 py-2.5 text-[12px] text-[var(--color-fg-muted)]"
+		class="mt-2.5 flex items-center gap-2 border-t border-[var(--color-border)] px-4 py-2.5 text-xs text-[var(--color-fg-muted)]"
 	>
 		{#if osLabel}
 			<span class="truncate">{osLabel}</span>
@@ -259,7 +259,7 @@
 	max?: number
 )}
 	<div class="grid grid-cols-[40px_1fr_auto] items-center gap-3">
-		<span class="font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)]"
+		<span class="text-2xs font-mono font-medium tracking-[0.08em] text-[var(--color-fg-muted)]"
 			>{label}</span
 		>
 		<div class="min-w-0">
@@ -269,7 +269,7 @@
 			{value}
 			format={fmt}
 			class={cn(
-				'inline-block min-w-[88px] text-right font-mono text-[13px] tabular-nums',
+				'text-md inline-block min-w-[88px] text-right font-mono tabular-nums',
 				valueClass || 'text-[var(--color-fg)]'
 			)}
 		/>
@@ -278,7 +278,7 @@
 
 {#snippet netRow()}
 	<div class="grid grid-cols-[40px_1fr_auto] items-center gap-3">
-		<span class="font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)]"
+		<span class="text-2xs font-mono font-medium tracking-[0.08em] text-[var(--color-fg-muted)]"
 			>NET</span
 		>
 		<div class="min-w-0">
@@ -292,7 +292,7 @@
 			/>
 		</div>
 		<div
-			class="flex min-w-[88px] flex-col items-end gap-0.5 font-mono text-[11px] leading-tight tabular-nums"
+			class="text-2xs flex min-w-[88px] flex-col items-end gap-0.5 font-mono leading-tight tabular-nums"
 		>
 			<span class="flex items-center gap-1 text-[var(--color-fg)]">
 				<span class="text-[var(--color-fg-subtle)]">↓</span>
@@ -314,7 +314,7 @@
 	valueClass: string
 )}
 	<div class="grid grid-cols-[40px_1fr_auto] items-center gap-3">
-		<span class="font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)]"
+		<span class="text-2xs font-mono font-medium tracking-[0.08em] text-[var(--color-fg-muted)]"
 			>{label}</span
 		>
 		<div class="flex h-9 min-w-0 items-center">
@@ -329,7 +329,7 @@
 			{value}
 			format={fmt}
 			class={cn(
-				'inline-block min-w-[88px] text-right font-mono text-[13px] tabular-nums',
+				'text-md inline-block min-w-[88px] text-right font-mono tabular-nums',
 				valueClass || 'text-[var(--color-fg)]'
 			)}
 		/>

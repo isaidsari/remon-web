@@ -382,7 +382,7 @@
 	}
 
 	const inputCls =
-		'h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] text-[var(--color-fg)] focus:border-[var(--color-accent)] focus:outline-none';
+		'h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-md text-[var(--color-fg)] focus:border-[var(--color-accent)] focus:outline-none';
 </script>
 
 {#if profile}
@@ -390,19 +390,19 @@
 		<header class="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
 			<div>
 				<h1
-					class="flex items-baseline gap-2.5 text-[22px] font-semibold tracking-tight sm:text-[24px]"
+					class="text-figure flex items-baseline gap-2.5 font-semibold tracking-tight sm:text-2xl"
 				>
 					{m.section_actions()}
 					<span
-						class="rounded-md bg-[var(--color-surface-2)] px-2 py-0.5 font-mono text-[12px] font-medium text-[var(--color-fg-muted)] shadow-[inset_0_0_0_1px_var(--color-border)]"
+						class="rounded-md bg-[var(--color-surface-2)] px-2 py-0.5 font-mono text-xs font-medium text-[var(--color-fg-muted)] shadow-[inset_0_0_0_1px_var(--color-border)]"
 					>
 						{bindings.length}
 					</span>
 				</h1>
-				<p class="mt-1.5 max-w-lg text-[13px] text-[var(--color-fg-muted)]">
+				<p class="text-md mt-1.5 max-w-lg text-[var(--color-fg-muted)]">
 					{m.actions_page_description()}
 					{#if lastFetched}
-						<span class="ml-2 text-[12px] text-[var(--color-fg-subtle)]">
+						<span class="ml-2 text-xs text-[var(--color-fg-subtle)]">
 							{m.actions_updated_at({ time: new Date(lastFetched).toLocaleTimeString() })}
 						</span>
 					{/if}
@@ -463,7 +463,7 @@
 			     a person, and they expire. -->
 			{#if pending.length > 0}
 				<section class="mb-6">
-					<h2 class="mb-2 text-[13px] font-semibold tracking-tight">
+					<h2 class="text-md mb-2 font-semibold tracking-tight">
 						{m.actions_pending_heading({ n: pending.length })}
 					</h2>
 					<div class="flex flex-col gap-2">
@@ -476,9 +476,9 @@
 									<div class="min-w-0">
 										<div class="flex flex-wrap items-center gap-2">
 											<ActionRunStatusBadge status={run.status} />
-											<span class="font-mono text-[13px] font-medium">{describeRun(run)}</span>
+											<span class="text-md font-mono font-medium">{describeRun(run)}</span>
 										</div>
-										<p class="mt-1 text-[12px] text-[var(--color-fg-muted)]">
+										<p class="mt-1 text-xs text-[var(--color-fg-muted)]">
 											{m.actions_pending_because({ rule: run.rule_name })}
 											{#if labelSetText(run.label_set)}
 												<span class="font-mono text-[var(--color-fg-subtle)]">
@@ -487,7 +487,7 @@
 											{/if}
 										</p>
 										{#if run.expires_at}
-											<p class="mt-0.5 text-[11px] text-[var(--color-fg-subtle)]">
+											<p class="text-2xs mt-0.5 text-[var(--color-fg-subtle)]">
 												{run.expires_at > now
 													? m.actions_expires_in({ d: fmtDuration(run.expires_at - now) })
 													: m.actions_expired_hint()}
@@ -520,7 +520,7 @@
 			{/if}
 
 			<section class="mb-6">
-				<h2 class="mb-2 text-[13px] font-semibold tracking-tight">
+				<h2 class="text-md mb-2 font-semibold tracking-tight">
 					{m.actions_bindings_heading()}
 				</h2>
 				{#if bindings.length === 0}
@@ -534,7 +534,7 @@
 						<div class="overflow-auto">
 							<table class="w-full text-sm">
 								<thead
-									class="bg-[var(--color-surface-2)] text-[11px] font-medium tracking-[0.06em] text-[var(--color-fg-muted)]"
+									class="text-2xs bg-[var(--color-surface-2)] font-medium tracking-[0.06em] text-[var(--color-fg-muted)]"
 								>
 									<tr>
 										<th class="px-3 py-2.5 text-left font-medium">{m.actions_table_action()}</th>
@@ -559,8 +559,8 @@
 										>
 											<td class="px-3 py-2.5">
 												<div class="flex flex-col gap-1">
-													<span class="font-mono text-[12px] font-medium">{b.summary}</span>
-													<span class="text-[11px] text-[var(--color-fg-subtle)]">
+													<span class="font-mono text-xs font-medium">{b.summary}</span>
+													<span class="text-2xs text-[var(--color-fg-subtle)]">
 														{b.on_event === 'both'
 															? m.actions_on_both()
 															: b.on_event === 'resolved'
@@ -571,25 +571,25 @@
 													     on narrow screens and nothing else restates them. -->
 													<div class="flex flex-wrap items-center gap-1.5 sm:hidden">
 														<ActionModeBadge mode={b.mode} autoAllowed={catalog?.auto ?? true} />
-														<span class="font-mono text-[10px] text-[var(--color-fg-subtle)]">
+														<span class="text-3xs font-mono text-[var(--color-fg-subtle)]">
 															{fmtDuration(b.cooldown_secs)} · {b.max_runs_per_hour}/h
 														</span>
 													</div>
 													{#if b.disabled_reason}
-														<span class="text-[11px] text-[var(--color-danger)]">
+														<span class="text-2xs text-[var(--color-danger)]">
 															{m.actions_disarmed({ reason: b.disabled_reason })}
 														</span>
 													{/if}
 												</div>
 											</td>
-											<td class="px-3 py-2.5 text-[12px] text-[var(--color-fg-muted)]">
+											<td class="px-3 py-2.5 text-xs text-[var(--color-fg-muted)]">
 												{ruleName.get(b.rule_id) ?? `#${b.rule_id}`}
 											</td>
 											<td class="hidden px-3 py-2.5 sm:table-cell">
 												<ActionModeBadge mode={b.mode} autoAllowed={catalog?.auto ?? true} />
 											</td>
 											<td
-												class="hidden px-3 py-2.5 font-mono text-[11px] text-[var(--color-fg-muted)] md:table-cell"
+												class="text-2xs hidden px-3 py-2.5 font-mono text-[var(--color-fg-muted)] md:table-cell"
 											>
 												{m.actions_guardrails_summary({
 													cooldown: fmtDuration(b.cooldown_secs),
@@ -599,7 +599,7 @@
 											</td>
 											<td class="px-3 py-2.5">
 												<div class="flex items-center justify-end gap-1">
-													<label class="mr-1 flex cursor-pointer items-center gap-1.5 text-[11px]">
+													<label class="text-2xs mr-1 flex cursor-pointer items-center gap-1.5">
 														<input
 															type="checkbox"
 															checked={b.enabled}
@@ -651,7 +651,7 @@
 			</section>
 
 			<section>
-				<h2 class="mb-2 text-[13px] font-semibold tracking-tight">{m.actions_runs_heading()}</h2>
+				<h2 class="text-md mb-2 font-semibold tracking-tight">{m.actions_runs_heading()}</h2>
 				{#if history.length === 0}
 					<Card padding="lg">
 						<p class="text-sm text-[var(--color-fg-subtle)]">{m.actions_runs_empty()}</p>
@@ -661,7 +661,7 @@
 						<div class="max-h-[max(18rem,calc(100dvh-24rem))] overflow-auto">
 							<table class="w-full text-sm">
 								<thead
-									class="sticky top-0 z-10 bg-[var(--color-surface-2)] text-[11px] font-medium tracking-[0.06em] text-[var(--color-fg-muted)]"
+									class="text-2xs sticky top-0 z-10 bg-[var(--color-surface-2)] font-medium tracking-[0.06em] text-[var(--color-fg-muted)]"
 								>
 									<tr>
 										<th class="px-3 py-2.5 text-left font-medium">{m.actions_table_status()}</th>
@@ -678,35 +678,35 @@
 											<td class="px-3 py-2.5"><ActionRunStatusBadge status={run.status} /></td>
 											<td class="px-3 py-2.5">
 												<div class="flex flex-col gap-0.5">
-													<span class="font-mono text-[12px]">{describeRun(run)}</span>
+													<span class="font-mono text-xs">{describeRun(run)}</span>
 													{#if run.message}
 														<!-- On a `skipped` row this is the guardrail that stopped
 														     it, which is the whole reason the row exists. -->
-														<span class="max-w-[60ch] text-[11px] text-[var(--color-fg-subtle)]">
+														<span class="text-2xs max-w-[60ch] text-[var(--color-fg-subtle)]">
 															{run.message}
 														</span>
 													{/if}
-													<span class="text-[11px] text-[var(--color-fg-subtle)] sm:hidden">
+													<span class="text-2xs text-[var(--color-fg-subtle)] sm:hidden">
 														{run.rule_name}
 													</span>
 												</div>
 											</td>
 											<td
-												class="hidden px-3 py-2.5 text-[12px] text-[var(--color-fg-muted)] sm:table-cell"
+												class="hidden px-3 py-2.5 text-xs text-[var(--color-fg-muted)] sm:table-cell"
 											>
 												{run.rule_name}
 												{#if labelSetText(run.label_set)}
-													<span class="block font-mono text-[10px] text-[var(--color-fg-subtle)]">
+													<span class="text-3xs block font-mono text-[var(--color-fg-subtle)]">
 														{labelSetText(run.label_set)}
 													</span>
 												{/if}
 											</td>
 											<td
-												class="px-3 py-2.5 text-[12px] whitespace-nowrap text-[var(--color-fg-muted)]"
+												class="px-3 py-2.5 text-xs whitespace-nowrap text-[var(--color-fg-muted)]"
 											>
 												{fmtRelative(run.created_at)}
 												{#if run.duration_ms !== null}
-													<span class="block font-mono text-[10px] text-[var(--color-fg-subtle)]">
+													<span class="text-3xs block font-mono text-[var(--color-fg-subtle)]">
 														{run.duration_ms} ms
 													</span>
 												{/if}
@@ -732,7 +732,7 @@
 		<div class="flex flex-col gap-4">
 			<Field label={m.actions_field_rule()} required>
 				{#if editing}
-					<p class="text-[13px] text-[var(--color-fg-muted)]">
+					<p class="text-md text-[var(--color-fg-muted)]">
 						{ruleName.get(editing.rule_id) ?? `#${editing.rule_id}`}
 					</p>
 				{:else}
@@ -764,7 +764,7 @@
 				>
 					{#if fKind === 'script'}
 						{#if scripts.length === 0}
-							<p class="text-[12px] text-[var(--color-fg-subtle)]">{m.actions_no_scripts()}</p>
+							<p class="text-xs text-[var(--color-fg-subtle)]">{m.actions_no_scripts()}</p>
 						{:else}
 							<select bind:value={fTarget} class={inputCls}>
 								{#each scripts as s (s)}

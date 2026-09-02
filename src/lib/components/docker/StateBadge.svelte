@@ -63,7 +63,7 @@
 <span
 	class={cn(
 		// shrink-0 + nowrap: a pill cannot shrink below its label and would spill.
-		'inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium whitespace-nowrap',
+		'text-2xs inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 font-medium whitespace-nowrap',
 		cls,
 		klass
 	)}

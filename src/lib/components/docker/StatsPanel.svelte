@@ -85,7 +85,7 @@
 		<div class="flex items-center gap-2">
 			{#if stale}
 				<span
-					class="rounded-full bg-[var(--color-warning)]/15 px-2 py-0.5 text-[10px] tracking-wide text-[var(--color-warning)]"
+					class="text-3xs rounded-full bg-[var(--color-warning)]/15 px-2 py-0.5 tracking-wide text-[var(--color-warning)]"
 					title={t.statspanel_stale_title({ secs: secondsSinceSample })}
 				>
 					{t.statspanel_stale_badge()} · {secondsSinceSample}s
@@ -126,7 +126,7 @@
 				{fmtMaybePct(m.memPercent)}
 			</span>
 			{#if m.memUsedBytes !== null && m.memLimitBytes !== null}
-				<span class="font-mono text-[11px] text-[var(--color-fg-subtle)]">
+				<span class="text-2xs font-mono text-[var(--color-fg-subtle)]">
 					{fmtBytes(m.memUsedBytes)} / {fmtBytes(m.memLimitBytes)}
 				</span>
 			{/if}
@@ -142,7 +142,7 @@
 				)}
 			</span>
 			{#if m.netRxBps !== null && m.netTxBps !== null}
-				<span class="font-mono text-[11px] text-[var(--color-fg-subtle)]">
+				<span class="text-2xs font-mono text-[var(--color-fg-subtle)]">
 					↓ {fmtBps(m.netRxBps)} · ↑ {fmtBps(m.netTxBps)}
 				</span>
 			{/if}
@@ -160,7 +160,7 @@
 				)}
 			</span>
 			{#if m.blkReadBps !== null && m.blkWriteBps !== null}
-				<span class="font-mono text-[11px] text-[var(--color-fg-subtle)]">
+				<span class="text-2xs font-mono text-[var(--color-fg-subtle)]">
 					r {fmtBps(m.blkReadBps)} · w {fmtBps(m.blkWriteBps)}
 				</span>
 			{/if}

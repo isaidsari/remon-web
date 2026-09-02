@@ -65,7 +65,7 @@
 			{#if t.count !== undefined}
 				<span
 					class={cn(
-						'rounded-full px-1.5 py-0.5 text-[10px] tabular-nums',
+						'text-3xs rounded-full px-1.5 py-0.5 tabular-nums',
 						value === t.key
 							? 'bg-[var(--color-bg)] text-[var(--color-fg-muted)]'
 							: 'bg-[var(--color-surface-2)] text-[var(--color-fg-subtle)]'

@@ -81,12 +81,12 @@
 		{/if}
 		<a href="/servers" class="group flex shrink-0 items-baseline gap-1.5">
 			<span
-				class="font-mono text-[14px] font-semibold tracking-[0.02em] text-[var(--color-fg)] transition-colors group-hover:text-[var(--color-accent)]"
+				class="font-mono text-sm font-semibold tracking-[0.02em] text-[var(--color-fg)] transition-colors group-hover:text-[var(--color-accent)]"
 			>
 				remon
 			</span>
 			<span
-				class="hidden font-mono text-[11px] text-[var(--color-fg-subtle)] sm:inline"
+				class="text-2xs hidden font-mono text-[var(--color-fg-subtle)] sm:inline"
 				title={m.header_build_version_title()}
 			>
 				v{WEB_VERSION}
@@ -97,17 +97,17 @@
 			<IconChevronRight class="size-3 shrink-0 text-[var(--color-fg-faint)]" stroke-width="2" />
 			<a
 				href={`/servers/${activeProfile.id}`}
-				class="min-w-0 truncate text-[13px] font-medium text-[var(--color-fg)] transition hover:text-[var(--color-accent)]"
+				class="text-md min-w-0 truncate font-medium text-[var(--color-fg)] transition hover:text-[var(--color-accent)]"
 			>
 				{activeProfile.name}
 			</a>
-			<span class="shrink-0 text-[13px] text-[var(--color-fg-faint)]">/</span>
-			<span class="min-w-0 truncate text-[13px] text-[var(--color-fg-muted)]">
+			<span class="text-md shrink-0 text-[var(--color-fg-faint)]">/</span>
+			<span class="text-md min-w-0 truncate text-[var(--color-fg-muted)]">
 				{sectionLabel(activeSection)}
 			</span>
 		{:else if onServerListPage && profiles.list.length > 0}
 			<IconChevronRight class="size-3 shrink-0 text-[var(--color-fg-faint)]" stroke-width="2" />
-			<span class="truncate text-[13px] text-[var(--color-fg-muted)]">
+			<span class="text-md truncate text-[var(--color-fg-muted)]">
 				{profiles.list.length === 1
 					? m.header_servers_one()
 					: m.header_servers_other({ count: profiles.list.length })}

@@ -43,12 +43,12 @@
 	)}
 >
 	<div class="flex items-baseline justify-between gap-2">
-		<span class="font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)]">
+		<span class="text-2xs font-mono font-medium tracking-[0.08em] text-[var(--color-fg-muted)]">
 			{label}
 		</span>
 		{#if secondary}
 			{#if typeof secondary === 'string'}
-				<span class="font-mono text-[11px] text-[var(--color-fg-subtle)]">{secondary}</span>
+				<span class="text-2xs font-mono text-[var(--color-fg-subtle)]">{secondary}</span>
 			{:else}
 				{@render secondary()}
 			{/if}
@@ -63,7 +63,7 @@
 			{value}
 			{format}
 			{duration}
-			class="font-mono text-[22px] leading-[1.1] font-semibold tracking-[-0.02em] tabular-nums"
+			class="text-figure font-mono leading-[1.1] font-semibold tracking-[-0.02em] tabular-nums"
 			style="color: {color}"
 		/>
 	{/if}

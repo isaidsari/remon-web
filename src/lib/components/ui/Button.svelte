@@ -43,8 +43,8 @@
 	};
 
 	const sizes: Record<Size, string> = {
-		sm: 'h-7 px-3 text-[12px] rounded-[var(--radius-input)]',
-		md: 'h-9 px-3.5 text-[13px] rounded-[var(--radius-input)]',
+		sm: 'h-7 px-3 text-xs rounded-[var(--radius-input)]',
+		md: 'h-9 px-3.5 text-md rounded-[var(--radius-input)]',
 		lg: 'h-11 px-5 text-sm rounded-[var(--radius-input)]',
 		icon: 'h-9 w-9 rounded-[var(--radius-input)]'
 	};

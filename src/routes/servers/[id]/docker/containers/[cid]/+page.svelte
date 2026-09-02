@@ -169,7 +169,7 @@
 		<header class="mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
 			<div class="min-w-0 flex-1">
 				<div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-					<h1 class="truncate text-[24px] font-semibold tracking-tight">{displayName}</h1>
+					<h1 class="truncate text-2xl font-semibold tracking-tight">{displayName}</h1>
 					<StateBadge state={stateStr} />
 				</div>
 				<p class="mt-1 flex items-center gap-3 font-mono text-xs text-[var(--color-fg-muted)]">
@@ -358,7 +358,7 @@
 								<li class="flex flex-col gap-0.5">
 									<span class="text-[var(--color-fg)]">{n.name}</span>
 									{#if n.network_id}
-										<span class="font-mono text-[11px] text-[var(--color-fg-subtle)]"
+										<span class="text-2xs font-mono text-[var(--color-fg-subtle)]"
 											>{shortId(n.network_id)}</span
 										>
 									{/if}

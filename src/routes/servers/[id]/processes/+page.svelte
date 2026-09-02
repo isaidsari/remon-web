@@ -397,10 +397,10 @@
 	<div class="px-4 py-6 md:px-8 md:py-8">
 		<header class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
 			<div>
-				<h1 class="text-[24px] font-semibold tracking-tight">
+				<h1 class="text-2xl font-semibold tracking-tight">
 					{m.section_processes()}
 					<span
-						class="ml-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-0.5 align-middle font-mono text-[12px] font-medium text-[var(--color-fg-muted)]"
+						class="ml-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-0.5 align-middle font-mono text-xs font-medium text-[var(--color-fg-muted)]"
 					>
 						{total > 0 && filteredTotal < total
 							? `${filteredTotal} / ${total}`
@@ -408,7 +408,7 @@
 					</span>
 				</h1>
 				{#if lastFetched}
-					<p class="mt-1.5 text-[12px] text-[var(--color-fg-subtle)]">
+					<p class="mt-1.5 text-xs text-[var(--color-fg-subtle)]">
 						{m.processes_updated({ time: new Date(lastFetched).toLocaleTimeString() })}
 					</p>
 				{/if}
@@ -465,10 +465,10 @@
 							class="mt-0.5 accent-[var(--color-accent)]"
 						/>
 						<div>
-							<p class="text-[13px] font-medium">
+							<p class="text-md font-medium">
 								{sig === 15 ? m.processes_kill_signal_term() : m.processes_kill_signal_kill()}
 							</p>
-							<p class="mt-0.5 text-[12px] text-[var(--color-fg-muted)]">
+							<p class="mt-0.5 text-xs text-[var(--color-fg-muted)]">
 								{sig === 15
 									? m.processes_kill_signal_term_hint()
 									: m.processes_kill_signal_kill_hint()}
@@ -659,7 +659,7 @@
 													</span>
 													{#if viewMode === 'tree' && p.hasChildren && isCollapsed}
 														<span
-															class="shrink-0 rounded-full bg-[var(--color-surface-2)] px-1.5 py-px font-mono text-[10px] text-[var(--color-fg-subtle)] shadow-[inset_0_0_0_1px_var(--color-border)]"
+															class="text-3xs shrink-0 rounded-full bg-[var(--color-surface-2)] px-1.5 py-px font-mono text-[var(--color-fg-subtle)] shadow-[inset_0_0_0_1px_var(--color-border)]"
 															title={m.processes_descendants_hidden({ count: p.descendantCount })}
 														>
 															+{p.descendantCount}
@@ -667,7 +667,7 @@
 													{/if}
 													{#if p.cmd.length > 1}
 														<span
-															class="min-w-0 flex-1 truncate font-mono text-[11px] text-[var(--color-fg-faint)]"
+															class="text-2xs min-w-0 flex-1 truncate font-mono text-[var(--color-fg-faint)]"
 														>
 															{p.cmd.slice(1).join(' ')}
 														</span>
@@ -682,7 +682,7 @@
 											{fmtPercent(cpuDisplay, 1)}
 											{#if showSubtree}
 												<span
-													class="ml-1 text-[10px] text-[var(--color-fg-subtle)]"
+													class="text-3xs ml-1 text-[var(--color-fg-subtle)]"
 													title={m.processes_subtree_total()}>Σ</span
 												>
 											{/if}
@@ -693,7 +693,7 @@
 										<td class="hidden px-3 py-2 md:table-cell">
 											<span
 												class={cn(
-													'inline-flex items-center rounded-full px-2 py-0.5 text-[11px]',
+													'text-2xs inline-flex items-center rounded-full px-2 py-0.5',
 													stateBadge[p.state]
 												)}
 											>
@@ -757,7 +757,7 @@
 			class="inline-flex items-center gap-1 transition hover:text-[var(--color-fg)]"
 		>
 			{label}
-			<span class="font-mono text-[10px]">{sortIndicator(k)}</span>
+			<span class="text-3xs font-mono">{sortIndicator(k)}</span>
 		</button>
 	</th>
 {/snippet}

@@ -67,8 +67,8 @@
 <div class="app-content grid min-h-screen place-items-center px-6 py-12">
 	<div class="w-full max-w-md">
 		<header class="mb-9 text-center">
-			<h1 class="text-[28px] font-semibold tracking-tight">{m.setup_title()}</h1>
-			<p class="mx-auto mt-3 max-w-sm text-[13px] leading-relaxed text-[var(--color-fg-muted)]">
+			<h1 class="text-hero font-semibold tracking-tight">{m.setup_title()}</h1>
+			<p class="text-md mx-auto mt-3 max-w-sm leading-relaxed text-[var(--color-fg-muted)]">
 				{m.setup_intro()}
 			</p>
 		</header>
@@ -86,7 +86,7 @@
 								></div>
 							</div>
 							<span
-								class="text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)] tabular-nums"
+								class="text-2xs font-medium tracking-[0.08em] text-[var(--color-fg-muted)] tabular-nums"
 								>{strength.label}</span
 							>
 						</div>
@@ -109,7 +109,7 @@
 				</Field>
 
 				<label
-					class="flex cursor-pointer items-start gap-2.5 text-[13px] leading-snug text-[var(--color-fg)]"
+					class="text-md flex cursor-pointer items-start gap-2.5 leading-snug text-[var(--color-fg)]"
 				>
 					<input
 						type="checkbox"
@@ -118,7 +118,7 @@
 					/>
 					<span class="flex flex-col gap-1">
 						<span>{m.setup_trust_label()}</span>
-						<span class="text-[11px] text-[var(--color-fg-muted)]">
+						<span class="text-2xs text-[var(--color-fg-muted)]">
 							{m.setup_trust_hint()}
 						</span>
 					</span>
@@ -131,7 +131,7 @@
 		</Card>
 
 		<p
-			class="mx-auto mt-6 max-w-sm text-center text-[12px] leading-relaxed text-[var(--color-fg-subtle)]"
+			class="mx-auto mt-6 max-w-sm text-center text-xs leading-relaxed text-[var(--color-fg-subtle)]"
 		>
 			{m.setup_footer()} <br />
 			<span class="font-mono">AES-256-GCM · PBKDF2-SHA256 600 000 iterations</span>

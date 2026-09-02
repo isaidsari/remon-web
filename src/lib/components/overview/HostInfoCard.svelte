@@ -59,18 +59,18 @@
 			stroke-width="1"
 		/>
 		<span
-			class="relative font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)]"
+			class="text-2xs relative font-mono font-medium tracking-[0.08em] text-[var(--color-fg-muted)]"
 		>
 			hostname
 		</span>
 		<span
-			class="relative truncate font-mono text-[13px] font-medium text-[var(--color-fg)]"
+			class="text-md relative truncate font-mono font-medium text-[var(--color-fg)]"
 			title={info?.description.hostname ?? ''}
 		>
 			{info?.description.hostname ?? '—'}
 		</span>
 		{#if info}
-			<span class="relative truncate font-mono text-[11px] text-[var(--color-fg-subtle)]">
+			<span class="text-2xs relative truncate font-mono text-[var(--color-fg-subtle)]">
 				up {fmtDuration(liveUptime)}
 			</span>
 		{/if}
@@ -86,11 +86,11 @@
 			stroke-width="1"
 		/>
 		<span
-			class="relative font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)]"
+			class="text-2xs relative font-mono font-medium tracking-[0.08em] text-[var(--color-fg-muted)]"
 		>
 			memory
 		</span>
-		<span class="relative truncate font-mono text-[13px] font-medium text-[var(--color-fg)]">
+		<span class="text-md relative truncate font-mono font-medium text-[var(--color-fg)]">
 			{info ? fmtBytes(info.hardware.total_memory_bytes) : '—'}
 		</span>
 	</div>
@@ -107,18 +107,18 @@
 			/>
 		{/if}
 		<span
-			class="relative font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)]"
+			class="text-2xs relative font-mono font-medium tracking-[0.08em] text-[var(--color-fg-muted)]"
 		>
 			cpu
 		</span>
 		<span
-			class="relative truncate font-mono text-[13px] font-medium text-[var(--color-fg)]"
+			class="text-md relative truncate font-mono font-medium text-[var(--color-fg)]"
 			title={info?.hardware.cpu_model ?? ''}
 		>
 			{info?.hardware.cpu_model ?? '—'}
 		</span>
 		{#if info}
-			<span class="relative truncate font-mono text-[11px] text-[var(--color-fg-subtle)]">
+			<span class="text-2xs relative truncate font-mono text-[var(--color-fg-subtle)]">
 				{info.hardware.cpu_cores}c · {info.hardware.cpu_threads}t
 			</span>
 		{/if}
@@ -137,18 +137,18 @@
 			/>
 		{/if}
 		<span
-			class="relative font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)]"
+			class="text-2xs relative font-mono font-medium tracking-[0.08em] text-[var(--color-fg-muted)]"
 		>
 			os
 		</span>
 		<span
-			class="relative truncate font-mono text-[13px] font-medium text-[var(--color-fg)]"
+			class="text-md relative truncate font-mono font-medium text-[var(--color-fg)]"
 			title={osLabel}
 		>
 			{osLabel}
 		</span>
 		{#if info}
-			<span class="relative truncate font-mono text-[11px] text-[var(--color-fg-subtle)]">
+			<span class="text-2xs relative truncate font-mono text-[var(--color-fg-subtle)]">
 				kernel {info.description.kernel}
 			</span>
 		{/if}

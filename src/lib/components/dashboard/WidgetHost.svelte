@@ -52,13 +52,13 @@
 			class="flex h-full flex-col items-center justify-center gap-2 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-4 text-center"
 		>
 			<IconTriangleAlert class="size-4 text-[var(--color-warning)]" stroke-width="2" />
-			<p class="text-[11.5px] leading-snug text-[var(--color-fg-muted)]">
+			<p class="text-2xs leading-snug text-[var(--color-fg-muted)]">
 				{m.dashboard_widget_failed()}
 			</p>
 			<button
 				type="button"
 				onclick={reset}
-				class="text-[11px] text-[var(--color-accent)] transition hover:underline"
+				class="text-2xs text-[var(--color-accent)] transition hover:underline"
 			>
 				{m.probes_retry()}
 			</button>

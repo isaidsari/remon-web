@@ -99,7 +99,7 @@
 		onclick={() => (open = !open)}
 		onkeydown={onTriggerKeydown}
 	>
-		<span class="shrink-0 text-[11px] tracking-[0.06em] text-[var(--color-fg-muted)]">
+		<span class="text-2xs shrink-0 tracking-[0.06em] text-[var(--color-fg-muted)]">
 			{label}
 		</span>
 		<span class="min-w-0 flex-1 truncate font-mono text-xs text-[var(--color-fg)] tabular-nums">

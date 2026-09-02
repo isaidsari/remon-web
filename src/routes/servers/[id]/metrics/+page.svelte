@@ -573,10 +573,10 @@
 	<div class="px-4 py-6 md:px-8 md:py-8">
 		<header class="mb-6 flex flex-col gap-4 lg:mb-8 lg:flex-row lg:items-start lg:justify-between">
 			<div class="min-w-0">
-				<h1 class="text-[24px] font-semibold tracking-tight">
+				<h1 class="text-2xl font-semibold tracking-tight">
 					{m.section_metrics()}
 				</h1>
-				<p class="mt-1.5 max-w-2xl text-[14px] leading-6 text-[var(--color-fg-muted)]">
+				<p class="mt-1.5 max-w-2xl text-sm leading-6 text-[var(--color-fg-muted)]">
 					{m.metrics_page_subtitle()}
 				</p>
 			</div>
@@ -606,7 +606,7 @@
 					/>
 				</div>
 				<div
-					class="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-[var(--color-fg-subtle)] tabular-nums lg:justify-end"
+					class="text-2xs flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[var(--color-fg-subtle)] tabular-nums lg:justify-end"
 				>
 					{#if resolution}
 						<span>
@@ -661,7 +661,7 @@
 						{/key}
 						{#if hasKernelRateData && lastCpu}
 							<div
-								class="mt-3 flex items-center justify-end gap-4 border-t border-[var(--color-border)] pt-2.5 font-mono text-[11px] text-[var(--color-fg-muted)] tabular-nums"
+								class="text-2xs mt-3 flex items-center justify-end gap-4 border-t border-[var(--color-border)] pt-2.5 font-mono text-[var(--color-fg-muted)] tabular-nums"
 							>
 								{#if lastCpu.context_switches_per_sec != null}
 									<span>
@@ -735,13 +735,13 @@
 
 						{#if diskIopsSeries.length > 0}
 							<div class="mt-4 border-t border-[var(--color-border)] pt-4">
-								<p class="mb-2 text-[10px] tracking-wide text-[var(--color-fg-muted)]">
+								<p class="text-3xs mb-2 tracking-wide text-[var(--color-fg-muted)]">
 									{m.metrics_disk_iops_label()}
 								</p>
 								<div class="mb-3 grid grid-cols-1 gap-y-2 sm:grid-cols-2">
 									{#each diskIopsSeries as s (s.name)}
 										<div>
-											<p class="mb-0.5 text-[10px] tracking-[0.08em]" style="color: {s.color}">
+											<p class="text-3xs mb-0.5 tracking-[0.08em]" style="color: {s.color}">
 												{s.name}
 											</p>
 											<StatStrip
@@ -760,7 +760,7 @@
 								{/key}
 								{#if ioUtilRows.length > 0}
 									<div class="mt-3 border-t border-[var(--color-border)] pt-3">
-										<p class="mb-2 text-[10px] tracking-wide text-[var(--color-fg-muted)]">
+										<p class="text-3xs mb-2 tracking-wide text-[var(--color-fg-muted)]">
 											{m.metrics_disk_util_label()}
 										</p>
 										<ul class="flex flex-col gap-1.5">
@@ -799,7 +799,7 @@
 
 						{#if inodeRows.length > 0}
 							<div class="mt-4 border-t border-[var(--color-border)] pt-4">
-								<p class="mb-2 text-[10px] tracking-wide text-[var(--color-fg-muted)]">
+								<p class="text-3xs mb-2 tracking-wide text-[var(--color-fg-muted)]">
 									{m.metrics_inode_usage_label()}
 								</p>
 								<ul class="flex flex-col gap-2">
@@ -810,7 +810,7 @@
 								{#if dockerInodeRows.length > 0}
 									<details class="mt-3 border-t border-[var(--color-border)] pt-3">
 										<summary
-											class="cursor-pointer font-mono text-[10px] tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
+											class="text-3xs cursor-pointer font-mono tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
 										>
 											{m.metrics_container_layers_label({
 												count: dockerInodeRows.length
@@ -842,7 +842,7 @@
 								{#each networkSeries as s (s.name)}
 									<div>
 										<p
-											class="mb-0.5 text-[10px] tracking-[0.08em] text-[var(--color-fg-subtle)]"
+											class="text-3xs mb-0.5 tracking-[0.08em] text-[var(--color-fg-subtle)]"
 											style="color: {s.color}"
 										>
 											{s.name}
@@ -863,7 +863,7 @@
 
 						{#if netErrorRows.length > 0}
 							<div class="mt-4 border-t border-[var(--color-border)] pt-4">
-								<p class="mb-2 text-[10px] tracking-wide text-[var(--color-fg-muted)]">
+								<p class="text-3xs mb-2 tracking-wide text-[var(--color-fg-muted)]">
 									{m.metrics_per_interface_latest_label()}
 								</p>
 								<ul class="flex flex-col gap-1.5">
@@ -874,7 +874,7 @@
 								{#if containerNetRows.length > 0}
 									<details class="mt-3 border-t border-[var(--color-border)] pt-3">
 										<summary
-											class="cursor-pointer font-mono text-[10px] tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
+											class="text-3xs cursor-pointer font-mono tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
 										>
 											{m.metrics_iface_group_container({
 												count: containerNetRows.length
@@ -890,7 +890,7 @@
 								{#if virtualNetRows.length > 0}
 									<details class="mt-2">
 										<summary
-											class="cursor-pointer font-mono text-[10px] tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
+											class="text-3xs cursor-pointer font-mono tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
 										>
 											{m.metrics_iface_group_virtual({
 												count: virtualNetRows.length
@@ -990,18 +990,18 @@
 												<td class="px-3 py-2.5">
 													{#if dev.health_passed === true}
 														<span
-															class="inline-flex items-center rounded-full bg-[var(--color-success)]/10 px-2 py-0.5 font-mono text-[10px] text-[var(--color-success)]"
+															class="text-3xs inline-flex items-center rounded-full bg-[var(--color-success)]/10 px-2 py-0.5 font-mono text-[var(--color-success)]"
 														>
 															{m.metrics_smart_health_passed()}
 														</span>
 													{:else if dev.health_passed === false}
 														<span
-															class="inline-flex items-center rounded-full bg-[var(--color-danger)]/10 px-2 py-0.5 font-mono text-[10px] font-medium text-[var(--color-danger)]"
+															class="text-3xs inline-flex items-center rounded-full bg-[var(--color-danger)]/10 px-2 py-0.5 font-mono font-medium text-[var(--color-danger)]"
 														>
 															{m.metrics_smart_health_failed()}
 														</span>
 													{:else}
-														<span class="font-mono text-[11px] text-[var(--color-fg-subtle)]"
+														<span class="text-2xs font-mono text-[var(--color-fg-subtle)]"
 															>{m.metrics_smart_health_unknown()}</span
 														>
 													{/if}

@@ -57,10 +57,10 @@
 <div class="app-content grid min-h-screen place-items-center px-6 py-12">
 	<div class="w-full max-w-md">
 		<header class="mb-8">
-			<h1 class="text-[32px] leading-tight font-semibold tracking-[-0.02em]">
+			<h1 class="text-hero-lg leading-tight font-semibold tracking-[-0.02em]">
 				{m.unlock_title()}
 			</h1>
-			<p class="mt-3 max-w-sm text-[15px] leading-relaxed text-[var(--color-fg-muted)]">
+			<p class="mt-3 max-w-sm text-sm leading-relaxed text-[var(--color-fg-muted)]">
 				{m.unlock_intro()}
 			</p>
 		</header>
@@ -80,7 +80,7 @@
 				</Field>
 
 				<label
-					class="flex cursor-pointer items-start gap-2.5 text-[13px] leading-snug text-[var(--color-fg)]"
+					class="text-md flex cursor-pointer items-start gap-2.5 leading-snug text-[var(--color-fg)]"
 				>
 					<input
 						type="checkbox"
@@ -89,7 +89,7 @@
 					/>
 					<span class="flex flex-col gap-1">
 						<span>{m.unlock_trust_label()}</span>
-						<span class="text-[11px] text-[var(--color-fg-muted)]">
+						<span class="text-2xs text-[var(--color-fg-muted)]">
 							{m.unlock_trust_hint()}
 						</span>
 					</span>
@@ -104,7 +104,7 @@
 		<button
 			type="button"
 			onclick={reset}
-			class="mx-auto mt-7 block text-[12px] text-[var(--color-fg-subtle)] underline-offset-4 transition-colors duration-[var(--dur-fast)] hover:text-[var(--color-danger)] hover:underline"
+			class="mx-auto mt-7 block text-xs text-[var(--color-fg-subtle)] underline-offset-4 transition-colors duration-[var(--dur-fast)] hover:text-[var(--color-danger)] hover:underline"
 		>
 			{m.unlock_wipe_link()}
 		</button>

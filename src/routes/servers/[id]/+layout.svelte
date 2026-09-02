@@ -189,7 +189,7 @@
 		>
 			<a
 				href="/servers"
-				class="group mb-5 inline-flex items-center gap-1.5 px-2 text-[12px] text-[var(--color-fg-subtle)] transition-colors duration-[var(--dur-fast)] hover:text-[var(--color-fg-muted)]"
+				class="group mb-5 inline-flex items-center gap-1.5 px-2 text-xs text-[var(--color-fg-subtle)] transition-colors duration-[var(--dur-fast)] hover:text-[var(--color-fg-muted)]"
 			>
 				<IconChevronLeft
 					class="size-[14px] shrink-0 transition-transform duration-[var(--dur-fast)] group-hover:-translate-x-0.5"
@@ -200,9 +200,7 @@
 
 			<div class="mb-6 px-2">
 				<div class="flex items-center gap-2">
-					<h2
-						class="min-w-0 flex-1 truncate text-[15px] leading-tight font-semibold tracking-tight"
-					>
+					<h2 class="min-w-0 flex-1 truncate text-sm leading-tight font-semibold tracking-tight">
 						{displayName}
 					</h2>
 					<span
@@ -220,7 +218,7 @@
 						aria-label={connectionLive ? m.detail_status_live() : connectionTone}
 					></span>
 				</div>
-				<p class="mt-1 truncate font-mono text-[12px] text-[var(--color-fg-muted)]">
+				<p class="mt-1 truncate font-mono text-xs text-[var(--color-fg-muted)]">
 					{profile.baseUrl}
 				</p>
 			</div>
@@ -235,7 +233,7 @@
 							onmouseenter={() => prefetch(item)}
 							onfocus={() => prefetch(item)}
 							class={cn(
-								'group relative flex items-center gap-3 rounded-[var(--radius-input)] px-3 py-2.5 text-[13.5px] transition-all duration-[var(--dur-fast)] ease-[var(--ease-snap)]',
+								'group text-md relative flex items-center gap-3 rounded-[var(--radius-input)] px-3 py-2.5 transition-all duration-[var(--dur-fast)] ease-[var(--ease-snap)]',
 								active
 									? 'bg-[var(--color-surface)] text-[var(--color-fg)]'
 									: 'text-[var(--color-fg-muted)] hover:bg-[var(--color-surface)]/60 hover:text-[var(--color-fg)]'
@@ -260,14 +258,14 @@
 						</a>
 					{:else}
 						<div
-							class="flex cursor-not-allowed items-center gap-3 rounded-[var(--radius-input)] px-3 py-2.5 text-[13.5px] text-[var(--color-fg-subtle)]/60"
+							class="text-md flex cursor-not-allowed items-center gap-3 rounded-[var(--radius-input)] px-3 py-2.5 text-[var(--color-fg-subtle)]/60"
 							title={m.detail_disabled_tooltip()}
 						>
 							<Icon class="size-[17px] shrink-0" stroke-width="2" />
 							<span class="flex-1">{item.label}</span>
 							{#if item.badge}
 								<span
-									class="rounded-full bg-[var(--color-surface-2)] px-2 py-0.5 font-mono text-[9px] tracking-wide"
+									class="text-3xs rounded-full bg-[var(--color-surface-2)] px-2 py-0.5 font-mono tracking-wide"
 									>{item.badge}</span
 								>
 							{/if}

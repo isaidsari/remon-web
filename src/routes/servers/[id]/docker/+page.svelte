@@ -395,8 +395,8 @@
 	<div class="px-4 py-6 md:px-8 md:py-8">
 		<header class="mb-6 flex items-end justify-between gap-4">
 			<div>
-				<h1 class="text-[24px] font-semibold tracking-tight">Docker</h1>
-				<p class="mt-1.5 text-[12px] text-[var(--color-fg-muted)]">
+				<h1 class="text-2xl font-semibold tracking-tight">Docker</h1>
+				<p class="mt-1.5 text-xs text-[var(--color-fg-muted)]">
 					{#if status?.available}
 						{#if status.version}<span class="text-[var(--color-fg)]">{status.version}</span>{/if}
 						{#if status.os}<span class="text-[var(--color-fg-subtle)]">
@@ -506,7 +506,7 @@
 											<td class="px-3 py-2.5">
 												<div class="flex flex-col">
 													<span class="font-medium text-[var(--color-fg)]">{name(c)}</span>
-													<span class="font-mono text-[10px] text-[var(--color-fg-subtle)]"
+													<span class="text-3xs font-mono text-[var(--color-fg-subtle)]"
 														>{shortId(c.id)}</span
 													>
 												</div>
@@ -521,7 +521,7 @@
 											<td class="px-3 py-2.5"><StateBadge state={c.state} /></td>
 											<td class="px-3 py-2.5 text-xs text-[var(--color-fg-muted)]">
 												<span title={c.status}>{c.status}</span>
-												<span class="block text-[10px] text-[var(--color-fg-subtle)]"
+												<span class="text-3xs block text-[var(--color-fg-subtle)]"
 													>{m.docker_created_at({ time: fmtRelative(c.created) })}</span
 												>
 											</td>
@@ -582,19 +582,19 @@
 									<div class="flex items-start justify-between gap-2">
 										<div class="flex min-w-0 flex-1 flex-col">
 											<span class="font-medium break-all text-[var(--color-fg)]">{name(c)}</span>
-											<span class="font-mono text-[10px] text-[var(--color-fg-subtle)]">
+											<span class="text-3xs font-mono text-[var(--color-fg-subtle)]">
 												{shortId(c.id)}
 											</span>
 										</div>
 										<StateBadge state={c.state} />
 									</div>
-									<dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">
+									<dl class="text-2xs grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
 										<dt class="text-[var(--color-fg-subtle)]">{m.docker_th_image()}</dt>
 										<dd class="font-mono break-all text-[var(--color-fg-muted)]">{c.image}</dd>
 										<dt class="text-[var(--color-fg-subtle)]">{m.docker_th_status()}</dt>
 										<dd class="text-[var(--color-fg-muted)]">
 											{c.status}
-											<span class="block text-[10px] text-[var(--color-fg-subtle)]">
+											<span class="text-3xs block text-[var(--color-fg-subtle)]">
 												{m.docker_created_at({ time: fmtRelative(c.created) })}
 											</span>
 										</dd>
@@ -710,19 +710,19 @@
 							<Card padding="none" class="overflow-hidden">
 								<div class="flex flex-col gap-2 px-3.5 py-3">
 									{#if img.tags.length === 0}
-										<span class="text-[12px] text-[var(--color-fg-subtle)]">
+										<span class="text-xs text-[var(--color-fg-subtle)]">
 											{m.docker_image_no_tag()}
 										</span>
 									{:else}
 										<div class="flex flex-col gap-0.5">
 											{#each img.tags as t (t)}
-												<span class="font-mono text-[12px] break-all text-[var(--color-fg)]">
+												<span class="font-mono text-xs break-all text-[var(--color-fg)]">
 													{t}
 												</span>
 											{/each}
 										</div>
 									{/if}
-									<dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">
+									<dl class="text-2xs grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
 										<dt class="text-[var(--color-fg-subtle)]">{m.docker_th_id()}</dt>
 										<dd class="font-mono text-[var(--color-fg-muted)]">{shortId(img.id)}</dd>
 										<dt class="text-[var(--color-fg-subtle)]">{m.docker_th_size()}</dt>

@@ -353,7 +353,7 @@
 	<div class="px-4 py-6 md:px-8 md:py-8">
 		<header class="mb-6 flex items-end justify-between gap-4">
 			<div>
-				<h1 class="text-[24px] font-semibold tracking-tight">{m.section_config()}</h1>
+				<h1 class="text-2xl font-semibold tracking-tight">{m.section_config()}</h1>
 				<p class="mt-1.5 max-w-md text-sm leading-relaxed text-[var(--color-fg-muted)]">
 					{m.config_page_description_prefix()} <span class="font-mono text-xs">server_config</span>
 					{m.config_page_description_suffix()}
@@ -494,7 +494,7 @@
 					<p class="mb-1 text-xs tracking-wide text-[var(--color-fg-muted)]">
 						{m.config_section_resolutions()}
 					</p>
-					<p class="mb-4 max-w-lg text-[12px] text-[var(--color-fg-muted)]">
+					<p class="mb-4 max-w-lg text-xs text-[var(--color-fg-muted)]">
 						{m.config_resolutions_description()}
 					</p>
 					<ul class="flex flex-col gap-2">
@@ -503,19 +503,19 @@
 							<li
 								class="flex items-center gap-3 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2"
 							>
-								<span class="w-10 font-mono text-[13px] text-[var(--color-fg)]">{r.name}</span>
-								<span class="font-mono text-[11px] text-[var(--color-fg-subtle)]">
+								<span class="text-md w-10 font-mono text-[var(--color-fg)]">{r.name}</span>
+								<span class="text-2xs font-mono text-[var(--color-fg-subtle)]">
 									{fmtIntervalSecs(r.interval_seconds)}
 								</span>
 								{#if r.rollup_from}
-									<span class="text-[11px] text-[var(--color-fg-faint)]">
+									<span class="text-2xs text-[var(--color-fg-faint)]">
 										← {r.rollup_from}
 									</span>
 								{/if}
 								<span class="ml-auto"></span>
 								{#if locked}
 									<span
-										class="max-w-56 truncate text-[11px] text-[var(--color-fg-subtle)]"
+										class="text-2xs max-w-56 truncate text-[var(--color-fg-subtle)]"
 										title={locked}
 									>
 										{locked}
@@ -526,7 +526,7 @@
 									onclick={() => toggleResolution(r)}
 									disabled={!!locked || resolutionBusy === r.name}
 									class={cn(
-										'rounded-full px-2.5 py-0.5 font-mono text-[11px] tracking-wide transition',
+										'text-2xs rounded-full px-2.5 py-0.5 font-mono tracking-wide transition',
 										r.enabled
 											? 'bg-[var(--color-success)]/15 text-[var(--color-success)]'
 											: 'bg-[var(--color-fg-subtle)]/15 text-[var(--color-fg-subtle)]',
@@ -546,14 +546,14 @@
 					<p class="mb-1 text-xs tracking-wide text-[var(--color-fg-muted)]">
 						{m.config_section_retention()}
 					</p>
-					<p class="mb-4 max-w-lg text-[12px] text-[var(--color-fg-muted)]">
+					<p class="mb-4 max-w-lg text-xs text-[var(--color-fg-muted)]">
 						{m.config_retention_description()}
 					</p>
 
 					<div class="overflow-x-auto">
 						<table class="w-full min-w-[480px] text-sm">
 							<thead>
-								<tr class="text-left text-[11px] tracking-wide text-[var(--color-fg-subtle)]">
+								<tr class="text-2xs text-left tracking-wide text-[var(--color-fg-subtle)]">
 									<th class="pr-4 pb-2 font-normal">{m.config_retention_header_resource()}</th>
 									{#each RESOLUTION_ORDER as res (res)}
 										<th class="pr-3 pb-2 font-normal">{res}</th>
@@ -563,7 +563,7 @@
 							<tbody>
 								{#each retResources as resource (resource)}
 									<tr class="border-t border-[var(--color-border)]/60">
-										<td class="py-1.5 pr-4 font-mono text-[12px] text-[var(--color-fg)]">
+										<td class="py-1.5 pr-4 font-mono text-xs text-[var(--color-fg)]">
 											{resource}
 										</td>
 										{#each RESOLUTION_ORDER as resolution (resolution)}
@@ -576,7 +576,7 @@
 														onchange={(e) =>
 															(retForm[key] = Number((e.target as HTMLSelectElement).value))}
 														class={cn(
-															'rounded-md border bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-[12px]',
+															'rounded-md border bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-xs',
 															retForm[key] !== cell.keep_seconds
 																? 'border-[var(--color-accent)] text-[var(--color-accent)]'
 																: 'border-[var(--color-border)] text-[var(--color-fg-muted)]'
@@ -587,7 +587,7 @@
 														{/each}
 													</select>
 												{:else}
-													<span class="text-[11px] text-[var(--color-fg-faint)]">—</span>
+													<span class="text-2xs text-[var(--color-fg-faint)]">—</span>
 												{/if}
 											</td>
 										{/each}
@@ -655,7 +655,7 @@
 				<button
 					type="button"
 					onclick={() => setValue(p.ms)}
-					class="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-0.5 text-[11px] text-[var(--color-fg-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-fg)]"
+					class="text-2xs rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-0.5 text-[var(--color-fg-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-fg)]"
 				>
 					{p.label}
 				</button>

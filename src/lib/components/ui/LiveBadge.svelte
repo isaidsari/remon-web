@@ -47,7 +47,7 @@
 </script>
 
 <span
-	class={cn('inline-flex items-center gap-1.5 text-[11px] text-[var(--color-fg-muted)]', klass)}
+	class={cn('text-2xs inline-flex items-center gap-1.5 text-[var(--color-fg-muted)]', klass)}
 	title={!showLabel ? defaultLabel(tone) : undefined}
 >
 	<span

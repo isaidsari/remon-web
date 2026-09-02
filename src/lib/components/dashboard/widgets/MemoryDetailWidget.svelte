@@ -52,21 +52,21 @@
 			></div>
 		</div>
 
-		<dl class="mt-3 grid grid-cols-2 gap-2 font-mono text-[12px] tabular-nums sm:grid-cols-4">
+		<dl class="mt-3 grid grid-cols-2 gap-2 font-mono text-xs tabular-nums sm:grid-cols-4">
 			<div>
-				<dt class="text-[11px] text-[var(--color-fg-muted)]">{m.overview_mem_active()}</dt>
+				<dt class="text-2xs text-[var(--color-fg-muted)]">{m.overview_mem_active()}</dt>
 				<dd class="text-[var(--color-fg)]">{fmtBytes(memActive)}</dd>
 			</div>
 			<div>
-				<dt class="text-[11px] text-[var(--color-fg-muted)]">{m.overview_mem_cache()}</dt>
+				<dt class="text-2xs text-[var(--color-fg-muted)]">{m.overview_mem_cache()}</dt>
 				<dd class="text-[var(--color-fg-muted)]">{fmtBytes(memCached)}</dd>
 			</div>
 			<div>
-				<dt class="text-[11px] text-[var(--color-fg-muted)]">{m.overview_mem_free()}</dt>
+				<dt class="text-2xs text-[var(--color-fg-muted)]">{m.overview_mem_free()}</dt>
 				<dd class="text-[var(--color-fg-muted)]">{fmtBytes(memFreeRest)}</dd>
 			</div>
 			<div>
-				<dt class="text-[11px] text-[var(--color-fg-subtle)]">{m.overview_mem_total()}</dt>
+				<dt class="text-2xs text-[var(--color-fg-subtle)]">{m.overview_mem_total()}</dt>
 				<dd class="text-[var(--color-fg-muted)]">{fmtBytes(memTotal)}</dd>
 			</div>
 		</dl>

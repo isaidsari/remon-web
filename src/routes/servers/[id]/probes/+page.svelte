@@ -304,19 +304,19 @@
 		<header class="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
 			<div>
 				<h1
-					class="flex items-baseline gap-2.5 text-[22px] font-semibold tracking-tight sm:text-[24px]"
+					class="text-figure flex items-baseline gap-2.5 font-semibold tracking-tight sm:text-2xl"
 				>
 					{m.section_probes()}
 					<span
-						class="rounded-md bg-[var(--color-surface-2)] px-2 py-0.5 font-mono text-[12px] font-medium text-[var(--color-fg-muted)] shadow-[inset_0_0_0_1px_var(--color-border)]"
+						class="rounded-md bg-[var(--color-surface-2)] px-2 py-0.5 font-mono text-xs font-medium text-[var(--color-fg-muted)] shadow-[inset_0_0_0_1px_var(--color-border)]"
 					>
 						{probes.length}
 					</span>
 				</h1>
-				<p class="mt-1.5 max-w-md text-[13px] text-[var(--color-fg-muted)]">
+				<p class="text-md mt-1.5 max-w-md text-[var(--color-fg-muted)]">
 					{m.probes_page_description()}
 					{#if lastFetched}
-						<span class="ml-2 text-[12px] text-[var(--color-fg-subtle)]">
+						<span class="ml-2 text-xs text-[var(--color-fg-subtle)]">
 							{m.probes_updated_at({ time: new Date(lastFetched).toLocaleTimeString() })}
 						</span>
 					{/if}
@@ -373,7 +373,7 @@
 				<div class="max-h-[max(18rem,calc(100dvh-22rem))] overflow-auto">
 					<table class="w-full text-sm">
 						<thead
-							class="sticky top-0 z-10 bg-[var(--color-surface-2)] text-[11px] font-medium tracking-[0.06em] text-[var(--color-fg-muted)]"
+							class="text-2xs sticky top-0 z-10 bg-[var(--color-surface-2)] font-medium tracking-[0.06em] text-[var(--color-fg-muted)]"
 						>
 							<tr>
 								<th class="px-3 py-2.5 text-left font-medium">{m.probes_table_status()}</th>
@@ -400,26 +400,26 @@
 									<td class="px-3 py-2.5"><ProbeStatusBadge parseOk={p.last_parse_ok} /></td>
 									<td class="px-3 py-2.5">
 										<div class="flex flex-col">
-											<span class="font-mono text-[12px] font-medium text-[var(--color-fg)]"
+											<span class="font-mono text-xs font-medium text-[var(--color-fg)]"
 												>{p.name}</span
 											>
 											{#if p.description}
-												<span class="mt-0.5 truncate text-[11px] text-[var(--color-fg-muted)]"
+												<span class="text-2xs mt-0.5 truncate text-[var(--color-fg-muted)]"
 													>{p.description}</span
 												>
 											{/if}
 										</div>
 									</td>
-									<td class="px-3 py-2.5 font-mono text-[11px] text-[var(--color-fg-muted)]"
+									<td class="text-2xs px-3 py-2.5 font-mono text-[var(--color-fg-muted)]"
 										>{p.schedule}</td
 									>
-									<td class="px-3 py-2.5 font-mono text-[11px] text-[var(--color-fg-muted)]">
+									<td class="text-2xs px-3 py-2.5 font-mono text-[var(--color-fg-muted)]">
 										{p.last_run_at ? fmtRelative(p.last_run_at) : '—'}
 									</td>
 									<td class="px-3 py-2.5">
 										{#if p.last_message}
 											<span
-												class="block max-w-[40ch] truncate text-[12px] text-[var(--color-fg-muted)]"
+												class="block max-w-[40ch] truncate text-xs text-[var(--color-fg-muted)]"
 												title={p.last_message}
 											>
 												{p.last_message}
@@ -430,11 +430,11 @@
 									</td>
 									<td class="px-3 py-2.5 text-right">
 										{#if p.enabled}
-											<span class="text-[11px] tracking-wide text-[var(--color-success)]"
+											<span class="text-2xs tracking-wide text-[var(--color-success)]"
 												>{m.probes_enabled()}</span
 											>
 										{:else}
-											<span class="text-[11px] tracking-wide text-[var(--color-fg-subtle)]"
+											<span class="text-2xs tracking-wide text-[var(--color-fg-subtle)]"
 												>{m.probes_disabled()}</span
 											>
 										{/if}
@@ -453,11 +453,11 @@
 									<tr class="border-t border-[var(--color-border)] bg-[var(--color-bg-soft)]/50">
 										<td colspan="7" class="px-5 py-4">
 											{#if detailLoading[p.name]}
-												<p class="text-[12px] text-[var(--color-fg-subtle)]">
+												<p class="text-xs text-[var(--color-fg-subtle)]">
 													{m.probes_loading_detail()}
 												</p>
 											{:else if detail && isError(detail)}
-												<p class="text-[12px] text-[var(--color-danger)]">{detail.error}</p>
+												<p class="text-xs text-[var(--color-danger)]">{detail.error}</p>
 											{:else if detail}
 												{@render detailPanel(detail, p.name)}
 											{/if}
@@ -469,7 +469,7 @@
 								<tr>
 									<td
 										colspan="7"
-										class="px-3 py-10 text-center text-[13px] text-[var(--color-fg-subtle)]"
+										class="text-md px-3 py-10 text-center text-[var(--color-fg-subtle)]"
 									>
 										{m.probes_empty_filter()}
 									</td>
@@ -502,22 +502,20 @@
 							<div class="flex items-start justify-between gap-2">
 								<div class="flex min-w-0 flex-1 flex-col">
 									<div class="flex flex-wrap items-center gap-2">
-										<span
-											class="font-mono text-[13px] font-medium break-all text-[var(--color-fg)]"
-										>
+										<span class="text-md font-mono font-medium break-all text-[var(--color-fg)]">
 											{p.name}
 										</span>
 										<ProbeStatusBadge parseOk={p.last_parse_ok} />
 										{#if !p.enabled}
 											<span
-												class="rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[10px] tracking-wide text-[var(--color-fg-subtle)]"
+												class="text-3xs rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono tracking-wide text-[var(--color-fg-subtle)]"
 											>
 												{m.probes_disabled()}
 											</span>
 										{/if}
 									</div>
 									{#if p.description}
-										<span class="mt-1 text-[12px] leading-snug text-[var(--color-fg-muted)]"
+										<span class="mt-1 text-xs leading-snug text-[var(--color-fg-muted)]"
 											>{p.description}</span
 										>
 									{/if}
@@ -530,7 +528,7 @@
 									stroke-width="2"
 								/>
 							</div>
-							<dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">
+							<dl class="text-2xs grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
 								<dt class="text-[var(--color-fg-subtle)]">{m.probes_card_schedule_label()}</dt>
 								<dd class="font-mono break-all text-[var(--color-fg-muted)]">{p.schedule}</dd>
 								<dt class="text-[var(--color-fg-subtle)]">{m.probes_card_last_run_label()}</dt>
@@ -548,11 +546,11 @@
 								class="border-t border-[var(--color-border)] bg-[var(--color-bg-soft)]/40 px-3.5 py-3"
 							>
 								{#if detailLoading[p.name]}
-									<p class="text-[12px] text-[var(--color-fg-subtle)]">
+									<p class="text-xs text-[var(--color-fg-subtle)]">
 										{m.probes_loading_detail()}
 									</p>
 								{:else if detail && isError(detail)}
-									<p class="text-[12px] text-[var(--color-danger)]">{detail.error}</p>
+									<p class="text-xs text-[var(--color-danger)]">{detail.error}</p>
 								{:else if detail}
 									{@render detailPanel(detail, p.name)}
 								{/if}
@@ -562,7 +560,7 @@
 				{/each}
 				{#if filteredProbes.length === 0 && probes.length > 0}
 					<Card padding="lg" class="text-center">
-						<p class="text-[13px] text-[var(--color-fg-subtle)]">{m.probes_empty_filter()}</p>
+						<p class="text-md text-[var(--color-fg-subtle)]">{m.probes_empty_filter()}</p>
 					</Card>
 				{/if}
 			</div>
@@ -572,34 +570,28 @@
 
 {#snippet detailPanel(d: ProbeDetail, name: string)}
 	<div class="grid grid-cols-1 gap-5 lg:grid-cols-[280px_1fr]">
-		<dl class="flex flex-col gap-3 text-[12px]">
+		<dl class="flex flex-col gap-3 text-xs">
 			<div class="flex flex-col">
-				<dt
-					class="font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)]"
-				>
+				<dt class="text-2xs font-mono font-medium tracking-[0.08em] text-[var(--color-fg-muted)]">
 					{m.probes_detail_schedule()}
 				</dt>
 				<dd class="mt-0.5 font-mono break-all text-[var(--color-fg)]">{d.schedule}</dd>
 			</div>
 			<div class="flex flex-col">
-				<dt
-					class="font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)]"
-				>
+				<dt class="text-2xs font-mono font-medium tracking-[0.08em] text-[var(--color-fg-muted)]">
 					{m.probes_detail_timeout()}
 				</dt>
 				<dd class="mt-0.5 font-mono text-[var(--color-fg)]">{d.timeout_ms} ms</dd>
 			</div>
 			{#if d.platforms.length > 0}
 				<div class="flex flex-col">
-					<dt
-						class="font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)]"
-					>
+					<dt class="text-2xs font-mono font-medium tracking-[0.08em] text-[var(--color-fg-muted)]">
 						{m.probes_detail_platforms()}
 					</dt>
 					<dd class="mt-0.5 flex flex-wrap gap-1">
 						{#each d.platforms as p (p)}
 							<span
-								class="rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--color-fg-muted)]"
+								class="text-2xs rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[var(--color-fg-muted)]"
 							>
 								{p}
 							</span>
@@ -608,13 +600,11 @@
 				</div>
 			{/if}
 			<div class="flex flex-col">
-				<dt
-					class="font-mono text-[11px] font-medium tracking-[0.08em] text-[var(--color-fg-muted)]"
-				>
+				<dt class="text-2xs font-mono font-medium tracking-[0.08em] text-[var(--color-fg-muted)]">
 					{m.probes_detail_command()}
 				</dt>
 				<dd
-					class="mt-0.5 rounded bg-[var(--color-surface-2)] px-2 py-1.5 font-mono text-[11px] leading-relaxed break-all whitespace-pre-wrap text-[var(--color-fg)] shadow-[inset_0_0_0_1px_var(--color-border)]"
+					class="text-2xs mt-0.5 rounded bg-[var(--color-surface-2)] px-2 py-1.5 font-mono leading-relaxed break-all whitespace-pre-wrap text-[var(--color-fg)] shadow-[inset_0_0_0_1px_var(--color-border)]"
 				>
 					{d.command.join(' ')}
 				</dd>
@@ -625,7 +615,7 @@
 			{#if d.last_run}
 				{@render runPanel(d.last_run, d.last_metrics)}
 			{:else}
-				<p class="text-[12px] text-[var(--color-fg-subtle)]">{m.probes_no_run_yet()}</p>
+				<p class="text-xs text-[var(--color-fg-subtle)]">{m.probes_no_run_yet()}</p>
 			{/if}
 
 			{#if d.last_metrics.length > 0}
@@ -644,11 +634,11 @@
 		<div class="mb-3 flex flex-wrap items-center justify-between gap-2">
 			<div class="flex items-center gap-2">
 				<ProbeStatusBadge parseOk={run.parse_ok} />
-				<span class="font-mono text-[11px] text-[var(--color-fg-muted)]"
+				<span class="text-2xs font-mono text-[var(--color-fg-muted)]"
 					>{fmtRelative(run.timestamp)}</span
 				>
 			</div>
-			<div class="flex items-center gap-3 font-mono text-[11px] text-[var(--color-fg-muted)]">
+			<div class="text-2xs flex items-center gap-3 font-mono text-[var(--color-fg-muted)]">
 				<span>{m.probes_run_took({ duration: fmtDuration(run.duration_ms) })}</span>
 				{#if run.exit_code !== null}
 					<span class={run.exit_code === 0 ? '' : 'text-[var(--color-danger)]'}>
@@ -660,7 +650,7 @@
 			</div>
 		</div>
 		{#if run.message}
-			<p class="mb-3 text-[12px] break-words text-[var(--color-fg-muted)]">{run.message}</p>
+			<p class="mb-3 text-xs break-words text-[var(--color-fg-muted)]">{run.message}</p>
 		{/if}
 		{#if metrics.length > 0}
 			{@const groups = groupMetricsByName(metrics)}
@@ -671,16 +661,16 @@
 					<div class="rounded border border-[var(--color-border)] bg-[var(--color-surface)]">
 						<div class="flex items-baseline justify-between gap-2 px-3 py-1.5">
 							<span
-								class="font-mono text-[11px] font-medium tracking-[0.08em] break-all text-[var(--color-fg-muted)]"
+								class="text-2xs font-mono font-medium tracking-[0.08em] break-all text-[var(--color-fg-muted)]"
 							>
 								{g.name}
 							</span>
 							{#if g.unit}
-								<span class="font-mono text-[10px] text-[var(--color-fg-subtle)]">{g.unit}</span>
+								<span class="text-3xs font-mono text-[var(--color-fg-subtle)]">{g.unit}</span>
 							{/if}
 						</div>
 						{#if singleUnlabelled}
-							<div class="px-3 pb-2 font-mono text-[14px] text-[var(--color-fg)] tabular-nums">
+							<div class="px-3 pb-2 font-mono text-sm text-[var(--color-fg)] tabular-nums">
 								{formatMetricValue(g.entries[0].value, g.unit)}
 							</div>
 						{:else}
@@ -691,11 +681,11 @@
 								{#each g.entries as entry, i (labelKey(entry.labels ?? {}) + ':' + i)}
 									<div class="flex items-baseline justify-between gap-3 px-3 py-1.5">
 										<dt
-											class="min-w-0 flex-1 truncate font-mono text-[11px] text-[var(--color-fg-subtle)]"
+											class="text-2xs min-w-0 flex-1 truncate font-mono text-[var(--color-fg-subtle)]"
 										>
 											{formatLabels(entry.labels) || m.probes_metric_labels_none()}
 										</dt>
-										<dd class="shrink-0 font-mono text-[13px] text-[var(--color-fg)] tabular-nums">
+										<dd class="text-md shrink-0 font-mono text-[var(--color-fg)] tabular-nums">
 											{formatMetricValue(entry.value, g.unit)}
 										</dd>
 									</div>
@@ -718,23 +708,23 @@
 		}}
 	>
 		<summary
-			class="cursor-pointer px-3 py-2 font-mono text-[10px] tracking-[0.12em] text-[var(--color-fg-muted)] select-none hover:text-[var(--color-fg)]"
+			class="text-3xs cursor-pointer px-3 py-2 font-mono tracking-[0.12em] text-[var(--color-fg-muted)] select-none hover:text-[var(--color-fg)]"
 		>
 			{m.probes_history_summary()}
 		</summary>
 		<div class="border-t border-[var(--color-border)] px-3 py-2">
 			{#if historyLoading[name]}
-				<p class="font-mono text-[11px] text-[var(--color-fg-subtle)]">
+				<p class="text-2xs font-mono text-[var(--color-fg-subtle)]">
 					{m.probes_loading_history()}
 				</p>
 			{:else if history && isError(history)}
-				<p class="font-mono text-[11px] text-[var(--color-danger)]">{history.error}</p>
+				<p class="text-2xs font-mono text-[var(--color-danger)]">{history.error}</p>
 			{:else if history && history.length === 0}
-				<p class="text-[12px] text-[var(--color-fg-muted)]">{m.probes_no_history()}</p>
+				<p class="text-xs text-[var(--color-fg-muted)]">{m.probes_no_history()}</p>
 			{:else if history}
 				<div class="max-h-72 overflow-auto">
-					<table class="w-full text-[11px]">
-						<thead class="text-[11px] font-medium tracking-[0.06em] text-[var(--color-fg-muted)]">
+					<table class="text-2xs w-full">
+						<thead class="text-2xs font-medium tracking-[0.06em] text-[var(--color-fg-muted)]">
 							<tr>
 								<th class="py-1 text-left font-medium">{m.probes_history_col_when()}</th>
 								<th class="py-1 text-left font-medium">{m.probes_history_col_parse()}</th>
@@ -779,7 +769,7 @@
 							type="button"
 							onclick={() => loadMoreHistory(name)}
 							disabled={historyLoadingMoreMap[name]}
-							class="text-[11px] text-[var(--color-fg-muted)] transition hover:text-[var(--color-fg)] disabled:opacity-50"
+							class="text-2xs text-[var(--color-fg-muted)] transition hover:text-[var(--color-fg)] disabled:opacity-50"
 						>
 							{historyLoadingMoreMap[name]
 								? m.alerts_events_loading_more()
@@ -805,7 +795,7 @@
 		}}
 	>
 		<summary
-			class="cursor-pointer px-3 py-2 font-mono text-[10px] tracking-[0.12em] text-[var(--color-fg-muted)] uppercase select-none hover:text-[var(--color-fg)]"
+			class="text-3xs cursor-pointer px-3 py-2 font-mono tracking-[0.12em] text-[var(--color-fg-muted)] uppercase select-none hover:text-[var(--color-fg)]"
 		>
 			{m.probes_metric_history()}
 		</summary>
@@ -823,14 +813,12 @@
 					<div class="flex flex-wrap items-baseline justify-between gap-2">
 						<div class="flex items-baseline gap-2">
 							<span
-								class="font-mono text-[11px] font-medium tracking-[0.08em] break-all text-[var(--color-fg-muted)]"
+								class="text-2xs font-mono font-medium tracking-[0.08em] break-all text-[var(--color-fg-muted)]"
 							>
 								{metric.name}
 							</span>
 							{#if metric.unit}
-								<span class="font-mono text-[10px] text-[var(--color-fg-subtle)]"
-									>{metric.unit}</span
-								>
+								<span class="text-3xs font-mono text-[var(--color-fg-subtle)]">{metric.unit}</span>
 							{/if}
 						</div>
 						{#if groups.length > 1}
@@ -838,7 +826,7 @@
 								value={selectedKey}
 								onchange={(e) =>
 									(metricSelectedLabel[key] = (e.currentTarget as HTMLSelectElement).value)}
-								class="max-w-[60vw] truncate rounded border border-[var(--color-border)] bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-fg-muted)] focus:border-[var(--color-accent)] focus:outline-none sm:max-w-[28ch]"
+								class="text-3xs max-w-[60vw] truncate rounded border border-[var(--color-border)] bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[var(--color-fg-muted)] focus:border-[var(--color-accent)] focus:outline-none sm:max-w-[28ch]"
 							>
 								{#each groups as g (g.key)}
 									<option value={g.key}>{formatLabelKey(g.key)} ({g.points.length})</option>
@@ -846,7 +834,7 @@
 							</select>
 						{:else if groups.length === 1 && groups[0].key !== '{}'}
 							<span
-								class="max-w-[60vw] truncate font-mono text-[10px] text-[var(--color-fg-subtle)] sm:max-w-[28ch]"
+								class="text-3xs max-w-[60vw] truncate font-mono text-[var(--color-fg-subtle)] sm:max-w-[28ch]"
 							>
 								{formatLabelKey(groups[0].key)} ({groups[0].points.length})
 							</span>
@@ -857,9 +845,9 @@
 					{:else if !entry}
 						<div class="h-[100px] rounded bg-[var(--color-surface-2)]"></div>
 					{:else if isError(entry)}
-						<p class="py-2 text-[11px] text-[var(--color-fg-subtle)]">{entry.error}</p>
+						<p class="text-2xs py-2 text-[var(--color-fg-subtle)]">{entry.error}</p>
 					{:else if !activeGroup || activeGroup.points.length === 0}
-						<p class="py-2 text-[11px] text-[var(--color-fg-subtle)]">
+						<p class="text-2xs py-2 text-[var(--color-fg-subtle)]">
 							{m.probes_metric_no_data()}
 						</p>
 					{:else}

@@ -129,7 +129,7 @@
 <div class="px-4 py-6 md:px-8 md:py-8">
 	<header class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
 		<div>
-			<h1 class="text-[24px] font-semibold tracking-tight">{m.logs_title()}</h1>
+			<h1 class="text-2xl font-semibold tracking-tight">{m.logs_title()}</h1>
 			<p class="mt-1.5 text-sm text-[var(--color-fg-muted)]">{m.logs_subtitle()}</p>
 		</div>
 		<!-- Wrapped, not passed by reference: the click event would land in `background`. -->
@@ -163,7 +163,7 @@
 				aria-label={m.logs_filter_placeholder()}
 			/>
 			{#if entries && entries.length > 0}
-				<span class="ml-auto text-[11px] text-[var(--color-fg-subtle)] tabular-nums">
+				<span class="text-2xs ml-auto text-[var(--color-fg-subtle)] tabular-nums">
 					{filter.trim()
 						? m.logs_count_filtered({ shown: shown.length, total: entries.length })
 						: m.logs_count({ count: entries.length })}
@@ -196,7 +196,7 @@
 			{:else if shown.length === 0}
 				<div class="flex flex-col items-center justify-center gap-2 px-4 py-14 text-center">
 					<span class="inline-flex size-2 rounded-full bg-[var(--color-success)]"></span>
-					<p class="text-[13px] text-[var(--color-fg-muted)]">
+					<p class="text-md text-[var(--color-fg-muted)]">
 						{entries.length === 0 ? m.logs_empty() : m.logs_empty_filtered()}
 					</p>
 				</div>
@@ -206,19 +206,17 @@
 				<div class="overflow-x-auto">
 					<ol class="min-w-max divide-y divide-[var(--color-border)]/60">
 						{#each shown as e (e.id)}
-							<li class="flex items-baseline gap-3 px-4 py-1.5 font-mono text-[12px] leading-snug">
+							<li class="flex items-baseline gap-3 px-4 py-1.5 font-mono text-xs leading-snug">
 								<span
-									class="shrink-0 text-[10.5px] text-[var(--color-fg-faint)] tabular-nums"
+									class="text-3xs shrink-0 text-[var(--color-fg-faint)] tabular-nums"
 									title={new Date(e.timestamp * 1000).toLocaleString()}
 								>
 									{new Date(e.timestamp * 1000).toLocaleTimeString()}
 								</span>
-								<span
-									class={cn('w-[3.25rem] shrink-0 text-[10.5px] uppercase', levelTone(e.level))}
-								>
+								<span class={cn('text-3xs w-[3.25rem] shrink-0 uppercase', levelTone(e.level))}>
 									{e.level}
 								</span>
-								<span class="shrink-0 text-[10.5px] text-[var(--color-fg-subtle)]">{e.target}</span>
+								<span class="text-3xs shrink-0 text-[var(--color-fg-subtle)]">{e.target}</span>
 								<span class="text-[var(--color-fg)]">{e.message}</span>
 							</li>
 						{/each}

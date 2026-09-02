@@ -132,7 +132,7 @@
 		stroke-width="2"
 	/>
 
-	<span class="min-w-0 flex-1 text-[12.5px] leading-snug text-[var(--color-fg)]">
+	<span class="min-w-0 flex-1 text-xs leading-snug text-[var(--color-fg)]">
 		{event.message}
 		{#if event.source === 'operator' && event.actor?.name}
 			<span class="text-[var(--color-fg-subtle)]"
@@ -142,7 +142,7 @@
 		{#if refHref && refLabel}
 			<a
 				href={refHref}
-				class="group ml-1 inline-flex items-center gap-0.5 text-[11px] text-[var(--color-accent)] hover:underline"
+				class="group text-2xs ml-1 inline-flex items-center gap-0.5 text-[var(--color-accent)] hover:underline"
 			>
 				{refLabel}
 				<IconArrowUpRight class="size-3 transition-transform group-hover:translate-x-0.5" />
@@ -150,7 +150,7 @@
 		{/if}
 	</span>
 
-	<span class="shrink-0 font-mono text-[10.5px] text-[var(--color-fg-faint)] tabular-nums">
+	<span class="text-3xs shrink-0 font-mono text-[var(--color-fg-faint)] tabular-nums">
 		{fmtRelative(event.ts, now)}
 	</span>
 </li>

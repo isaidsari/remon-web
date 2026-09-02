@@ -85,7 +85,7 @@
 	{#if error}
 		<Banner variant="danger">{error}</Banner>
 	{:else if loaded && !hasData}
-		<p class="py-2 text-[11px] text-[var(--color-fg-subtle)]">
+		<p class="text-2xs py-2 text-[var(--color-fg-subtle)]">
 			{m.docker_container_history_empty()}
 		</p>
 	{:else}

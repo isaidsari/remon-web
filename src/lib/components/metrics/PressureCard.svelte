@@ -85,7 +85,7 @@
 						<span class="text-xs tracking-wide text-[var(--color-fg-muted)]">
 							{s.label}
 						</span>
-						<span class="text-[11px] text-[var(--color-fg-subtle)]">
+						<span class="text-2xs text-[var(--color-fg-subtle)]">
 							{hasPoints
 								? m.pressurecard_points_count({ count: s.data!.points.length })
 								: m.pressurecard_no_data()}
@@ -99,7 +99,7 @@
 							{fmtPercent(last.some_avg10, 1)}
 						</p>
 						<div
-							class="mt-1 flex items-center gap-3 text-[11px] text-[var(--color-fg-subtle)] tabular-nums"
+							class="text-2xs mt-1 flex items-center gap-3 text-[var(--color-fg-subtle)] tabular-nums"
 						>
 							<span>10s {fmtNumber(last.some_avg10, 1)}</span>
 							<span>60s {fmtNumber(last.some_avg60, 1)}</span>

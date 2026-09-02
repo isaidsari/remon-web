@@ -41,10 +41,7 @@
 </script>
 
 <dl
-	class={cn(
-		'flex flex-wrap items-baseline gap-x-5 gap-y-1 font-mono text-[11px] tabular-nums',
-		klass
-	)}
+	class={cn('text-2xs flex flex-wrap items-baseline gap-x-5 gap-y-1 font-mono tabular-nums', klass)}
 >
 	{@render cell('current', stats?.current ?? null)}
 	{@render cell('avg', stats?.avg ?? null)}
@@ -55,7 +52,7 @@
 
 {#snippet cell(label: string, v: number | null)}
 	<div class="flex items-baseline gap-1.5">
-		<dt class="text-[11px] tracking-[0.06em] text-[var(--color-fg-muted)]">{label}</dt>
+		<dt class="text-2xs tracking-[0.06em] text-[var(--color-fg-muted)]">{label}</dt>
 		<dd class="font-medium text-[var(--color-fg)]" style={accent ? `color: ${accent}` : ''}>
 			{format(v)}
 		</dd>

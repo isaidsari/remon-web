@@ -89,12 +89,12 @@
 		{:else if counts}
 			<div class="flex flex-1 items-baseline gap-2">
 				<span
-					class="font-mono text-[30px] leading-none font-semibold tabular-nums"
+					class="font-mono text-3xl leading-none font-semibold tabular-nums"
 					style="color: {meta.accent}"
 				>
 					{counts.active}
 				</span>
-				<span class="font-mono text-[13px] text-[var(--color-fg-muted)]">
+				<span class="text-md font-mono text-[var(--color-fg-muted)]">
 					/ {counts.total}
 					<span class="ml-1 text-[var(--color-fg-subtle)]">
 						{config.summary === 'alerts'

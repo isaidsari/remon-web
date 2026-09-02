@@ -76,16 +76,16 @@
 <div class="app-content mx-auto max-w-6xl px-6 py-12">
 	<header class="mb-8 flex flex-wrap items-end justify-between gap-4">
 		<div>
-			<h1 class="flex items-center gap-2.5 text-[24px] font-semibold tracking-tight">
+			<h1 class="flex items-center gap-2.5 text-2xl font-semibold tracking-tight">
 				{m.servers_title()}
 				<span
-					class="rounded-md bg-[var(--color-surface-2)] px-2 py-0.5 font-mono text-[12px] font-medium text-[var(--color-fg-subtle)] shadow-[inset_0_0_0_1px_var(--color-border)]"
+					class="rounded-md bg-[var(--color-surface-2)] px-2 py-0.5 font-mono text-xs font-medium text-[var(--color-fg-subtle)] shadow-[inset_0_0_0_1px_var(--color-border)]"
 				>
 					{profiles.list.length}
 				</span>
 				{#if toneCounts.connecting > 0}
 					<span
-						class="inline-flex items-center gap-1 font-mono text-[11px] font-medium text-[var(--color-warning)]"
+						class="text-2xs inline-flex items-center gap-1 font-mono font-medium text-[var(--color-warning)]"
 					>
 						<span class="h-1.5 w-1.5 rounded-full bg-[var(--color-warning)]"></span>
 						{toneCounts.connecting}
@@ -93,7 +93,7 @@
 				{/if}
 				{#if toneCounts.offline > 0}
 					<span
-						class="inline-flex items-center gap-1 font-mono text-[11px] font-medium text-[var(--color-danger)]"
+						class="text-2xs inline-flex items-center gap-1 font-mono font-medium text-[var(--color-danger)]"
 					>
 						<span class="h-1.5 w-1.5 rounded-full bg-[var(--color-danger)]"></span>
 						{toneCounts.offline}
@@ -150,7 +150,7 @@
 						<IconPlus class="size-[18px]" stroke-width="1.8" />
 					</div>
 					<p
-						class="mt-3 font-mono text-[12px] tracking-[0.04em] text-[var(--color-fg-muted)] transition-colors group-hover:text-[var(--color-fg)]"
+						class="mt-3 font-mono text-xs tracking-[0.04em] text-[var(--color-fg-muted)] transition-colors group-hover:text-[var(--color-fg)]"
 					>
 						{m.servers_add_card()}
 					</p>

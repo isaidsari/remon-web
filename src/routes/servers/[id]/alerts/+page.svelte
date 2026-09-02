@@ -406,7 +406,7 @@
 {#snippet severityBadge(sev: AlertSeverity)}
 	<span
 		class={cn(
-			'inline-flex items-center rounded-full px-2 py-0.5 font-mono text-[10px] font-medium tracking-wide',
+			'text-3xs inline-flex items-center rounded-full px-2 py-0.5 font-mono font-medium tracking-wide',
 			sev === 'crit'
 				? 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]'
 				: 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]'
@@ -424,7 +424,7 @@
 				: m.alerts_state_ok()}
 	<span
 		class={cn(
-			'inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] font-medium tracking-wide',
+			'text-3xs inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono font-medium tracking-wide',
 			state === 'firing'
 				? 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]'
 				: state === 'pending'
@@ -441,7 +441,7 @@
 	<div class="px-4 py-6 md:px-8 md:py-8">
 		<header class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
 			<div>
-				<h1 class="text-[24px] font-semibold tracking-tight">{m.alerts_page_title()}</h1>
+				<h1 class="text-2xl font-semibold tracking-tight">{m.alerts_page_title()}</h1>
 				<p class="mt-1.5 text-sm text-[var(--color-fg-muted)]">
 					{m.alerts_page_subtitle()}
 				</p>
@@ -500,7 +500,7 @@
 													<span class="font-medium text-[var(--color-fg)]">{rule.name}</span>
 													{#if isSilenced(rule)}
 														<span
-															class="inline-flex items-center gap-1 rounded-full bg-[var(--color-fg-subtle)]/15 px-2 py-0.5 font-mono text-[10px] tracking-wide text-[var(--color-fg-muted)]"
+															class="text-3xs inline-flex items-center gap-1 rounded-full bg-[var(--color-fg-subtle)]/15 px-2 py-0.5 font-mono tracking-wide text-[var(--color-fg-muted)]"
 															title={m.alerts_silenced_until({
 																time: new Date((rule.silenced_until ?? 0) * 1000).toLocaleString()
 															})}
@@ -513,7 +513,7 @@
 													{/if}
 												</div>
 												{#if rule.description}
-													<span class="text-[12px] text-[var(--color-fg-muted)]"
+													<span class="text-xs text-[var(--color-fg-muted)]"
 														>{rule.description}</span
 													>
 												{/if}
@@ -524,10 +524,10 @@
 										     width — pushing severity/for/cooldown/actions off-screen. -->
 										<td class="w-full max-w-0 px-3 py-2.5">
 											<div class="flex flex-col gap-0.5" title={rule.expression}>
-												<span class="truncate text-[13px] text-[var(--color-fg)]">
+												<span class="text-md truncate text-[var(--color-fg)]">
 													{describeExpression(rule.expression, schema)}
 												</span>
-												<code class="truncate font-mono text-[10px] text-[var(--color-fg-subtle)]"
+												<code class="text-3xs truncate font-mono text-[var(--color-fg-subtle)]"
 													>{rule.expression}</code
 												>
 											</div>
@@ -580,7 +580,7 @@
 												{rule.name}
 											</span>
 											{#if rule.description}
-												<span class="mt-0.5 text-[11px] leading-snug text-[var(--color-fg-muted)]">
+												<span class="text-2xs mt-0.5 leading-snug text-[var(--color-fg-muted)]">
 													{rule.description}
 												</span>
 											{/if}
@@ -590,7 +590,7 @@
 
 									{#if isSilenced(rule)}
 										<span
-											class="inline-flex w-fit items-center gap-1 rounded-full bg-[var(--color-fg-subtle)]/15 px-2 py-0.5 font-mono text-[10px] tracking-wide text-[var(--color-fg-muted)]"
+											class="text-3xs inline-flex w-fit items-center gap-1 rounded-full bg-[var(--color-fg-subtle)]/15 px-2 py-0.5 font-mono tracking-wide text-[var(--color-fg-muted)]"
 										>
 											<IconBellOff class="size-[10px]" stroke-width="2.25" />
 											{m.alerts_silenced_for({
@@ -600,15 +600,15 @@
 									{/if}
 
 									<div class="flex flex-col gap-0.5">
-										<span class="text-[12px] text-[var(--color-fg)]">
+										<span class="text-xs text-[var(--color-fg)]">
 											{describeExpression(rule.expression, schema)}
 										</span>
-										<code class="font-mono text-[10px] break-all text-[var(--color-fg-subtle)]">
+										<code class="text-3xs font-mono break-all text-[var(--color-fg-subtle)]">
 											{rule.expression}
 										</code>
 									</div>
 
-									<dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">
+									<dl class="text-2xs grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
 										<dt class="text-[var(--color-fg-subtle)]">{m.alerts_table_for()}</dt>
 										<dd class="font-mono text-[var(--color-fg-muted)]">
 											{rule.for_duration_secs}s
@@ -665,7 +665,7 @@
 													<span class="text-[var(--color-fg-subtle)]">—</span>
 												{:else}
 													<code
-														class="rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-fg-muted)]"
+														class="text-3xs rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[var(--color-fg-muted)]"
 														>{s.label_set}</code
 													>
 												{/if}
@@ -697,13 +697,13 @@
 										{@render stateBadge(s.state)}
 										{#if s.label_set !== '{}'}
 											<code
-												class="rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[10px] break-all text-[var(--color-fg-muted)]"
+												class="text-3xs rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono break-all text-[var(--color-fg-muted)]"
 											>
 												{s.label_set}
 											</code>
 										{/if}
 									</div>
-									<dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">
+									<dl class="text-2xs grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
 										<dt class="text-[var(--color-fg-subtle)]">{m.alerts_table_last_value()}</dt>
 										<dd class="font-mono text-[var(--color-fg-muted)]">
 											{s.last_value != null ? s.last_value.toFixed(2) : '—'}
@@ -757,7 +757,7 @@
 												<span class="text-[var(--color-fg-subtle)]">—</span>
 											{:else}
 												<code
-													class="rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-fg-muted)]"
+													class="text-3xs rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[var(--color-fg-muted)]"
 													>{ep.fired.label_set}</code
 												>
 											{/if}
@@ -774,7 +774,7 @@
 													<span>{m.alerts_event_status_resolved()}</span>
 												</span>
 												{#if duration !== null}
-													<span class="ml-1 text-[10px] text-[var(--color-fg-subtle)]"
+													<span class="text-3xs ml-1 text-[var(--color-fg-subtle)]"
 														>{m.alerts_event_resolved_in({ duration: fmtDuration(duration) })}</span
 													>
 												{/if}
@@ -852,19 +852,19 @@
 									<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
 										{#if ep.resolved}
 											<span
-												class="inline-flex items-center gap-1.5 text-[11px] text-[var(--color-success)]"
+												class="text-2xs inline-flex items-center gap-1.5 text-[var(--color-success)]"
 											>
 												<IconCircleCheck class="size-[13px]" stroke-width="2" />
 												{m.alerts_event_status_resolved()}
 											</span>
 											{#if duration !== null}
-												<span class="text-[10px] text-[var(--color-fg-subtle)]">
+												<span class="text-3xs text-[var(--color-fg-subtle)]">
 													{m.alerts_event_resolved_in({ duration: fmtDuration(duration) })}
 												</span>
 											{/if}
 										{:else}
 											<span
-												class="inline-flex items-center gap-1.5 text-[11px] text-[var(--color-danger)]"
+												class="text-2xs inline-flex items-center gap-1.5 text-[var(--color-danger)]"
 											>
 												<IconFlame class="size-[13px]" stroke-width="2" />
 												{m.alerts_event_status_ongoing()}
@@ -872,14 +872,14 @@
 										{/if}
 										{#if ep.fired.label_set !== '{}'}
 											<code
-												class="rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[10px] break-all text-[var(--color-fg-muted)]"
+												class="text-3xs rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono break-all text-[var(--color-fg-muted)]"
 											>
 												{ep.fired.label_set}
 											</code>
 										{/if}
 									</div>
 
-									<dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">
+									<dl class="text-2xs grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
 										<dt class="text-[var(--color-fg-subtle)]">{m.alerts_table_time()}</dt>
 										<dd class="text-[var(--color-fg-muted)]">
 											{fmtRelative(ep.fired.occurred_at)}

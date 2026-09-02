@@ -35,7 +35,7 @@
 
 <span
 	class={cn(
-		'inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] tracking-[0.04em] whitespace-nowrap',
+		'text-3xs inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 font-mono tracking-[0.04em] whitespace-nowrap',
 		palette,
 		klass
 	)}

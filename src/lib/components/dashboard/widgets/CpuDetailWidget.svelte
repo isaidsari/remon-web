@@ -33,7 +33,7 @@
 	<div class="mb-4 flex items-center justify-between">
 		<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">{m.overview_card_cpu_title()}</p>
 		{#if cpu}
-			<span class="font-mono text-[11px] text-[var(--color-fg-muted)]">
+			<span class="text-2xs font-mono text-[var(--color-fg-muted)]">
 				{m.overview_metric_cores_count({ count: cpu.per_core.length })}
 			</span>
 		{/if}
@@ -42,28 +42,28 @@
 	<div class="mb-4 flex flex-wrap items-baseline gap-x-6 gap-y-2">
 		{#if cpu}
 			<div class="flex items-baseline gap-1.5">
-				<span class="text-[11px] text-[var(--color-fg-subtle)]">{m.overview_cpu_load_1m()}</span>
-				<span class="font-mono text-[13px] font-semibold tabular-nums">
+				<span class="text-2xs text-[var(--color-fg-subtle)]">{m.overview_cpu_load_1m()}</span>
+				<span class="text-md font-mono font-semibold tabular-nums">
 					{fmtNumber(cpu.load_avg.one)}
 				</span>
 			</div>
 			<div class="flex items-baseline gap-1.5">
-				<span class="text-[11px] text-[var(--color-fg-subtle)]">{m.overview_cpu_load_5m()}</span>
-				<span class="font-mono text-[13px] font-semibold tabular-nums">
+				<span class="text-2xs text-[var(--color-fg-subtle)]">{m.overview_cpu_load_5m()}</span>
+				<span class="text-md font-mono font-semibold tabular-nums">
 					{fmtNumber(cpu.load_avg.five)}
 				</span>
 			</div>
 			<div class="flex items-baseline gap-1.5">
-				<span class="text-[11px] text-[var(--color-fg-subtle)]">{m.overview_cpu_load_15m()}</span>
-				<span class="font-mono text-[13px] font-semibold tabular-nums">
+				<span class="text-2xs text-[var(--color-fg-subtle)]">{m.overview_cpu_load_15m()}</span>
+				<span class="text-md font-mono font-semibold tabular-nums">
 					{fmtNumber(cpu.load_avg.fifteen)}
 				</span>
 			</div>
 			{#if cpu.steal_percent != null}
 				<div class="flex items-baseline gap-1.5">
-					<span class="text-[11px] text-[var(--color-fg-subtle)]">{m.overview_cpu_steal()}</span>
+					<span class="text-2xs text-[var(--color-fg-subtle)]">{m.overview_cpu_steal()}</span>
 					<span
-						class="font-mono text-[13px] font-semibold tabular-nums {stealColor(cpu.steal_percent)}"
+						class="text-md font-mono font-semibold tabular-nums {stealColor(cpu.steal_percent)}"
 					>
 						{fmtPercent(cpu.steal_percent, 1)}
 					</span>
@@ -71,11 +71,9 @@
 			{/if}
 			{#if cpu.iowait_percent != null}
 				<div class="flex items-baseline gap-1.5">
-					<span class="text-[11px] text-[var(--color-fg-subtle)]">{m.overview_cpu_iowait()}</span>
+					<span class="text-2xs text-[var(--color-fg-subtle)]">{m.overview_cpu_iowait()}</span>
 					<span
-						class="font-mono text-[13px] font-semibold tabular-nums {iowaitColor(
-							cpu.iowait_percent
-						)}"
+						class="text-md font-mono font-semibold tabular-nums {iowaitColor(cpu.iowait_percent)}"
 					>
 						{fmtPercent(cpu.iowait_percent, 1)}
 					</span>
@@ -83,16 +81,16 @@
 			{/if}
 			{#if cpu.user_percent != null}
 				<div class="flex items-baseline gap-1.5">
-					<span class="text-[11px] text-[var(--color-fg-subtle)]">{m.overview_cpu_user()}</span>
-					<span class="font-mono text-[13px] font-semibold tabular-nums">
+					<span class="text-2xs text-[var(--color-fg-subtle)]">{m.overview_cpu_user()}</span>
+					<span class="text-md font-mono font-semibold tabular-nums">
 						{fmtPercent(cpu.user_percent, 1)}
 					</span>
 				</div>
 			{/if}
 			{#if cpu.system_percent != null}
 				<div class="flex items-baseline gap-1.5">
-					<span class="text-[11px] text-[var(--color-fg-subtle)]">{m.overview_cpu_kernel()}</span>
-					<span class="font-mono text-[13px] font-semibold tabular-nums">
+					<span class="text-2xs text-[var(--color-fg-subtle)]">{m.overview_cpu_kernel()}</span>
+					<span class="text-md font-mono font-semibold tabular-nums">
 						{fmtPercent(cpu.system_percent, 1)}
 					</span>
 				</div>
@@ -115,8 +113,8 @@
 						pct
 					)}%, hsl(188 42% 54% / 0.1))"
 				>
-					<span class="font-mono text-[9px] text-[var(--color-fg-subtle)]">{core.core_index}</span>
-					<span class="text-[11px] font-semibold tabular-nums">{Math.round(pct)}%</span>
+					<span class="text-3xs font-mono text-[var(--color-fg-subtle)]">{core.core_index}</span>
+					<span class="text-2xs font-semibold tabular-nums">{Math.round(pct)}%</span>
 				</div>
 			{/each}
 		</div>

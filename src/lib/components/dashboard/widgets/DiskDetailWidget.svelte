@@ -87,7 +87,7 @@
 			{#if dockerDisks.length > 0}
 				<details class="border-t border-[var(--color-border)] pt-3">
 					<summary
-						class="cursor-pointer font-mono text-[10px] tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
+						class="text-3xs cursor-pointer font-mono tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
 					>
 						{m.overview_storage_container_layers({ count: dockerDisks.length })}
 					</summary>
