@@ -20,16 +20,16 @@ export function defaultDashboard(): DashboardLayout {
 	return {
 		version: 1,
 		widgets: [
-			widget(0, 0, 3, 2, { kind: 'live-kpi', source: 'cpu' }),
-			widget(3, 0, 3, 2, { kind: 'live-kpi', source: 'memory' }),
-			widget(6, 0, 3, 2, { kind: 'live-kpi', source: 'disk-io' }),
-			widget(9, 0, 3, 2, { kind: 'live-kpi', source: 'network' }),
-			widget(0, 2, 8, 4, { kind: 'history-chart', resource: 'cpu', range: '1h' }),
-			widget(8, 2, 4, 4, { kind: 'alert-timeline' }),
-			widget(0, 6, 6, 4, { kind: 'history-chart', resource: 'memory', range: '1h' }),
-			widget(6, 6, 6, 4, { kind: 'history-chart', resource: 'network', range: '1h' }),
-			widget(0, 10, 12, 4, { kind: 'history-chart', resource: 'disk', range: '1h' }),
-			widget(0, 14, 12, 2, { kind: 'status-summary', summary: 'host' })
+			widget(0, 0, 12, 2, { kind: 'status-summary', summary: 'host' }),
+			widget(0, 2, 3, 2, { kind: 'live-kpi', source: 'cpu' }),
+			widget(3, 2, 3, 2, { kind: 'live-kpi', source: 'memory' }),
+			widget(6, 2, 3, 2, { kind: 'live-kpi', source: 'disk-io' }),
+			widget(9, 2, 3, 2, { kind: 'live-kpi', source: 'network' }),
+			widget(0, 4, 8, 4, { kind: 'history-chart', resource: 'cpu', range: '1h' }),
+			widget(8, 4, 4, 4, { kind: 'alert-timeline' }),
+			widget(0, 8, 6, 4, { kind: 'history-chart', resource: 'memory', range: '1h' }),
+			widget(6, 8, 6, 4, { kind: 'history-chart', resource: 'network', range: '1h' }),
+			widget(0, 12, 12, 4, { kind: 'history-chart', resource: 'disk', range: '1h' })
 		]
 	};
 }
