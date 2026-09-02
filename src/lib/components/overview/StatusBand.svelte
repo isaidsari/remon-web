@@ -2,7 +2,7 @@
 	import type { Connection } from '$lib/stores/connections.svelte';
 	import type { SummaryResponse } from '$lib/types/api';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
-	import { fmtDuration } from '$lib/utils/format';
+	import HostInfoCard from './HostInfoCard.svelte';
 	import { cn } from '$lib/utils/cn';
 	import { m } from '$lib/paraglide/messages';
 	import type { Component } from 'svelte';
@@ -34,6 +34,8 @@
 
 	$effect(() => {
 		if (!conn?.isAuthenticated) return;
+		// Hardware and hostname for the strip below; cached and idempotent.
+		void conn.fetchSystemInfo();
 		void fetchSummary();
 		const t = setInterval(fetchSummary, 30_000);
 		return () => clearInterval(t);
@@ -96,57 +98,67 @@
 </script>
 
 <!-- The page's thesis: "how is this box right now" answered in one line, with
-     the places you'd go next one tap away. -->
+     the places you'd go next one tap away, and what the box actually is below. -->
 <div
-	class="flex flex-col gap-3 rounded-[var(--radius-card)] bg-[var(--color-surface)] px-4 py-3.5 shadow-[var(--shadow-flat)] md:flex-row md:items-center md:justify-between md:px-5"
+	class="overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-surface)] shadow-[var(--shadow-flat)]"
 >
-	<div class="flex min-w-0 items-center gap-3">
-		{#if summary === null && !failed}
-			<Skeleton class="h-9 w-56" />
-		{:else if summary !== null}
-			<span
-				class="live-pulse relative inline-flex size-2.5 shrink-0 rounded-full"
-				style="background: {TONE_COLOR[tone]}; --pulse-color: {TONE_COLOR[tone]}"
-				aria-hidden="true"
-			></span>
-			<div class="min-w-0">
-				<p
-					class="truncate text-[14.5px] font-semibold tracking-tight"
-					style="color: {TONE_COLOR[tone]}"
+	<div
+		class="flex flex-col gap-3 px-4 py-3.5 md:flex-row md:items-center md:justify-between md:px-5"
+	>
+		<div class="flex min-w-0 items-center gap-3">
+			{#if summary === null && !failed}
+				<Skeleton class="h-9 w-56" />
+			{:else if summary !== null}
+				<span
+					class="live-pulse relative inline-flex size-2.5 shrink-0 rounded-full"
+					style="background: {TONE_COLOR[tone]}; --pulse-color: {TONE_COLOR[tone]}"
+					aria-hidden="true"
+				></span>
+				<div class="min-w-0">
+					<p
+						class="truncate text-[14.5px] font-semibold tracking-tight"
+						style="color: {TONE_COLOR[tone]}"
+					>
+						{verdict}
+					</p>
+					<p class="mt-0.5 truncate font-mono text-[11px] text-[var(--color-fg-subtle)]">
+						remon v{summary.version}
+					</p>
+				</div>
+			{/if}
+		</div>
+
+		<nav class="flex flex-wrap items-center gap-1.5" aria-label={m.overview_quick_aria()}>
+			{#each quickLinks as link (link.href)}
+				{@const Icon = link.icon}
+				<a
+					href={link.href}
+					class={cn(
+						'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium transition-all duration-[var(--dur-fast)]',
+						link.tone === 'danger'
+							? 'bg-[var(--color-danger-bg)] text-[var(--color-danger)] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-danger)_35%,transparent)]'
+							: link.tone === 'accent'
+								? 'bg-[var(--color-accent-bg)] text-[var(--color-accent)] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-accent)_35%,transparent)] hover:bg-[color-mix(in_oklab,var(--color-accent)_22%,transparent)]'
+								: 'bg-[var(--color-surface-2)] text-[var(--color-fg-muted)] shadow-[inset_0_0_0_1px_var(--color-border)] hover:text-[var(--color-fg)] hover:shadow-[inset_0_0_0_1px_var(--color-border-strong)]'
+					)}
 				>
-					{verdict}
-				</p>
-				<p class="mt-0.5 truncate font-mono text-[11px] text-[var(--color-fg-subtle)]">
-					up {fmtDuration(summary.uptime_secs)} · {summary.os.toLowerCase()} · remon v{summary.version}
-				</p>
-			</div>
-		{/if}
+					<Icon class="size-3.5 shrink-0" stroke-width="2" />
+					{link.label}
+					{#if link.badge}
+						<span
+							class="rounded-full bg-[var(--color-danger)] px-1.5 text-[10px] font-semibold text-white tabular-nums"
+						>
+							{link.badge}
+						</span>
+					{/if}
+				</a>
+			{/each}
+		</nav>
 	</div>
 
-	<nav class="flex flex-wrap items-center gap-1.5" aria-label={m.overview_quick_aria()}>
-		{#each quickLinks as link (link.href)}
-			{@const Icon = link.icon}
-			<a
-				href={link.href}
-				class={cn(
-					'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium transition-all duration-[var(--dur-fast)]',
-					link.tone === 'danger'
-						? 'bg-[var(--color-danger-bg)] text-[var(--color-danger)] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-danger)_35%,transparent)]'
-						: link.tone === 'accent'
-							? 'bg-[var(--color-accent-bg)] text-[var(--color-accent)] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-accent)_35%,transparent)] hover:bg-[color-mix(in_oklab,var(--color-accent)_22%,transparent)]'
-							: 'bg-[var(--color-surface-2)] text-[var(--color-fg-muted)] shadow-[inset_0_0_0_1px_var(--color-border)] hover:text-[var(--color-fg)] hover:shadow-[inset_0_0_0_1px_var(--color-border-strong)]'
-				)}
-			>
-				<Icon class="size-3.5 shrink-0" stroke-width="2" />
-				{link.label}
-				{#if link.badge}
-					<span
-						class="rounded-full bg-[var(--color-danger)] px-1.5 text-[10px] font-semibold text-white tabular-nums"
-					>
-						{link.badge}
-					</span>
-				{/if}
-			</a>
-		{/each}
-	</nav>
+	<HostInfoCard
+		info={conn?.systemInfo?.data ?? null}
+		fetchedAt={conn?.systemInfo?.fetchedAt ?? 0}
+		class="border-t border-[var(--color-hairline)]"
+	/>
 </div>

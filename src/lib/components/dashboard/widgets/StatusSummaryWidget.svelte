@@ -3,7 +3,6 @@
 	import Card from '$lib/components/ui/Card.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import type { Connection } from '$lib/stores/connections.svelte';
-	import type { AlertSeverity } from '$lib/types/api';
 	import type { StatusSummaryConfig } from '$lib/types/dashboard';
 	import { m } from '$lib/paraglide/messages';
 	import IconActivity from '~icons/lucide/activity';
@@ -49,39 +48,13 @@
 		}
 	}
 
-	/** `firing: null` until the first poll lands, so the bar keeps its height. */
-	let health = $state<{ firing: number | null; severity: AlertSeverity | null }>({
-		firing: null,
-		severity: null
-	});
-
-	async function fetchHealth() {
-		if (!conn?.isAuthenticated) return;
-		try {
-			const res = await conn.client.alertState();
-			const firing = res.states.filter((s) => s.state === 'firing');
-			health = {
-				firing: firing.length,
-				severity: firing.some((s) => s.severity === 'crit')
-					? 'crit'
-					: firing.length > 0
-						? 'warn'
-						: null
-			};
-		} catch {
-			// keep the last known state on transient failure
-		}
-	}
-
 	$effect(() => {
 		void config.summary;
 		if (!conn?.isAuthenticated) return;
 		if (config.summary === 'host') {
 			void conn.fetchSystemInfo();
 			loading = false;
-			void fetchHealth();
-			const th = setInterval(fetchHealth, 30_000);
-			return () => clearInterval(th);
+			return;
 		}
 		loading = true;
 		void fetchData();
@@ -100,10 +73,9 @@
 
 {#if config.summary === 'host'}
 	<HostInfoCard
-		class="h-full"
+		class="h-full rounded-[var(--radius-card)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_var(--color-border)]"
 		info={conn?.systemInfo?.data ?? null}
 		fetchedAt={conn?.systemInfo?.fetchedAt ?? 0}
-		{health}
 	/>
 {:else}
 	{@const Icon = meta.Icon}
