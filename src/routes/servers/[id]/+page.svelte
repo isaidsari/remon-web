@@ -12,8 +12,9 @@
 	import WidgetEditorModal from '$lib/components/dashboard/WidgetEditorModal.svelte';
 	import StatusBand from '$lib/components/overview/StatusBand.svelte';
 	import { defaultDashboard, normalizeDashboard, widgetId } from '$lib/dashboard/defaults';
+	import { compact, findSlot } from '$lib/dashboard/layout';
 	import { layoutNeedsLive, WIDGET_META } from '$lib/dashboard/registry';
-	import type { DashboardLayout, WidgetConfig } from '$lib/types/dashboard';
+	import type { DashboardLayout, Widget, WidgetConfig } from '$lib/types/dashboard';
 	import { m } from '$lib/paraglide/messages';
 	import IconPencil from '~icons/lucide/pencil';
 	import IconPlus from '~icons/lucide/plus';
@@ -115,7 +116,12 @@
 
 	function removeWidget(wid: string) {
 		if (!draft) return;
-		draft = { ...draft, widgets: draft.widgets.filter((w) => w.id !== wid) };
+		draft = { ...draft, widgets: compact(draft.widgets.filter((w) => w.id !== wid)) };
+	}
+
+	function applyLayout(widgets: Widget[]) {
+		if (!draft) return;
+		draft = { ...draft, widgets };
 	}
 
 	function onEditorSave(config: WidgetConfig) {
@@ -126,13 +132,13 @@
 				widgets: draft.widgets.map((w) => (w.id === editorTarget ? { ...w, config } : w))
 			};
 		} else {
-			const bottom = draft.widgets.reduce((max, w) => Math.max(max, w.y + w.h), 0);
 			const size = WIDGET_META[config.kind]?.defaultSize ?? { w: 4, h: 3 };
+			const slot = findSlot(draft.widgets, size.w, size.h);
 			draft = {
 				...draft,
 				widgets: [
 					...draft.widgets,
-					{ id: widgetId(), x: 0, y: bottom, w: size.w, h: size.h, config }
+					{ id: widgetId(), x: slot.x, y: slot.y, w: size.w, h: size.h, config }
 				]
 			};
 		}
@@ -242,6 +248,7 @@
 				{editing}
 				onConfigure={openConfigure}
 				onRemove={removeWidget}
+				onLayoutChange={applyLayout}
 			/>
 		{/if}
 	</div>
