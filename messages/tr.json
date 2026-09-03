@@ -612,8 +612,6 @@
 	"metrics_iface_group_virtual": "sanal ({count})",
 	"metrics_iface_errors": "hata ↓ {rx} · ↑ {tx}/sn",
 	"metrics_smart_title": "Disk Sağlığı (SMART)",
-	"metrics_smart_unavailable": "smartmontools mevcut değil — SMART izlemeyi etkinleştirmek için sunucuya smartctl kurun.",
-	"metrics_smart_no_devices": "SMART destekli disk bulunamadı.",
 	"metrics_smart_col_device": "Cihaz",
 	"metrics_smart_col_model": "Model",
 	"metrics_smart_col_health": "Sağlık",

@@ -611,8 +611,6 @@
 	"metrics_iface_group_virtual": "virtual ({count})",
 	"metrics_iface_errors": "err ↓ {rx} · ↑ {tx}/s",
 	"metrics_smart_title": "Disk Health (SMART)",
-	"metrics_smart_unavailable": "smartmontools not available — install smartctl on the server to enable SMART monitoring.",
-	"metrics_smart_no_devices": "No SMART-capable devices found.",
 	"metrics_smart_col_device": "Device",
 	"metrics_smart_col_model": "Model",
 	"metrics_smart_col_health": "Health",

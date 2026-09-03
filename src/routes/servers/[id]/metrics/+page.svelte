@@ -565,6 +565,25 @@
 		return `${fmtNumber(v, 0)}/s`;
 	}
 
+	// PSI is Linux-only; without it the card is another full-width sliver.
+	let hasPressure = $derived(
+		[pressureCpu, pressureMem, pressureIo].some((p) => (p?.points.length ?? 0) > 0)
+	);
+
+	let smartIsNvme = $derived(
+		smart?.devices.some((d) => d.percentage_used != null || d.available_spare_percent != null) ??
+			false
+	);
+	let smartIsAta = $derived(smart?.devices.some((d) => d.reallocated_sectors != null) ?? false);
+
+	// cpu, memory, disk usage and network always render; disk I/O and memory
+	// pressure depend on the host. An odd count leaves the last half-width card
+	// alone in its row, so it takes the whole row instead.
+	let halfPanels = $derived(
+		4 + (loading || diskIopsSeries.length > 0 ? 1 : 0) + (memoryPressureSeries.length > 0 ? 1 : 0)
+	);
+	let lastHalfSpansRow = $derived(halfPanels % 2 === 1);
+
 	function inodeColor(p: number): string {
 		if (p >= 90) return 'bg-[var(--color-danger)]';
 		if (p >= 75) return 'bg-[var(--color-warning)]';
@@ -709,28 +728,6 @@
 					{/if}
 				</MetricPanel>
 
-				<PressureCard cpu={pressureCpu} memory={pressureMem} io={pressureIo} />
-
-				{#if memoryPressureSeries.length > 0}
-					<MetricPanel
-						title={m.metrics_card_memory_pressure_title()}
-						subtitle={m.metrics_card_memory_pressure_subtitle()}
-					>
-						<SeriesStrips
-							series={memoryPressureSeries}
-							format={(v) => (v == null ? '—' : fmtNumber(v, 0))}
-							class="mb-3"
-						/>
-						{#key memoryPressureKey}
-							<HistoryChart
-								series={memoryPressureSeries}
-								valueFormatter={(v) => (v == null ? '—' : fmtNumber(v, 0))}
-								group="metrics"
-							/>
-						{/key}
-					</MetricPanel>
-				{/if}
-
 				<MetricPanel title={m.metrics_card_disk_title()}>
 					{#if loading}
 						{@render chartSkeleton()}
@@ -820,164 +817,30 @@
 					</MetricPanel>
 				{/if}
 
-				{#if smart !== null}
-					<MetricPanel title={m.metrics_smart_title()} class="xl:col-span-2" padding="none">
-						{#if !smart.available}
-							<p class="px-4 py-4 text-sm text-[var(--color-fg-muted)]">
-								{m.metrics_smart_unavailable()}
-							</p>
-						{:else if smart.devices.length === 0}
-							<p class="px-4 py-4 text-sm text-[var(--color-fg-subtle)]">
-								{m.metrics_smart_no_devices()}
-							</p>
-						{:else}
-							{@const isNvme = smart.devices.some(
-								(d) => d.percentage_used != null || d.available_spare_percent != null
-							)}
-							{@const isAta = smart.devices.some((d) => d.reallocated_sectors != null)}
-							<div class="overflow-x-auto">
-								<table class="w-full text-sm">
-									<thead
-										class="bg-[var(--color-surface-2)] text-xs tracking-wide text-[var(--color-fg-muted)]"
-									>
-										<tr>
-											<th class="px-3 py-2 text-left font-medium">{m.metrics_smart_col_device()}</th
-											>
-											<th class="px-3 py-2 text-left font-medium">{m.metrics_smart_col_model()}</th>
-											<th class="px-3 py-2 text-left font-medium">{m.metrics_smart_col_health()}</th
-											>
-											<th class="px-3 py-2 text-right font-medium">{m.metrics_smart_col_temp()}</th>
-											<th class="px-3 py-2 text-right font-medium">{m.metrics_smart_col_hours()}</th
-											>
-											{#if isAta}
-												<th class="px-3 py-2 text-right font-medium"
-													>{m.metrics_smart_col_reallocated()}</th
-												>
-												<th class="px-3 py-2 text-right font-medium"
-													>{m.metrics_smart_col_pending()}</th
-												>
-												<th class="px-3 py-2 text-right font-medium"
-													>{m.metrics_smart_col_uncorrectable()}</th
-												>
-											{/if}
-											{#if isNvme}
-												<th class="px-3 py-2 text-right font-medium"
-													>{m.metrics_smart_col_nvme_used()}</th
-												>
-												<th class="px-3 py-2 text-right font-medium"
-													>{m.metrics_smart_col_spare()}</th
-												>
-												<th class="px-3 py-2 text-right font-medium"
-													>{m.metrics_smart_col_media_errors()}</th
-												>
-											{/if}
-										</tr>
-									</thead>
-									<tbody>
-										{#each smart.devices as dev (dev.device)}
-											{@const failed = dev.health_passed === false}
-											<tr
-												class={cn(
-													'border-t border-[var(--color-border)]',
-													failed && 'bg-[var(--color-danger)]/5'
-												)}
-											>
-												<td class="px-3 py-2.5 font-mono text-xs text-[var(--color-fg)]"
-													>{dev.device}</td
-												>
-												<td class="px-3 py-2.5 text-xs text-[var(--color-fg-muted)]"
-													>{dev.model ?? '—'}</td
-												>
-												<td class="px-3 py-2.5">
-													{#if dev.health_passed === true}
-														<span
-															class="text-3xs inline-flex items-center rounded-full bg-[var(--color-success)]/10 px-2 py-0.5 font-mono text-[var(--color-success)]"
-														>
-															{m.metrics_smart_health_passed()}
-														</span>
-													{:else if dev.health_passed === false}
-														<span
-															class="text-3xs inline-flex items-center rounded-full bg-[var(--color-danger)]/10 px-2 py-0.5 font-mono font-medium text-[var(--color-danger)]"
-														>
-															{m.metrics_smart_health_failed()}
-														</span>
-													{:else}
-														<span class="text-2xs font-mono text-[var(--color-fg-subtle)]"
-															>{m.metrics_smart_health_unknown()}</span
-														>
-													{/if}
-												</td>
-												<td class="px-3 py-2.5 text-right font-mono text-xs tabular-nums">
-													{dev.temperature_c != null ? `${dev.temperature_c.toFixed(0)} °C` : '—'}
-												</td>
-												<td
-													class="px-3 py-2.5 text-right font-mono text-xs text-[var(--color-fg-muted)] tabular-nums"
-												>
-													{dev.power_on_hours != null
-														? `${dev.power_on_hours.toLocaleString()} h`
-														: '—'}
-												</td>
-												{#if isAta}
-													<td
-														class={cn(
-															'px-3 py-2.5 text-right font-mono text-xs tabular-nums',
-															(dev.reallocated_sectors ?? 0) > 0 && 'text-[var(--color-warning)]'
-														)}
-													>
-														{dev.reallocated_sectors ?? '—'}
-													</td>
-													<td
-														class={cn(
-															'px-3 py-2.5 text-right font-mono text-xs tabular-nums',
-															(dev.pending_sectors ?? 0) > 0 && 'text-[var(--color-warning)]'
-														)}
-													>
-														{dev.pending_sectors ?? '—'}
-													</td>
-													<td
-														class={cn(
-															'px-3 py-2.5 text-right font-mono text-xs tabular-nums',
-															(dev.uncorrectable_sectors ?? 0) > 0 && 'text-[var(--color-danger)]'
-														)}
-													>
-														{dev.uncorrectable_sectors ?? '—'}
-													</td>
-												{/if}
-												{#if isNvme}
-													<td
-														class={cn(
-															'px-3 py-2.5 text-right font-mono text-xs tabular-nums',
-															(dev.percentage_used ?? 0) >= 90 && 'text-[var(--color-warning)]'
-														)}
-													>
-														{dev.percentage_used != null ? `${dev.percentage_used}%` : '—'}
-													</td>
-													<td
-														class="px-3 py-2.5 text-right font-mono text-xs text-[var(--color-fg-muted)] tabular-nums"
-													>
-														{dev.available_spare_percent != null
-															? `${dev.available_spare_percent}%`
-															: '—'}
-													</td>
-													<td
-														class={cn(
-															'px-3 py-2.5 text-right font-mono text-xs tabular-nums',
-															(dev.media_errors ?? 0) > 0 && 'text-[var(--color-danger)]'
-														)}
-													>
-														{dev.media_errors ?? '—'}
-													</td>
-												{/if}
-											</tr>
-										{/each}
-									</tbody>
-								</table>
-							</div>
-						{/if}
+				{#if memoryPressureSeries.length > 0}
+					<MetricPanel
+						title={m.metrics_card_memory_pressure_title()}
+						subtitle={m.metrics_card_memory_pressure_subtitle()}
+					>
+						<SeriesStrips
+							series={memoryPressureSeries}
+							format={(v) => (v == null ? '—' : fmtNumber(v, 0))}
+							class="mb-3"
+						/>
+						{#key memoryPressureKey}
+							<HistoryChart
+								series={memoryPressureSeries}
+								valueFormatter={(v) => (v == null ? '—' : fmtNumber(v, 0))}
+								group="metrics"
+							/>
+						{/key}
 					</MetricPanel>
 				{/if}
 
-				<MetricPanel title={m.metrics_card_network_title()}>
+				<MetricPanel
+					title={m.metrics_card_network_title()}
+					class={lastHalfSpansRow ? 'xl:col-span-2' : ''}
+				>
 					{#if loading}
 						{@render chartSkeleton()}
 					{:else}
@@ -1032,8 +895,153 @@
 					{/if}
 				</MetricPanel>
 
+				{#if hasPressure}
+					<PressureCard cpu={pressureCpu} memory={pressureMem} io={pressureIo} />
+				{/if}
+
 				{#if components && components.points.length > 0}
 					<ComponentsCard data={components} />
+				{/if}
+
+				<!-- Only when the host actually reports drives: an empty card saying
+				     "unsupported" is a full-width sliver that tells nobody anything. -->
+				{#if smart?.available && smart.devices.length > 0}
+					<MetricPanel title={m.metrics_smart_title()} class="xl:col-span-2" padding="none">
+						<div class="overflow-x-auto">
+							<table class="w-full text-sm">
+								<thead
+									class="bg-[var(--color-surface-2)] text-xs tracking-wide text-[var(--color-fg-muted)]"
+								>
+									<tr>
+										<th class="px-3 py-2 text-left font-medium">{m.metrics_smart_col_device()}</th>
+										<th class="px-3 py-2 text-left font-medium">{m.metrics_smart_col_model()}</th>
+										<th class="px-3 py-2 text-left font-medium">{m.metrics_smart_col_health()}</th>
+										<th class="px-3 py-2 text-right font-medium">{m.metrics_smart_col_temp()}</th>
+										<th class="px-3 py-2 text-right font-medium">{m.metrics_smart_col_hours()}</th>
+										{#if smartIsAta}
+											<th class="px-3 py-2 text-right font-medium"
+												>{m.metrics_smart_col_reallocated()}</th
+											>
+											<th class="px-3 py-2 text-right font-medium"
+												>{m.metrics_smart_col_pending()}</th
+											>
+											<th class="px-3 py-2 text-right font-medium"
+												>{m.metrics_smart_col_uncorrectable()}</th
+											>
+										{/if}
+										{#if smartIsNvme}
+											<th class="px-3 py-2 text-right font-medium"
+												>{m.metrics_smart_col_nvme_used()}</th
+											>
+											<th class="px-3 py-2 text-right font-medium">{m.metrics_smart_col_spare()}</th
+											>
+											<th class="px-3 py-2 text-right font-medium"
+												>{m.metrics_smart_col_media_errors()}</th
+											>
+										{/if}
+									</tr>
+								</thead>
+								<tbody>
+									{#each smart.devices as dev (dev.device)}
+										{@const failed = dev.health_passed === false}
+										<tr
+											class={cn(
+												'border-t border-[var(--color-border)]',
+												failed && 'bg-[var(--color-danger)]/5'
+											)}
+										>
+											<td class="px-3 py-2.5 font-mono text-xs text-[var(--color-fg)]"
+												>{dev.device}</td
+											>
+											<td class="px-3 py-2.5 text-xs text-[var(--color-fg-muted)]"
+												>{dev.model ?? '—'}</td
+											>
+											<td class="px-3 py-2.5">
+												{#if dev.health_passed === true}
+													<span
+														class="text-3xs inline-flex items-center rounded-full bg-[var(--color-success)]/10 px-2 py-0.5 font-mono text-[var(--color-success)]"
+													>
+														{m.metrics_smart_health_passed()}
+													</span>
+												{:else if dev.health_passed === false}
+													<span
+														class="text-3xs inline-flex items-center rounded-full bg-[var(--color-danger)]/10 px-2 py-0.5 font-mono font-medium text-[var(--color-danger)]"
+													>
+														{m.metrics_smart_health_failed()}
+													</span>
+												{:else}
+													<span class="text-2xs font-mono text-[var(--color-fg-subtle)]"
+														>{m.metrics_smart_health_unknown()}</span
+													>
+												{/if}
+											</td>
+											<td class="px-3 py-2.5 text-right font-mono text-xs tabular-nums">
+												{dev.temperature_c != null ? `${dev.temperature_c.toFixed(0)} °C` : '—'}
+											</td>
+											<td
+												class="px-3 py-2.5 text-right font-mono text-xs text-[var(--color-fg-muted)] tabular-nums"
+											>
+												{dev.power_on_hours != null
+													? `${dev.power_on_hours.toLocaleString()} h`
+													: '—'}
+											</td>
+											{#if smartIsAta}
+												<td
+													class={cn(
+														'px-3 py-2.5 text-right font-mono text-xs tabular-nums',
+														(dev.reallocated_sectors ?? 0) > 0 && 'text-[var(--color-warning)]'
+													)}
+												>
+													{dev.reallocated_sectors ?? '—'}
+												</td>
+												<td
+													class={cn(
+														'px-3 py-2.5 text-right font-mono text-xs tabular-nums',
+														(dev.pending_sectors ?? 0) > 0 && 'text-[var(--color-warning)]'
+													)}
+												>
+													{dev.pending_sectors ?? '—'}
+												</td>
+												<td
+													class={cn(
+														'px-3 py-2.5 text-right font-mono text-xs tabular-nums',
+														(dev.uncorrectable_sectors ?? 0) > 0 && 'text-[var(--color-danger)]'
+													)}
+												>
+													{dev.uncorrectable_sectors ?? '—'}
+												</td>
+											{/if}
+											{#if smartIsNvme}
+												<td
+													class={cn(
+														'px-3 py-2.5 text-right font-mono text-xs tabular-nums',
+														(dev.percentage_used ?? 0) >= 90 && 'text-[var(--color-warning)]'
+													)}
+												>
+													{dev.percentage_used != null ? `${dev.percentage_used}%` : '—'}
+												</td>
+												<td
+													class="px-3 py-2.5 text-right font-mono text-xs text-[var(--color-fg-muted)] tabular-nums"
+												>
+													{dev.available_spare_percent != null
+														? `${dev.available_spare_percent}%`
+														: '—'}
+												</td>
+												<td
+													class={cn(
+														'px-3 py-2.5 text-right font-mono text-xs tabular-nums',
+														(dev.media_errors ?? 0) > 0 && 'text-[var(--color-danger)]'
+													)}
+												>
+													{dev.media_errors ?? '—'}
+												</td>
+											{/if}
+										</tr>
+									{/each}
+								</tbody>
+							</table>
+						</div>
+					</MetricPanel>
 				{/if}
 			</div>
 		{/if}
