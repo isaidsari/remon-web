@@ -624,7 +624,6 @@
 							>
 								<tr>
 									<th class="px-3 py-2 text-left font-medium">{m.docker_th_tag()}</th>
-									<th class="px-3 py-2 text-left font-medium">{m.docker_th_id()}</th>
 									<th class="px-3 py-2 text-right font-medium">{m.docker_th_size()}</th>
 									<th class="px-3 py-2 text-left font-medium">{m.docker_th_created()}</th>
 									<th class="px-3 py-2 text-right font-medium">{m.docker_th_actions()}</th>
@@ -635,7 +634,6 @@
 									{#each { length: 5 } as _, i (i)}
 										<tr class="border-t border-[var(--color-border)]">
 											<td class="px-3 py-2"><Skeleton class="h-3 w-40" /></td>
-											<td class="px-3 py-2"><Skeleton class="h-3 w-20" /></td>
 											<td class="px-3 py-2"><Skeleton class="ml-auto h-3 w-16" /></td>
 											<td class="px-3 py-2"><Skeleton class="h-3 w-24" /></td>
 											<td class="px-3 py-2"><Skeleton class="ml-auto h-6 w-8" /></td>
@@ -646,26 +644,39 @@
 										<tr
 											class="border-t border-[var(--color-border)] transition hover:bg-[var(--color-surface-2)]/40"
 										>
-											<td class="px-3 py-2">
-												{#if img.tags.length === 0}
-													<span class="text-[var(--color-fg-subtle)]"
-														>{m.docker_image_no_tag()}</span
-													>
-												{:else}
-													<div class="flex flex-col gap-0.5">
-														{#each img.tags as t (t)}
-															<span class="font-mono text-xs text-[var(--color-fg)]">{t}</span>
-														{/each}
-													</div>
-												{/if}
+											<!-- Tag carries the id beside it, like a container carries its own;
+											     only the tag truncates, so the id never disappears. -->
+											<td class="w-full max-w-0 px-3 py-2">
+												<div class="flex items-baseline gap-2">
+													{#if img.tags.length === 0}
+														<span class="truncate text-xs text-[var(--color-fg-subtle)]">
+															{m.docker_image_no_tag()}
+														</span>
+													{:else}
+														<span
+															class="truncate font-mono text-xs text-[var(--color-fg)]"
+															title={img.tags.join('\n')}
+														>
+															{img.tags[0]}
+														</span>
+													{/if}
+													<span class="text-3xs shrink-0 font-mono text-[var(--color-fg-subtle)]">
+														{shortId(img.id)}
+													</span>
+													{#if img.tags.length > 1}
+														<span
+															class="text-3xs shrink-0 font-mono text-[var(--color-fg-subtle)]"
+															title={img.tags.slice(1).join('\n')}
+														>
+															+{img.tags.length - 1}
+														</span>
+													{/if}
+												</div>
 											</td>
-											<td class="px-3 py-2 font-mono text-xs text-[var(--color-fg-muted)]">
-												{shortId(img.id)}
-											</td>
-											<td class="px-3 py-2 text-right font-mono text-xs">
+											<td class="px-3 py-2 text-right font-mono text-xs whitespace-nowrap">
 												{fmtBytes(img.size)}
 											</td>
-											<td class="px-3 py-2 text-xs text-[var(--color-fg-muted)]">
+											<td class="px-3 py-2 text-xs whitespace-nowrap text-[var(--color-fg-muted)]">
 												{fmtRelative(img.created)}
 											</td>
 											<td class="px-3 py-2">
@@ -685,7 +696,7 @@
 									{#if filteredImages.length === 0}
 										<tr>
 											<td
-												colspan="5"
+												colspan="4"
 												class="px-3 py-8 text-center text-sm text-[var(--color-fg-subtle)]"
 												>{m.docker_empty_images()}</td
 											>
@@ -715,22 +726,23 @@
 						{#each filteredImages as img (img.id)}
 							<Card padding="none" class="overflow-hidden">
 								<div class="flex flex-col gap-2 px-3.5 py-3">
-									{#if img.tags.length === 0}
-										<span class="text-xs text-[var(--color-fg-subtle)]">
-											{m.docker_image_no_tag()}
-										</span>
-									{:else}
-										<div class="flex flex-col gap-0.5">
+									<div class="flex flex-col gap-0.5">
+										{#if img.tags.length === 0}
+											<span class="text-xs text-[var(--color-fg-subtle)]">
+												{m.docker_image_no_tag()}
+											</span>
+										{:else}
 											{#each img.tags as t (t)}
 												<span class="font-mono text-xs break-all text-[var(--color-fg)]">
 													{t}
 												</span>
 											{/each}
-										</div>
-									{/if}
+										{/if}
+										<span class="text-3xs font-mono text-[var(--color-fg-subtle)]">
+											{shortId(img.id)}
+										</span>
+									</div>
 									<dl class="text-2xs grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-										<dt class="text-[var(--color-fg-subtle)]">{m.docker_th_id()}</dt>
-										<dd class="font-mono text-[var(--color-fg-muted)]">{shortId(img.id)}</dd>
 										<dt class="text-[var(--color-fg-subtle)]">{m.docker_th_size()}</dt>
 										<dd class="font-mono text-[var(--color-fg-muted)]">{fmtBytes(img.size)}</dd>
 										<dt class="text-[var(--color-fg-subtle)]">{m.docker_th_created()}</dt>

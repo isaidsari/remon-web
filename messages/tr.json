@@ -909,7 +909,6 @@
 	"docker_th_status": "ayrıntı",
 	"docker_th_actions": "işlemler",
 	"docker_th_tag": "etiket",
-	"docker_th_id": "id",
 	"docker_th_size": "boyut",
 	"docker_th_created": "oluşturuldu",
 	"docker_image_no_tag": "<yok>",

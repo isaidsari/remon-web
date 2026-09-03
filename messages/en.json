@@ -908,7 +908,6 @@
 	"docker_th_status": "status",
 	"docker_th_actions": "actions",
 	"docker_th_tag": "tag",
-	"docker_th_id": "id",
 	"docker_th_size": "size",
 	"docker_th_created": "created",
 	"docker_image_no_tag": "<none>",

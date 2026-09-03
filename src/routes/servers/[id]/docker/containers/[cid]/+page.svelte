@@ -15,7 +15,7 @@
 	import { confirm } from '$lib/stores/confirm.svelte';
 	import IconChevronLeft from '~icons/lucide/chevron-left';
 	import { ApiError } from '$lib/api/error';
-	import { shortId } from '$lib/utils/format';
+	import { fmtRelative, shortId } from '$lib/utils/format';
 	import type { ContainerInspectInfo } from '$lib/types/api';
 	import { m } from '$lib/paraglide/messages';
 
@@ -83,6 +83,24 @@
 	});
 
 	let displayName = $derived(inspect?.name ?? shortId(cid));
+
+	/** Inspect returns RFC3339 with nanoseconds. Everywhere else in the app a
+	 *  timestamp reads as "3 days ago" with the exact time on hover. */
+	function stamp(iso: string | null | undefined): { label: string; title: string } | null {
+		if (!iso) return null;
+		const ms = Date.parse(iso);
+		if (!Number.isFinite(ms)) return null;
+		return { label: fmtRelative(Math.floor(ms / 1000)), title: new Date(ms).toLocaleString() };
+	}
+
+	let startedStamp = $derived(stamp(inspect?.state?.started_at));
+	/** Docker's zero time for a container that has never exited. */
+	let finishedStamp = $derived(
+		inspect?.state?.finished_at === '0001-01-01T00:00:00Z'
+			? null
+			: stamp(inspect?.state?.finished_at)
+	);
+	let createdStamp = $derived(stamp(inspect?.created));
 	let stateStr = $derived(inspect?.state?.status ?? 'unknown');
 
 	async function withAction<T>(key: string, msg: string, fn: () => Promise<T>) {
@@ -255,27 +273,27 @@
 		{#if inspect}
 			<div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
 				<Card>
-					<p class="mb-4 text-xs tracking-wide text-[var(--color-fg-muted)]">
+					<h2 class="mb-3 text-sm font-medium text-[var(--color-fg)]">
 						{m.docker_container_section_state()}
-					</p>
+					</h2>
 					<dl class="grid gap-2.5 text-sm">
 						<div class="flex items-baseline justify-between gap-3">
 							<dt class="text-[var(--color-fg-muted)]">{m.docker_container_field_status()}</dt>
 							<dd class="text-[var(--color-fg)]">{inspect.state?.status ?? '—'}</dd>
 						</div>
-						{#if inspect.state?.started_at}
+						{#if startedStamp}
 							<div class="flex items-baseline justify-between gap-3">
 								<dt class="text-[var(--color-fg-muted)]">{m.docker_container_field_started()}</dt>
-								<dd class="font-mono text-xs text-[var(--color-fg)]">
-									{inspect.state.started_at}
+								<dd class="text-xs text-[var(--color-fg)]" title={startedStamp.title}>
+									{startedStamp.label}
 								</dd>
 							</div>
 						{/if}
-						{#if inspect.state?.finished_at && inspect.state.finished_at !== '0001-01-01T00:00:00Z'}
+						{#if finishedStamp}
 							<div class="flex items-baseline justify-between gap-3">
 								<dt class="text-[var(--color-fg-muted)]">{m.docker_container_field_finished()}</dt>
-								<dd class="font-mono text-xs text-[var(--color-fg)]">
-									{inspect.state.finished_at}
+								<dd class="text-xs text-[var(--color-fg)]" title={finishedStamp.title}>
+									{finishedStamp.label}
 								</dd>
 							</div>
 						{/if}
@@ -305,19 +323,21 @@
 								<dd class="font-mono">{inspect.restart_count}</dd>
 							</div>
 						{/if}
-						{#if inspect.created}
+						{#if createdStamp}
 							<div class="flex items-baseline justify-between gap-3">
 								<dt class="text-[var(--color-fg-muted)]">{m.docker_container_field_created()}</dt>
-								<dd class="text-xs text-[var(--color-fg)]">{inspect.created}</dd>
+								<dd class="text-xs text-[var(--color-fg)]" title={createdStamp.title}>
+									{createdStamp.label}
+								</dd>
 							</div>
 						{/if}
 					</dl>
 				</Card>
 
 				<Card>
-					<p class="mb-4 text-xs tracking-wide text-[var(--color-fg-muted)]">
+					<h2 class="mb-3 text-sm font-medium text-[var(--color-fg)]">
 						{m.docker_container_section_ports()}
-					</p>
+					</h2>
 					{#if inspect.ports.length === 0}
 						<p class="text-sm text-[var(--color-fg-subtle)]">
 							{m.docker_container_ports_empty()}
@@ -345,9 +365,9 @@
 				</Card>
 
 				<Card>
-					<p class="mb-4 text-xs tracking-wide text-[var(--color-fg-muted)]">
+					<h2 class="mb-3 text-sm font-medium text-[var(--color-fg)]">
 						{m.docker_container_section_networks()}
-					</p>
+					</h2>
 					{#if inspect.networks.length === 0}
 						<p class="text-sm text-[var(--color-fg-subtle)]">
 							{m.docker_container_networks_empty()}
