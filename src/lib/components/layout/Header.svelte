@@ -25,7 +25,7 @@
 			case 'heartbeats':
 				return m.section_heartbeats();
 			case 'docker':
-				return m.section_docker();
+				return m.section_containers();
 			case 'settings':
 				return m.section_settings();
 			case 'notifications':

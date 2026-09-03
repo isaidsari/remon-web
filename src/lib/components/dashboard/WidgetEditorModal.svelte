@@ -252,7 +252,7 @@
 				>
 					<option value="host">{m.dashboard_summary_host()}</option>
 					<option value="services">{m.section_services()}</option>
-					<option value="containers">{m.section_docker()}</option>
+					<option value="containers">{m.section_containers()}</option>
 					<option value="alerts">{m.section_alerts()}</option>
 				</select>
 			</Field>

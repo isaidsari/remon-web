@@ -30,7 +30,7 @@
 	"section_metrics": "metrikler",
 	"section_services": "servisler",
 	"section_probes": "problar",
-	"section_docker": "docker",
+	"section_containers": "konteynerler",
 	"section_settings": "uygulama ayarları",
 	"dashboard_widget_live_kpi": "canlı metrik",
 	"dashboard_widget_history_chart": "geçmiş grafiği",

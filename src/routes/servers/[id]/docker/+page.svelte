@@ -48,6 +48,9 @@
 	let status = $state<DockerStatusResponse | null>(null);
 	/** Built without the feature — distinct from a daemon answering `available: false`. */
 	let dockerUnsupported = $state(false);
+
+	/** "podman 5.2", or just the version when the daemon does not name itself. */
+	let engineLabel = $derived([status?.backend, status?.version].filter(Boolean).join(' ') || null);
 	let containers = $state<ContainerInfo[]>([]);
 	let images = $state<ImageInfo[]>([]);
 	let busy = $state(false);
@@ -395,22 +398,25 @@
 	<div class="px-4 py-6 md:px-8 md:py-8">
 		<header class="mb-6 flex items-end justify-between gap-4">
 			<div>
-				<h1 class="text-2xl font-semibold tracking-tight">Docker</h1>
+				<h1 class="text-2xl font-semibold tracking-tight">{m.section_containers()}</h1>
 				<p class="mt-1.5 text-xs text-[var(--color-fg-muted)]">
 					{#if status?.available}
-						{#if status.version}<span class="text-[var(--color-fg)]">{status.version}</span>{/if}
+						<!-- The daemon may be podman; say which one rather than assuming docker. -->
+						{#if engineLabel}<span class="text-[var(--color-fg)]">{engineLabel}</span>{/if}
 						{#if status.os}<span class="text-[var(--color-fg-subtle)]">
 								· {status.os}/{status.arch}</span
 							>{/if}
 					{:else}
 						<span class="text-[var(--color-warning)]">{m.docker_daemon_unavailable()}</span>
 					{/if}
-					{#if lastFetched}<span class="text-[var(--color-fg-subtle)]">
-							· {m.docker_updated_at({ time: new Date(lastFetched).toLocaleTimeString() })}</span
-						>{/if}
 				</p>
 			</div>
 			<div class="flex items-center gap-2">
+				{#if lastFetched}
+					<span class="text-2xs mr-1 text-[var(--color-fg-subtle)] tabular-nums">
+						{m.docker_updated_at({ time: new Date(lastFetched).toLocaleTimeString() })}
+					</span>
+				{/if}
 				<AutoRefreshSelect
 					value={autoRefresh ? '5s' : 'off'}
 					options={[
@@ -476,22 +482,22 @@
 								class="sticky top-0 z-10 bg-[var(--color-surface-2)] text-xs tracking-wide text-[var(--color-fg-muted)]"
 							>
 								<tr>
-									<th class="px-3 py-2.5 text-left font-medium">{m.docker_th_name()}</th>
-									<th class="px-3 py-2.5 text-left font-medium">{m.docker_th_image()}</th>
-									<th class="px-3 py-2.5 text-left font-medium">{m.docker_th_state()}</th>
-									<th class="px-3 py-2.5 text-left font-medium">{m.docker_th_status()}</th>
-									<th class="px-3 py-2.5 text-right font-medium">{m.docker_th_actions()}</th>
+									<th class="px-3 py-2 text-left font-medium">{m.docker_th_name()}</th>
+									<th class="px-3 py-2 text-left font-medium">{m.docker_th_image()}</th>
+									<th class="px-3 py-2 text-left font-medium">{m.docker_th_state()}</th>
+									<th class="px-3 py-2 text-left font-medium">{m.docker_th_status()}</th>
+									<th class="px-3 py-2 text-right font-medium">{m.docker_th_actions()}</th>
 								</tr>
 							</thead>
 							<tbody>
 								{#if busy && containers.length === 0}
 									{#each { length: 6 } as _, i (i)}
 										<tr class="border-t border-[var(--color-border)]">
-											<td class="px-3 py-2.5"><Skeleton class="h-3 w-32" /></td>
-											<td class="px-3 py-2.5"><Skeleton class="h-3 w-44" /></td>
-											<td class="px-3 py-2.5"><Skeleton class="h-5 w-16" rounded="full" /></td>
-											<td class="px-3 py-2.5"><Skeleton class="h-3 w-24" /></td>
-											<td class="px-3 py-2.5"><Skeleton class="ml-auto h-6 w-16" /></td>
+											<td class="px-3 py-2"><Skeleton class="h-3 w-32" /></td>
+											<td class="px-3 py-2"><Skeleton class="h-3 w-44" /></td>
+											<td class="px-3 py-2"><Skeleton class="h-5 w-16" rounded="full" /></td>
+											<td class="px-3 py-2"><Skeleton class="h-3 w-24" /></td>
+											<td class="px-3 py-2"><Skeleton class="ml-auto h-6 w-16" /></td>
 										</tr>
 									{/each}
 								{:else}
@@ -503,29 +509,29 @@
 											class="cursor-pointer border-t border-[var(--color-border)] transition hover:bg-[var(--color-surface-2)]/40"
 											onclick={() => openContainer(c)}
 										>
-											<td class="px-3 py-2.5">
-												<div class="flex flex-col">
-													<span class="font-medium text-[var(--color-fg)]">{name(c)}</span>
-													<span class="text-3xs font-mono text-[var(--color-fg-subtle)]"
-														>{shortId(c.id)}</span
-													>
-												</div>
+											<td class="px-3 py-2 whitespace-nowrap">
+												<span class="font-medium text-[var(--color-fg)]">{name(c)}</span>
+												<span class="text-3xs ml-2 font-mono text-[var(--color-fg-subtle)]"
+													>{shortId(c.id)}</span
+												>
 											</td>
 											<!-- w-full + max-w-0: registry refs run long (host/org/proj:sha-…) and
 											     in auto table layout the cell's max-content sets the column
 											     width, pushing state/status/actions off-screen. -->
 											<td
-												class="w-full max-w-0 truncate px-3 py-2.5 font-mono text-xs text-[var(--color-fg-muted)]"
+												class="w-full max-w-0 truncate px-3 py-2 font-mono text-xs text-[var(--color-fg-muted)]"
 												title={c.image}>{c.image}</td
 											>
-											<td class="px-3 py-2.5"><StateBadge state={c.state} /></td>
-											<td class="px-3 py-2.5 text-xs text-[var(--color-fg-muted)]">
-												<span title={c.status}>{c.status}</span>
-												<span class="text-3xs block text-[var(--color-fg-subtle)]"
+											<td class="px-3 py-2"><StateBadge state={c.state} /></td>
+											<!-- nowrap so this column claims the width it needs; the image cell
+											     above absorbs whatever slack is left. -->
+											<td class="px-3 py-2 text-xs whitespace-nowrap text-[var(--color-fg-muted)]">
+												{c.status}
+												<span class="text-3xs ml-1.5 text-[var(--color-fg-subtle)]"
 													>{m.docker_created_at({ time: fmtRelative(c.created) })}</span
 												>
 											</td>
-											<td class="px-3 py-2.5">
+											<td class="px-3 py-2">
 												<div
 													class="flex items-center justify-end gap-1.5"
 													onclickcapture={(e) => e.stopPropagation()}
@@ -617,22 +623,22 @@
 								class="sticky top-0 z-10 bg-[var(--color-surface-2)] text-xs tracking-wide text-[var(--color-fg-muted)]"
 							>
 								<tr>
-									<th class="px-3 py-2.5 text-left font-medium">{m.docker_th_tag()}</th>
-									<th class="px-3 py-2.5 text-left font-medium">{m.docker_th_id()}</th>
-									<th class="px-3 py-2.5 text-right font-medium">{m.docker_th_size()}</th>
-									<th class="px-3 py-2.5 text-left font-medium">{m.docker_th_created()}</th>
-									<th class="px-3 py-2.5 text-right font-medium">{m.docker_th_actions()}</th>
+									<th class="px-3 py-2 text-left font-medium">{m.docker_th_tag()}</th>
+									<th class="px-3 py-2 text-left font-medium">{m.docker_th_id()}</th>
+									<th class="px-3 py-2 text-right font-medium">{m.docker_th_size()}</th>
+									<th class="px-3 py-2 text-left font-medium">{m.docker_th_created()}</th>
+									<th class="px-3 py-2 text-right font-medium">{m.docker_th_actions()}</th>
 								</tr>
 							</thead>
 							<tbody>
 								{#if busy && images.length === 0}
 									{#each { length: 5 } as _, i (i)}
 										<tr class="border-t border-[var(--color-border)]">
-											<td class="px-3 py-2.5"><Skeleton class="h-3 w-40" /></td>
-											<td class="px-3 py-2.5"><Skeleton class="h-3 w-20" /></td>
-											<td class="px-3 py-2.5"><Skeleton class="ml-auto h-3 w-16" /></td>
-											<td class="px-3 py-2.5"><Skeleton class="h-3 w-24" /></td>
-											<td class="px-3 py-2.5"><Skeleton class="ml-auto h-6 w-8" /></td>
+											<td class="px-3 py-2"><Skeleton class="h-3 w-40" /></td>
+											<td class="px-3 py-2"><Skeleton class="h-3 w-20" /></td>
+											<td class="px-3 py-2"><Skeleton class="ml-auto h-3 w-16" /></td>
+											<td class="px-3 py-2"><Skeleton class="h-3 w-24" /></td>
+											<td class="px-3 py-2"><Skeleton class="ml-auto h-6 w-8" /></td>
 										</tr>
 									{/each}
 								{:else}
@@ -640,7 +646,7 @@
 										<tr
 											class="border-t border-[var(--color-border)] transition hover:bg-[var(--color-surface-2)]/40"
 										>
-											<td class="px-3 py-2.5">
+											<td class="px-3 py-2">
 												{#if img.tags.length === 0}
 													<span class="text-[var(--color-fg-subtle)]"
 														>{m.docker_image_no_tag()}</span
@@ -653,16 +659,16 @@
 													</div>
 												{/if}
 											</td>
-											<td class="px-3 py-2.5 font-mono text-xs text-[var(--color-fg-muted)]">
+											<td class="px-3 py-2 font-mono text-xs text-[var(--color-fg-muted)]">
 												{shortId(img.id)}
 											</td>
-											<td class="px-3 py-2.5 text-right font-mono text-xs">
+											<td class="px-3 py-2 text-right font-mono text-xs">
 												{fmtBytes(img.size)}
 											</td>
-											<td class="px-3 py-2.5 text-xs text-[var(--color-fg-muted)]">
+											<td class="px-3 py-2 text-xs text-[var(--color-fg-muted)]">
 												{fmtRelative(img.created)}
 											</td>
-											<td class="px-3 py-2.5">
+											<td class="px-3 py-2">
 												<div class="flex items-center justify-end gap-1.5">
 													{@render iconBtn(
 														m.docker_action_delete(),

@@ -86,7 +86,7 @@
 			tone: (summary?.alerts_firing ?? 0) > 0 ? 'danger' : undefined
 		},
 		{ href: `${base}/services`, label: m.section_services(), icon: IconActivity },
-		{ href: `${base}/docker`, label: m.section_docker(), icon: IconContainer },
+		{ href: `${base}/docker`, label: m.section_containers(), icon: IconContainer },
 		{ href: `${base}/processes`, label: m.section_processes(), icon: IconList },
 		{
 			href: `${base}/assistant`,

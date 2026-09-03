@@ -66,7 +66,7 @@
 		config.summary === 'services'
 			? { label: m.section_services(), Icon: IconActivity, accent: 'var(--color-success)' }
 			: config.summary === 'containers'
-				? { label: m.section_docker(), Icon: IconContainer, accent: 'var(--color-info)' }
+				? { label: m.section_containers(), Icon: IconContainer, accent: 'var(--color-info)' }
 				: { label: m.section_alerts(), Icon: IconTriangleAlert, accent: 'var(--color-warning)' }
 	);
 </script>

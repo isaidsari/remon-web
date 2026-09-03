@@ -72,7 +72,7 @@
 		{ href: '/services', label: m.section_services(), icon: IconActivity, enabled: true },
 		{ href: '/probes', label: m.section_probes(), icon: IconStethoscope, enabled: true },
 		{ href: '/heartbeats', label: m.section_heartbeats(), icon: IconHeartPulse, enabled: true },
-		{ href: '/docker', label: m.section_docker(), icon: IconContainer, enabled: true },
+		{ href: '/docker', label: m.section_containers(), icon: IconContainer, enabled: true },
 		{ href: '/alerts', label: m.section_alerts(), icon: IconTriangleAlert, enabled: true },
 		{ href: '/actions', label: m.section_actions(), icon: IconZap, enabled: true },
 		{ href: '/events', label: m.section_events(), icon: IconScrollText, enabled: true },

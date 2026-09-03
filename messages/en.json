@@ -30,7 +30,7 @@
 	"section_metrics": "metrics",
 	"section_services": "services",
 	"section_probes": "probes",
-	"section_docker": "docker",
+	"section_containers": "containers",
 	"section_settings": "app settings",
 	"dashboard_widget_live_kpi": "live metric",
 	"dashboard_widget_history_chart": "history chart",
