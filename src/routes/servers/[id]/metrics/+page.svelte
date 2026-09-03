@@ -631,7 +631,9 @@
 				</p>
 			</Card>
 		{:else}
-			<div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+			<!-- items-start: cards differ a lot in height, and stretching the short one
+			     to its neighbour's row just draws an empty box under its content. -->
+			<div class="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
 				<Card>
 					<div class="mb-3 flex items-center justify-between gap-3">
 						<h2 class="text-sm font-medium text-[var(--color-fg)]">
