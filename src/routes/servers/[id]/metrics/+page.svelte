@@ -14,6 +14,9 @@
 	import { RANGE_SECONDS, type RangeKey } from '$lib/components/charts/range';
 	import PressureCard from '$lib/components/metrics/PressureCard.svelte';
 	import ComponentsCard from '$lib/components/metrics/ComponentsCard.svelte';
+	import MetricPanel from '$lib/components/metrics/MetricPanel.svelte';
+	import PanelSection from '$lib/components/metrics/PanelSection.svelte';
+	import SeriesStrips from '$lib/components/metrics/SeriesStrips.svelte';
 	import { profiles } from '$lib/stores/profiles.svelte';
 	import { connections } from '$lib/stores/connections.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
@@ -634,12 +637,9 @@
 			<!-- items-start: cards differ a lot in height, and stretching the short one
 			     to its neighbour's row just draws an empty box under its content. -->
 			<div class="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
-				<Card>
-					<div class="mb-3 flex items-center justify-between gap-3">
-						<h2 class="text-sm font-medium text-[var(--color-fg)]">
-							{m.metrics_card_cpu_title()}
-						</h2>
-					</div>
+				{@render groupHeading(m.metrics_group_compute())}
+
+				<MetricPanel title={m.metrics_card_cpu_title()}>
 					{#if loading}
 						{@render chartSkeleton()}
 					{:else}
@@ -683,14 +683,13 @@
 							</div>
 						{/if}
 					{/if}
-				</Card>
+				</MetricPanel>
 
-				<Card>
-					<div class="mb-3 flex items-center justify-between gap-3">
-						<h2 class="text-sm font-medium text-[var(--color-fg)]">
-							{m.metrics_card_memory_title()}
-						</h2>
-					</div>
+				<PressureCard cpu={pressureCpu} memory={pressureMem} io={pressureIo} />
+
+				{@render groupHeading(m.metrics_group_memory())}
+
+				<MetricPanel title={m.metrics_card_memory_title()}>
 					{#if loading}
 						{@render chartSkeleton()}
 					{:else}
@@ -713,17 +712,37 @@
 							/>
 						{/key}
 					{/if}
-				</Card>
+				</MetricPanel>
 
-				<Card>
-					<div class="mb-3 flex items-center justify-between gap-3">
-						<h2 class="text-sm font-medium text-[var(--color-fg)]">
-							{m.metrics_card_disk_title()}
-						</h2>
-					</div>
+				{#if memoryPressureSeries.length > 0}
+					<MetricPanel
+						title={m.metrics_card_memory_pressure_title()}
+						subtitle={m.metrics_card_memory_pressure_subtitle()}
+					>
+						<SeriesStrips
+							series={memoryPressureSeries}
+							format={(v) => (v == null ? '—' : fmtNumber(v, 0))}
+							class="mb-3"
+						/>
+						{#key memoryPressureKey}
+							<HistoryChart
+								series={memoryPressureSeries}
+								valueFormatter={(v) => (v == null ? '—' : fmtNumber(v, 0))}
+								group="metrics"
+							/>
+						{/key}
+					</MetricPanel>
+				{/if}
+
+				{@render groupHeading(m.metrics_group_storage())}
+
+				<MetricPanel title={m.metrics_card_disk_title()}>
 					{#if loading}
 						{@render chartSkeleton()}
 					{:else}
+						{#if diskSeries.length > 0}
+							<SeriesStrips series={diskSeries} format={fmtPct} class="mb-3" />
+						{/if}
 						{#key diskKey}
 							<HistoryChart
 								series={diskSeries}
@@ -734,76 +753,8 @@
 								annotations={showAnnotations ? chartAnnotations : []}
 							/>
 						{/key}
-
-						{#if diskIopsSeries.length > 0}
-							<div class="mt-4 border-t border-[var(--color-border)] pt-4">
-								<p class="text-3xs mb-2 tracking-wide text-[var(--color-fg-muted)]">
-									{m.metrics_disk_iops_label()}
-								</p>
-								<div class="mb-3 grid grid-cols-1 gap-y-2 sm:grid-cols-2">
-									{#each diskIopsSeries as s (s.name)}
-										<div>
-											<p class="text-3xs mb-0.5 tracking-[0.08em]" style="color: {s.color}">
-												{s.name}
-											</p>
-											<StatStrip
-												data={s.data}
-												format={(v) => (v == null ? '—' : `${fmtNumber(v, 0)}/s`)}
-											/>
-										</div>
-									{/each}
-								</div>
-								{#key diskIopsKey}
-									<HistoryChart
-										series={diskIopsSeries}
-										valueFormatter={(v) => (v == null ? '—' : `${fmtNumber(v, 0)}/s`)}
-										group="metrics"
-									/>
-								{/key}
-								{#if ioUtilRows.length > 0}
-									<div class="mt-3 border-t border-[var(--color-border)] pt-3">
-										<p class="text-3xs mb-2 tracking-wide text-[var(--color-fg-muted)]">
-											{m.metrics_disk_util_label()}
-										</p>
-										<ul class="flex flex-col gap-1.5">
-											{#each ioUtilRows as r (r.mount)}
-												<li
-													class="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-xs"
-												>
-													<span
-														class="truncate font-mono text-[var(--color-fg-muted)]"
-														title={r.mount}
-													>
-														{shortenMount(r.mount)}
-													</span>
-													<div
-														class="flex items-center gap-3 text-[var(--color-fg-subtle)] tabular-nums"
-													>
-														<span class="text-[rgb(251,191,36)]">↓ {fmtRate(r.readIops)}</span>
-														<span class="text-[rgb(244,114,182)]">↑ {fmtRate(r.writeIops)}</span>
-														<span
-															class={r.util >= 80
-																? 'text-[var(--color-danger)]'
-																: r.util >= 50
-																	? 'text-[var(--color-warning)]'
-																	: ''}
-														>
-															{fmtPct(r.util)}
-														</span>
-													</div>
-												</li>
-											{/each}
-										</ul>
-									</div>
-								{/if}
-							</div>
-						{/if}
-
 						{#if inodeRows.length > 0}
-							<div class="mt-4 border-t border-[var(--color-border)] pt-4">
-								<p class="text-3xs mb-2 tracking-wide text-[var(--color-fg-muted)]">
-									{m.metrics_inode_usage_label()}
-								</p>
+							<PanelSection label={m.metrics_inode_usage_label()}>
 								<ul class="flex flex-col gap-2">
 									{#each mainInodeRows as r (r.mount)}
 										{@render inodeRow(r)}
@@ -814,9 +765,7 @@
 										<summary
 											class="text-3xs cursor-pointer font-mono tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
 										>
-											{m.metrics_container_layers_label({
-												count: dockerInodeRows.length
-											})}
+											{m.metrics_container_layers_label({ count: dockerInodeRows.length })}
 										</summary>
 										<ul class="mt-2 flex flex-col gap-2">
 											{#each dockerInodeRows as r (r.mount)}
@@ -825,104 +774,59 @@
 										</ul>
 									</details>
 								{/if}
-							</div>
+							</PanelSection>
 						{/if}
 					{/if}
-				</Card>
+				</MetricPanel>
 
-				<Card>
-					<div class="mb-3 flex items-center justify-between gap-3">
-						<h2 class="text-sm font-medium text-[var(--color-fg)]">
-							{m.metrics_card_network_title()}
-						</h2>
-					</div>
-					{#if loading}
-						{@render chartSkeleton()}
-					{:else}
-						{#if networkSeries.length > 0}
-							<div class="mb-3 grid grid-cols-1 gap-y-2 sm:grid-cols-2">
-								{#each networkSeries as s (s.name)}
-									<div>
-										<p
-											class="text-3xs mb-0.5 tracking-[0.08em] text-[var(--color-fg-subtle)]"
-											style="color: {s.color}"
-										>
-											{s.name}
-										</p>
-										<StatStrip data={s.data} format={fmtBpsCell} />
-									</div>
-								{/each}
-							</div>
+				{#if loading || diskIopsSeries.length > 0}
+					<MetricPanel title={m.metrics_disk_iops_label()}>
+						{#if loading}
+							{@render chartSkeleton()}
+						{:else}
+							<SeriesStrips series={diskIopsSeries} format={fmtRate} class="mb-3" />
+							{#key diskIopsKey}
+								<HistoryChart series={diskIopsSeries} valueFormatter={fmtRate} group="metrics" />
+							{/key}
+							{#if ioUtilRows.length > 0}
+								<PanelSection label={m.metrics_disk_util_label()}>
+									<ul class="flex flex-col gap-1.5">
+										{#each ioUtilRows as r (r.mount)}
+											<li
+												class="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-xs"
+											>
+												<span
+													class="truncate font-mono text-[var(--color-fg-muted)]"
+													title={r.mount}
+												>
+													{shortenMount(r.mount)}
+												</span>
+												<div
+													class="flex items-center gap-3 text-[var(--color-fg-subtle)] tabular-nums"
+												>
+													<span class="text-[rgb(251,191,36)]">↓ {fmtRate(r.readIops)}</span>
+													<span class="text-[rgb(244,114,182)]">↑ {fmtRate(r.writeIops)}</span>
+													<span
+														class={r.util >= 80
+															? 'text-[var(--color-danger)]'
+															: r.util >= 50
+																? 'text-[var(--color-warning)]'
+																: ''}
+													>
+														{fmtPct(r.util)}
+													</span>
+												</div>
+											</li>
+										{/each}
+									</ul>
+								</PanelSection>
+							{/if}
 						{/if}
-						{#key networkKey}
-							<HistoryChart
-								series={networkSeries}
-								valueFormatter={fmtBpsCell}
-								group="metrics"
-								annotations={showAnnotations ? chartAnnotations : []}
-							/>
-						{/key}
-
-						{#if netErrorRows.length > 0}
-							<div class="mt-4 border-t border-[var(--color-border)] pt-4">
-								<p class="text-3xs mb-2 tracking-wide text-[var(--color-fg-muted)]">
-									{m.metrics_per_interface_latest_label()}
-								</p>
-								<ul class="flex flex-col gap-1.5">
-									{#each physicalNetRows as r (r.iface)}
-										{@render ifaceRow(r)}
-									{/each}
-								</ul>
-								{#if containerNetRows.length > 0}
-									<details class="mt-3 border-t border-[var(--color-border)] pt-3">
-										<summary
-											class="text-3xs cursor-pointer font-mono tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
-										>
-											{m.metrics_iface_group_container({
-												count: containerNetRows.length
-											})}
-										</summary>
-										<ul class="mt-2 flex flex-col gap-1.5">
-											{#each containerNetRows as r (r.iface)}
-												{@render ifaceRow(r)}
-											{/each}
-										</ul>
-									</details>
-								{/if}
-								{#if virtualNetRows.length > 0}
-									<details class="mt-2">
-										<summary
-											class="text-3xs cursor-pointer font-mono tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
-										>
-											{m.metrics_iface_group_virtual({
-												count: virtualNetRows.length
-											})}
-										</summary>
-										<ul class="mt-2 flex flex-col gap-1.5">
-											{#each virtualNetRows as r (r.iface)}
-												{@render ifaceRow(r)}
-											{/each}
-										</ul>
-									</details>
-								{/if}
-							</div>
-						{/if}
-					{/if}
-				</Card>
-
-				<PressureCard cpu={pressureCpu} memory={pressureMem} io={pressureIo} />
-
-				{#if components && components.points.length > 0}
-					<ComponentsCard data={components} />
+					</MetricPanel>
 				{/if}
 
 				{#if smart !== null}
-					<Card class="xl:col-span-2" padding="none">
-						<div class="border-b border-[var(--color-border)] px-4 py-3">
-							<h2 class="text-sm font-medium text-[var(--color-fg)]">
-								{m.metrics_smart_title()}
-							</h2>
-						</div>
+					<MetricPanel title={m.metrics_smart_title()} class="xl:col-span-2" padding="none">
 						{#if !smart.available}
 							<p class="px-4 py-4 text-sm text-[var(--color-fg-muted)]">
 								{m.metrics_smart_unavailable()}
@@ -1075,34 +979,83 @@
 								</table>
 							</div>
 						{/if}
-					</Card>
+					</MetricPanel>
 				{/if}
 
-				{#if memoryPressureSeries.length > 0}
-					<Card class="xl:col-span-2">
-						<div class="mb-3 flex items-center justify-between">
-							<div>
-								<h2 class="text-sm font-medium text-[var(--color-fg)]">
-									{m.metrics_card_memory_pressure_title()}
-								</h2>
-								<p class="mt-0.5 text-xs text-[var(--color-fg-muted)]">
-									{m.metrics_card_memory_pressure_subtitle()}
-								</p>
-							</div>
-						</div>
-						{#key memoryPressureKey}
+				{@render groupHeading(m.metrics_group_network())}
+
+				<MetricPanel title={m.metrics_card_network_title()}>
+					{#if loading}
+						{@render chartSkeleton()}
+					{:else}
+						{#if networkSeries.length > 0}
+							<SeriesStrips series={networkSeries} format={fmtBpsCell} class="mb-3" />
+						{/if}
+						{#key networkKey}
 							<HistoryChart
-								series={memoryPressureSeries}
-								valueFormatter={(v) => (v == null ? '—' : fmtNumber(v, 0))}
+								series={networkSeries}
+								valueFormatter={fmtBpsCell}
 								group="metrics"
+								annotations={showAnnotations ? chartAnnotations : []}
 							/>
 						{/key}
-					</Card>
+					{/if}
+				</MetricPanel>
+
+				{#if netErrorRows.length > 0}
+					<MetricPanel title={m.metrics_per_interface_latest_label()}>
+						<ul class="flex flex-col gap-1.5">
+							{#each physicalNetRows as r (r.iface)}
+								{@render ifaceRow(r)}
+							{/each}
+						</ul>
+						{#if containerNetRows.length > 0}
+							<details class="mt-3 border-t border-[var(--color-border)] pt-3">
+								<summary
+									class="text-3xs cursor-pointer font-mono tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
+								>
+									{m.metrics_iface_group_container({ count: containerNetRows.length })}
+								</summary>
+								<ul class="mt-2 flex flex-col gap-1.5">
+									{#each containerNetRows as r (r.iface)}
+										{@render ifaceRow(r)}
+									{/each}
+								</ul>
+							</details>
+						{/if}
+						{#if virtualNetRows.length > 0}
+							<details class="mt-2">
+								<summary
+									class="text-3xs cursor-pointer font-mono tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
+								>
+									{m.metrics_iface_group_virtual({ count: virtualNetRows.length })}
+								</summary>
+								<ul class="mt-2 flex flex-col gap-1.5">
+									{#each virtualNetRows as r (r.iface)}
+										{@render ifaceRow(r)}
+									{/each}
+								</ul>
+							</details>
+						{/if}
+					</MetricPanel>
+				{/if}
+
+				{#if components && components.points.length > 0}
+					{@render groupHeading(m.metrics_group_environment())}
+					<ComponentsCard data={components} />
 				{/if}
 			</div>
 		{/if}
 	</div>
 {/if}
+
+{#snippet groupHeading(label: string)}
+	<h2
+		class="text-2xs col-span-full mt-2 font-medium tracking-[0.14em] text-[var(--color-fg-subtle)] uppercase"
+	>
+		{label}
+	</h2>
+{/snippet}
 
 {#snippet chartSkeleton()}
 	<div class="mb-3 flex gap-4">

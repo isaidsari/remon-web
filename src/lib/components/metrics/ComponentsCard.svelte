@@ -82,7 +82,7 @@
 <Card class={cn('xl:col-span-2', klass)}>
 	<div class="mb-3 flex items-baseline justify-between">
 		<div>
-			<h2 class="text-sm font-medium text-[var(--color-fg)]">{m.sensors_card_title()}</h2>
+			<h3 class="text-sm font-medium text-[var(--color-fg)]">{m.sensors_card_title()}</h3>
 			<p class="mt-0.5 text-xs text-[var(--color-fg-muted)]">
 				{m.sensors_card_subtitle()}
 			</p>
