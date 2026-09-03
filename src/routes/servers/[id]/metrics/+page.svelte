@@ -634,11 +634,10 @@
 				</p>
 			</Card>
 		{:else}
-			<!-- items-start: cards differ a lot in height, and stretching the short one
-			     to its neighbour's row just draws an empty box under its content. -->
-			<div class="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
-				{@render groupHeading(m.metrics_group_compute())}
-
+			<!-- Cards stretch to their row so every pair lines up; the pairing below
+			     keeps the two cards in a row close in content, so nothing is left
+			     holding a big empty box. -->
+			<div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
 				<MetricPanel title={m.metrics_card_cpu_title()}>
 					{#if loading}
 						{@render chartSkeleton()}
@@ -685,10 +684,6 @@
 					{/if}
 				</MetricPanel>
 
-				<PressureCard cpu={pressureCpu} memory={pressureMem} io={pressureIo} />
-
-				{@render groupHeading(m.metrics_group_memory())}
-
 				<MetricPanel title={m.metrics_card_memory_title()}>
 					{#if loading}
 						{@render chartSkeleton()}
@@ -714,6 +709,8 @@
 					{/if}
 				</MetricPanel>
 
+				<PressureCard cpu={pressureCpu} memory={pressureMem} io={pressureIo} />
+
 				{#if memoryPressureSeries.length > 0}
 					<MetricPanel
 						title={m.metrics_card_memory_pressure_title()}
@@ -733,8 +730,6 @@
 						{/key}
 					</MetricPanel>
 				{/if}
-
-				{@render groupHeading(m.metrics_group_storage())}
 
 				<MetricPanel title={m.metrics_card_disk_title()}>
 					{#if loading}
@@ -982,8 +977,6 @@
 					</MetricPanel>
 				{/if}
 
-				{@render groupHeading(m.metrics_group_network())}
-
 				<MetricPanel title={m.metrics_card_network_title()}>
 					{#if loading}
 						{@render chartSkeleton()}
@@ -999,63 +992,53 @@
 								annotations={showAnnotations ? chartAnnotations : []}
 							/>
 						{/key}
+						{#if netErrorRows.length > 0}
+							<PanelSection label={m.metrics_per_interface_latest_label()}>
+								<ul class="flex flex-col gap-1.5">
+									{#each physicalNetRows as r (r.iface)}
+										{@render ifaceRow(r)}
+									{/each}
+								</ul>
+								{#if containerNetRows.length > 0}
+									<details class="mt-3 border-t border-[var(--color-border)] pt-3">
+										<summary
+											class="text-3xs cursor-pointer font-mono tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
+										>
+											{m.metrics_iface_group_container({ count: containerNetRows.length })}
+										</summary>
+										<ul class="mt-2 flex flex-col gap-1.5">
+											{#each containerNetRows as r (r.iface)}
+												{@render ifaceRow(r)}
+											{/each}
+										</ul>
+									</details>
+								{/if}
+								{#if virtualNetRows.length > 0}
+									<details class="mt-2">
+										<summary
+											class="text-3xs cursor-pointer font-mono tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
+										>
+											{m.metrics_iface_group_virtual({ count: virtualNetRows.length })}
+										</summary>
+										<ul class="mt-2 flex flex-col gap-1.5">
+											{#each virtualNetRows as r (r.iface)}
+												{@render ifaceRow(r)}
+											{/each}
+										</ul>
+									</details>
+								{/if}
+							</PanelSection>
+						{/if}
 					{/if}
 				</MetricPanel>
 
-				{#if netErrorRows.length > 0}
-					<MetricPanel title={m.metrics_per_interface_latest_label()}>
-						<ul class="flex flex-col gap-1.5">
-							{#each physicalNetRows as r (r.iface)}
-								{@render ifaceRow(r)}
-							{/each}
-						</ul>
-						{#if containerNetRows.length > 0}
-							<details class="mt-3 border-t border-[var(--color-border)] pt-3">
-								<summary
-									class="text-3xs cursor-pointer font-mono tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
-								>
-									{m.metrics_iface_group_container({ count: containerNetRows.length })}
-								</summary>
-								<ul class="mt-2 flex flex-col gap-1.5">
-									{#each containerNetRows as r (r.iface)}
-										{@render ifaceRow(r)}
-									{/each}
-								</ul>
-							</details>
-						{/if}
-						{#if virtualNetRows.length > 0}
-							<details class="mt-2">
-								<summary
-									class="text-3xs cursor-pointer font-mono tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
-								>
-									{m.metrics_iface_group_virtual({ count: virtualNetRows.length })}
-								</summary>
-								<ul class="mt-2 flex flex-col gap-1.5">
-									{#each virtualNetRows as r (r.iface)}
-										{@render ifaceRow(r)}
-									{/each}
-								</ul>
-							</details>
-						{/if}
-					</MetricPanel>
-				{/if}
-
 				{#if components && components.points.length > 0}
-					{@render groupHeading(m.metrics_group_environment())}
 					<ComponentsCard data={components} />
 				{/if}
 			</div>
 		{/if}
 	</div>
 {/if}
-
-{#snippet groupHeading(label: string)}
-	<h2
-		class="text-2xs col-span-full mt-2 font-medium tracking-[0.14em] text-[var(--color-fg-subtle)] uppercase"
-	>
-		{label}
-	</h2>
-{/snippet}
 
 {#snippet chartSkeleton()}
 	<div class="mb-3 flex gap-4">
