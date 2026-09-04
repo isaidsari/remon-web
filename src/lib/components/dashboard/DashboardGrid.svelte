@@ -76,16 +76,17 @@
 
 	let arrangeable = $derived(editing && !narrow);
 
-	function startDrag(e: PointerEvent, widget: Widget, mode: 'move' | 'resize') {
+	/** `fromHandle` marks the dedicated grips. Dragging the card body has to
+	 *  ignore presses that land on the chrome buttons, but the grips are buttons
+	 *  themselves, so the same test would swallow the gesture they exist for. */
+	function startDrag(e: PointerEvent, widget: Widget, mode: 'move' | 'resize', fromHandle = false) {
 		if (!editing || narrow || drag) return;
 		if (e.pointerType === 'mouse' && e.button !== 0) return;
-		// The chrome buttons sit inside the drag surface.
-		if (mode === 'move' && (e.target as HTMLElement).closest('button')) return;
+		if (!fromHandle && (e.target as HTMLElement).closest('button')) return;
 
 		const width = gridEl?.clientWidth ?? 0;
 		if (width <= 0) return;
 
-		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
 		drag = {
 			id: widget.id,
 			mode,
@@ -128,6 +129,22 @@
 		drag = null;
 		preview = null;
 	}
+
+	// The gesture is tracked on the window, not on the element it started from.
+	// Pointer capture would do it, but the move handle is a 28px button: the
+	// pointer leaves it on the first millimetre, and any re-render mid-drag drops
+	// the capture with it.
+	$effect(() => {
+		if (!drag) return;
+		window.addEventListener('pointermove', onPointerMove);
+		window.addEventListener('pointerup', endDrag);
+		window.addEventListener('pointercancel', cancelDrag);
+		return () => {
+			window.removeEventListener('pointermove', onPointerMove);
+			window.removeEventListener('pointerup', endDrag);
+			window.removeEventListener('pointercancel', cancelDrag);
+		};
+	});
 
 	function onKeyDown(e: KeyboardEvent) {
 		if (drag && e.key === 'Escape') cancelDrag();
@@ -190,9 +207,6 @@
 			role={arrangeable ? 'application' : undefined}
 			aria-label={arrangeable ? WIDGET_META[widget.config.kind]?.label() : undefined}
 			onpointerdown={(e) => startDrag(e, widget, 'move')}
-			onpointermove={onPointerMove}
-			onpointerup={endDrag}
-			onpointercancel={cancelDrag}
 		>
 			{#if editing}
 				<div class="absolute top-1.5 right-1.5 z-10 flex items-center gap-1">
@@ -200,10 +214,7 @@
 						<button
 							type="button"
 							aria-label={m.dashboard_move_widget()}
-							onpointerdown={(e) => startDrag(e, widget, 'move')}
-							onpointermove={onPointerMove}
-							onpointerup={endDrag}
-							onpointercancel={cancelDrag}
+							onpointerdown={(e) => startDrag(e, widget, 'move', true)}
 							onkeydown={(e) => onArrowKey(e, widget, 'move')}
 							class="grid size-7 cursor-grab place-items-center rounded-md bg-[var(--color-surface-3)] text-[var(--color-fg-muted)] shadow-[0_0_0_1px_var(--color-border)] transition-colors hover:text-[var(--color-fg)]"
 						>
@@ -236,10 +247,7 @@
 						type="button"
 						class="dash-resize"
 						aria-label={m.dashboard_resize_widget()}
-						onpointerdown={(e) => startDrag(e, widget, 'resize')}
-						onpointermove={onPointerMove}
-						onpointerup={endDrag}
-						onpointercancel={cancelDrag}
+						onpointerdown={(e) => startDrag(e, widget, 'resize', true)}
 						onkeydown={(e) => onArrowKey(e, widget, 'resize')}
 					></button>
 				{/if}
