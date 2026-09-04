@@ -556,6 +556,12 @@
 		if (v == null) return '—';
 		return fmtPercent(v, 1);
 	}
+
+	/** Axis ticks want whole percents; the tooltip keeps the decimal. */
+	function fmtPctAxis(v: number | null): string {
+		if (v == null) return '—';
+		return fmtPercent(v, 0);
+	}
 	function fmtBpsCell(v: number | null): string {
 		if (v == null) return '—';
 		return fmtBps(v, 1);
@@ -673,6 +679,7 @@
 							<HistoryChart
 								series={cpuSeries}
 								valueFormatter={fmtPct}
+								axisFormatter={fmtPctAxis}
 								yMin={0}
 								yMax={100}
 								group="metrics"
@@ -719,6 +726,7 @@
 							<HistoryChart
 								series={memorySeries}
 								valueFormatter={fmtPct}
+								axisFormatter={fmtPctAxis}
 								yMin={0}
 								yMax={100}
 								group="metrics"
@@ -739,6 +747,7 @@
 							<HistoryChart
 								series={diskSeries}
 								valueFormatter={fmtPct}
+								axisFormatter={fmtPctAxis}
 								yMin={0}
 								yMax={100}
 								group="metrics"

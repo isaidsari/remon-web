@@ -97,6 +97,7 @@
 					height={160}
 					yMin={0}
 					valueFormatter={(v) => (v == null ? '—' : fmtPercent(v))}
+					axisFormatter={(v) => (v == null ? '—' : fmtPercent(v, 0))}
 				/>
 			</div>
 			<div>

@@ -41,6 +41,10 @@
 		/** Let the y-axis fit the data range instead of anchoring at zero — surfaces small changes on a large baseline. */
 		relativeScale?: boolean;
 		valueFormatter?: (v: number | null) => string;
+		/** Axis ticks want round numbers where the tooltip wants precision, so a
+		 *  percent chart reads "%80" on the axis and "%80,4" under the crosshair.
+		 *  Falls back to `valueFormatter`. */
+		axisFormatter?: (v: number | null) => string;
 		axisLabel?: string;
 		/** Same string on every chart on the page to sync crosshair hover. */
 		group?: string;
@@ -56,11 +60,14 @@
 		yMax,
 		relativeScale = false,
 		valueFormatter,
+		axisFormatter,
 		axisLabel,
 		group,
 		annotations = [],
 		class: klass = ''
 	}: Props = $props();
+
+	let tickFormatter = $derived(axisFormatter ?? valueFormatter);
 
 	let container: HTMLDivElement | null = $state(null);
 	let chart: ECharts | null = null;
@@ -155,10 +162,13 @@
 			animation: false,
 			// outerBoundsMode 'same' lets the axis labels shrink the plot to fit
 			// rather than budgeting a fixed margin wide enough for the worst label.
+			//
+			// top has to clear the legend AND the topmost y tick, which is centred on
+			// the plot's top edge and so sticks half its height above it.
 			grid: {
 				left: 4,
 				right: 10,
-				top: hasLegend ? 20 : 6,
+				top: hasLegend ? 28 : 10,
 				bottom: 4,
 				outerBoundsMode: 'same',
 				outerBoundsContain: 'axisLabel'
@@ -209,7 +219,16 @@
 				axisLabel: {
 					color: palette.axisText,
 					fontSize: 10,
-					formatter: valueFormatter ? (v: number) => valueFormatter(v) ?? '' : undefined
+					formatter: tickFormatter ? (v: number) => tickFormatter(v) ?? '' : undefined
+				},
+				// Without this the crosshair's value label prints a raw number, dot
+				// decimal and all, next to axis labels that went through the locale.
+				axisPointer: {
+					label: {
+						formatter: valueFormatter
+							? (p: { value: number | string }) => valueFormatter(Number(p.value)) ?? ''
+							: undefined
+					}
 				},
 				splitLine: { lineStyle: { color: palette.gridLine } }
 			},

@@ -161,6 +161,7 @@
 				<HistoryChart
 					{series}
 					valueFormatter={fmt}
+					axisFormatter={isPercent ? (v) => (v == null ? '—' : fmtPercent(v, 0)) : fmt}
 					yMin={isPercent ? 0 : undefined}
 					yMax={isPercent ? 100 : undefined}
 					height={0}
