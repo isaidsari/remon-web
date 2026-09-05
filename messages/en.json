@@ -19,7 +19,6 @@
 	"assistant_history_delete": "delete conversation",
 	"assistant_history_export": "copy as markdown",
 	"assistant_history_exported": "copied to clipboard",
-	"assistant_history_turns": "{count} turns",
 	"assistant_intro": "ask about this host in plain language — the daemon reads its own metrics, logs, processes and alerts to answer.",
 	"assistant_empty_hint": "ask a question, or start with one of these:",
 	"assistant_placeholder": "ask why the server is slow, what's using memory…",

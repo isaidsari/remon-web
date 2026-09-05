@@ -19,7 +19,6 @@
 	"assistant_history_delete": "sohbeti sil",
 	"assistant_history_export": "markdown olarak kopyala",
 	"assistant_history_exported": "panoya kopyalandı",
-	"assistant_history_turns": "{count} tur",
 	"assistant_intro": "bu sunucu hakkında sade dille sorun — daemon yanıtlamak için kendi metrik, log, süreç ve alarmlarını okur.",
 	"assistant_empty_hint": "bir soru sorun ya da şunlardan biriyle başlayın:",
 	"assistant_placeholder": "sunucu neden yavaş, belleği ne tüketiyor…",

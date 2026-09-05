@@ -60,8 +60,7 @@
 					>
 						<span class="block truncate text-xs text-[var(--color-fg)]">{c.title}</span>
 						<span class="text-3xs text-[var(--color-fg-subtle)]">
-							{fmtRelative(Math.floor(c.updatedAt / 1000))} ·
-							{m.assistant_history_turns({ count: c.turns.length })}
+							{fmtRelative(Math.floor(c.updatedAt / 1000))}
 						</span>
 					</button>
 					<!-- Always reachable, not hover-only: touch has no hover. -->
