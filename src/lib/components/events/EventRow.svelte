@@ -105,13 +105,20 @@
 
 	let Icon = $derived(iconFor(event.kind));
 
-	// Only refs with a destination page become links; incidents have none yet.
+	// Only refs with a destination page become links.
 	let refHref = $derived.by(() => {
 		if (!serverId || !event.ref) return null;
 		if (event.ref.type === 'alert_rule') return `/servers/${serverId}/alerts?tab=events`;
+		if (event.ref.type === 'incident') return `/servers/${serverId}/incidents/${event.ref.id}`;
 		return null;
 	});
-	let refLabel = $derived(event.ref?.type === 'alert_rule' ? m.events_ref_alert() : null);
+	let refLabel = $derived(
+		event.ref?.type === 'alert_rule'
+			? m.events_ref_alert()
+			: event.ref?.type === 'incident'
+				? m.events_ref_incident()
+				: null
+	);
 </script>
 
 <li

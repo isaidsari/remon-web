@@ -13,6 +13,8 @@ import type {
 	BatchMetricsResponse,
 	CaptureIncidentRequest,
 	CaptureIncidentResponse,
+	IncidentDto,
+	ListIncidentsResponse,
 	CreateActionBindingRequest,
 	ListActionBindingsResponse,
 	ListActionRunsResponse,
@@ -710,6 +712,17 @@ export class ApiClient {
 			query: { ...params },
 			signal: opts.signal
 		});
+	}
+
+	/** Newest first. Bundles are omitted; `getIncident` carries them. */
+	listIncidents(limit?: number): Promise<ListIncidentsResponse> {
+		const q = limit ? `?limit=${limit}` : '';
+		return this.request<ListIncidentsResponse>(`/incidents${q}`);
+	}
+
+	/** The context frozen at trigger time — the only copy that survives rollup. */
+	getIncident(id: number): Promise<IncidentDto> {
+		return this.request<IncidentDto>(`/incidents/${id}`);
 	}
 
 	/** Manual trigger; alert transitions capture on their own. */

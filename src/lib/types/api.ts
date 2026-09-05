@@ -1131,6 +1131,91 @@ export interface CaptureIncidentResponse {
 	id: number;
 }
 
+/** Listing row: everything but the bundles, which the detail call carries. */
+export interface IncidentSummaryDto {
+	id: number;
+	created_at: number;
+	trigger_kind: 'alert' | 'manual';
+	category: 'resource' | 'availability' | 'security' | 'custom';
+	rule_name?: string;
+	label_set?: string;
+	metric_value?: number;
+	reason?: string;
+	/** The ~60 s follow-up landed, so the detail carries `after_bundle`. */
+	has_after: boolean;
+}
+
+export interface ListIncidentsResponse {
+	count: number;
+	incidents: IncidentSummaryDto[];
+}
+
+/** Any slice degrades to null, or to this, rather than sinking the capture. */
+export interface SliceError {
+	error: string;
+}
+
+export interface IncidentVitals {
+	cpu_percent?: number | null;
+	/** 1, 5 and 15 minute load averages. */
+	load?: [number, number, number] | null;
+	iowait_percent?: number | null;
+	steal_percent?: number | null;
+	memory_used_bytes?: number | null;
+	memory_total_bytes?: number | null;
+	swap_used_bytes?: number | null;
+	disks?: { mount_point: string; used_percent: number; io_util_percent?: number | null }[];
+	network?: { interface: string; rx_bytes_per_sec: number; tx_bytes_per_sec: number }[];
+	pressure?: Record<string, unknown> | null;
+}
+
+export interface IncidentProcess {
+	pid: number;
+	name: string;
+	cpu_percent?: number | null;
+	memory_bytes?: number | null;
+	/** Present when the daemon still had in-memory history for this pid. */
+	window_secs?: number;
+	cpu_avg_percent?: number;
+	cpu_max_percent?: number;
+	memory_avg_bytes?: number;
+}
+
+export interface IncidentDaemonError {
+	timestamp: number;
+	level: 'error' | 'warn';
+	target: string;
+	message: string;
+}
+
+export interface IncidentCoActiveAlert {
+	name: string;
+	severity: string;
+	state: string;
+	label_set?: string | null;
+	last_value?: number | null;
+}
+
+/** The flight recorder's frozen context. Every slice is optional: the daemon
+ *  builds what it can reach and leaves the rest null rather than failing the
+ *  capture, and `system_errors` is Linux-only. */
+export interface IncidentBundle {
+	captured_at: number;
+	vitals?: IncidentVitals | SliceError | null;
+	top_processes?: IncidentProcess[] | SliceError | null;
+	recent_daemon_errors?: IncidentDaemonError[] | SliceError | null;
+	co_active_alerts?: IncidentCoActiveAlert[] | SliceError | null;
+	failed_services?: unknown;
+	system_errors?: unknown;
+}
+
+export interface IncidentDto extends Omit<IncidentSummaryDto, 'has_after'> {
+	bundle: IncidentBundle;
+	/** Absent when the follow-up never landed — a restart, or a capture
+	 *  younger than a minute. */
+	after_bundle?: IncidentBundle;
+}
+
 /** Who a `GET /events` row was produced by. */
 export type EventSource = 'system' | 'operator' | 'agent';
 
