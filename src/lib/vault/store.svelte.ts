@@ -179,6 +179,20 @@ async function write(next: VaultData): Promise<void> {
 	data = next;
 }
 
+// Seal/unseal let other stores keep their own data under the master key without
+// putting it in the vault blob — that one is rewritten whole on every change and
+// shares localStorage's few megabytes with the credentials.
+
+async function seal<T>(value: T): Promise<EncryptedBlob> {
+	if (state !== 'open' || !key || !salt) throw new Error('Vault is not open');
+	return encryptJson(key, value, salt, iterations);
+}
+
+async function unseal<T>(blob: EncryptedBlob): Promise<T> {
+	if (state !== 'open' || !key) throw new Error('Vault is not open');
+	return decryptJson<T>(key, blob);
+}
+
 async function trustDevice(password: string): Promise<void> {
 	if (state !== 'open' || !salt) throw new Error('Vault must be open to trust device');
 	// Re-derive an extractable copy of the master key so it can be wrapped.
@@ -239,6 +253,8 @@ export const vault = {
 	unlock,
 	lock,
 	write,
+	seal,
+	unseal,
 	trustDevice,
 	untrustDevice,
 	destroy
