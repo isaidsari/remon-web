@@ -14,6 +14,11 @@
 	import { m } from '$lib/paraglide/messages';
 	import type { ProposedAction, AssistantTraceStep } from '$lib/types/api';
 	import Markdown from '$lib/components/assistant/Markdown.svelte';
+	import HistoryPanel from '$lib/components/assistant/HistoryPanel.svelte';
+	import { vault } from '$lib/vault/store.svelte';
+	import { deriveTitle, type Conversation, type StoredTurn } from '$lib/assistant/conversation';
+	import { deleteConversation, listConversations, saveConversation } from '$lib/assistant/history';
+	import IconHistory from '~icons/lucide/history';
 	import IconBotMessageSquare from '~icons/lucide/bot-message-square';
 	import IconArrowUp from '~icons/lucide/arrow-up';
 	import IconArrowDown from '~icons/lucide/arrow-down';
@@ -79,58 +84,93 @@
 				: 'offline'
 	);
 
-	// Persisted per profile in sessionStorage; a restore never resurrects a spinner.
-	const storageKey = $derived(`remon.assistant.${id}`);
+	let conversations = $state<Conversation[]>([]);
+	let activeId = $state<string | null>(null);
+	let historyOpen = $state(false);
 
-	// Anything that is not a finished turn is dropped rather than crashing.
-	function readStoredEntries(key: string): Entry[] {
+	/** The pre-history build kept one conversation per profile here. */
+	const legacyKey = $derived(`remon.assistant.${id}`);
+
+	function turnsOf(list: Entry[]): StoredTurn[] {
+		return list
+			.filter((e) => !e.loading && (e.answer || e.error))
+			.map((e) => ({ question: e.question, answer: e.answer, error: e.error }));
+	}
+
+	/** Carry the old single conversation over once, then stop reading that key. */
+	async function adoptLegacy(serverId: string, key: string) {
+		let raw: string | null;
 		try {
-			const parsed: unknown = JSON.parse(sessionStorage.getItem(key) ?? '[]');
-			if (!Array.isArray(parsed)) return [];
-			return parsed
-				.filter(
-					(e): e is Entry =>
-						!!e &&
-						typeof e === 'object' &&
-						typeof (e as Entry).question === 'string' &&
-						typeof (e as Entry).answer === 'string'
-				)
-				.map((e) => ({
-					...e,
-					loading: false,
-					error: e.error ?? null,
-					proposals: Array.isArray(e.proposals) ? e.proposals : []
-				}));
+			raw = sessionStorage.getItem(key);
 		} catch {
-			return [];
+			return;
+		}
+		if (!raw) return;
+		try {
+			const parsed: unknown = JSON.parse(raw);
+			const turns = Array.isArray(parsed)
+				? parsed
+						.filter(
+							(e): e is Entry =>
+								!!e && typeof e === 'object' && typeof (e as Entry).question === 'string'
+						)
+						.map((e) => ({ question: e.question, answer: e.answer ?? '', error: e.error ?? null }))
+				: [];
+			if (turns.length > 0) {
+				const now = Date.now();
+				await saveConversation({
+					id: crypto.randomUUID(),
+					serverId,
+					title: deriveTitle(turns[0].question),
+					createdAt: now,
+					updatedAt: now,
+					turns
+				});
+			}
+		} catch {
+			// Unreadable leftover — dropping it is better than blocking the page.
+		}
+		try {
+			sessionStorage.removeItem(key);
+		} catch {
+			// nothing to clean up
 		}
 	}
 
+	async function refreshHistory(serverId: string) {
+		conversations = await listConversations(serverId);
+	}
+
 	$effect(() => {
-		const key = storageKey;
+		const serverId = id;
+		const key = legacyKey;
+		if (!serverId || !vault.isOpen) return;
 		untrack(() => {
-			entries = readStoredEntries(key);
-			if (entries.length > 0) void scrollToEnd(false);
+			entries = [];
+			activeId = null;
+			void adoptLegacy(serverId, key).then(() => refreshHistory(serverId));
 		});
 	});
 
+	/** One record per conversation, written when a turn settles — never mid-stream. */
 	$effect(() => {
-		const snapshot = JSON.stringify(
-			entries
-				.filter((e) => !e.loading)
-				.map((e) => ({
-					...e,
-					proposals: e.proposals.map((p) =>
-						p.state === 'applying' ? { ...p, state: 'pending' as const } : p
-					)
-				}))
-		);
+		const settled = turnsOf(entries);
+		if (settled.length === 0 || busy) return;
 		untrack(() => {
-			try {
-				sessionStorage.setItem(storageKey, snapshot);
-			} catch {
-				// storage unavailable — the conversation just won't persist
-			}
+			const serverId = id;
+			if (!serverId || !vault.isOpen) return;
+			const existing = activeId ? conversations.find((c) => c.id === activeId) : null;
+			const now = Date.now();
+			const record: Conversation = {
+				id: activeId ?? crypto.randomUUID(),
+				serverId,
+				title: existing?.title || deriveTitle(settled[0].question),
+				createdAt: existing?.createdAt ?? now,
+				updatedAt: now,
+				turns: settled
+			};
+			activeId = record.id;
+			void saveConversation(record).then(() => refreshHistory(serverId));
 		});
 	});
 
@@ -182,13 +222,55 @@
 			variant: 'warning'
 		});
 		if (!ok) return;
+		// Clears the screen, not the archive — the saved copy stays in history.
 		entries = [];
-		try {
-			sessionStorage.removeItem(storageKey);
-		} catch {
-			// nothing to clean up
-		}
+		activeId = null;
 	}
+	let historyEl = $state<HTMLElement | null>(null);
+
+	$effect(() => {
+		if (!historyOpen) return;
+		const onDown = (e: PointerEvent) => {
+			if (historyEl && !historyEl.contains(e.target as Node)) historyOpen = false;
+		};
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') historyOpen = false;
+		};
+		window.addEventListener('pointerdown', onDown);
+		window.addEventListener('keydown', onKey);
+		return () => {
+			window.removeEventListener('pointerdown', onDown);
+			window.removeEventListener('keydown', onKey);
+		};
+	});
+
+	function startNewChat() {
+		entries = [];
+		activeId = null;
+		historyOpen = false;
+	}
+
+	function openConversation(cid: string) {
+		const found = conversations.find((c) => c.id === cid);
+		if (!found) return;
+		entries = found.turns.map((t) => ({
+			question: t.question,
+			answer: t.answer,
+			error: t.error ?? null,
+			loading: false,
+			proposals: []
+		}));
+		activeId = found.id;
+		historyOpen = false;
+		void scrollToEnd(false);
+	}
+
+	async function removeConversation(cid: string) {
+		await deleteConversation(cid);
+		if (cid === activeId) startNewChat();
+		await refreshHistory(id);
+	}
+
 	let canSend = $derived(!!conn?.isAuthenticated && !busy && question.trim().length > 0);
 
 	// Starter prompts shown on the empty state to make the first ask effortless.
@@ -383,6 +465,33 @@
 			></span>
 		</div>
 		<div class="flex shrink-0 items-center gap-0.5">
+			<div class="relative" bind:this={historyEl}>
+				<Button
+					size="icon"
+					variant="ghost"
+					class={cn(historyOpen && 'text-[var(--color-accent)]')}
+					onclick={() => (historyOpen = !historyOpen)}
+					aria-label={m.assistant_history()}
+					title={m.assistant_history()}
+					aria-expanded={historyOpen}
+				>
+					<IconHistory class="size-4" />
+				</Button>
+				{#if historyOpen}
+					<!-- Closes on any pointer down outside, so no backdrop element is needed. -->
+					<div
+						class="absolute right-0 z-30 mt-1 overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-surface)] shadow-[var(--shadow-flat),0_12px_32px_rgba(0,0,0,0.45)]"
+					>
+						<HistoryPanel
+							{conversations}
+							{activeId}
+							onOpen={openConversation}
+							onDelete={removeConversation}
+							onNew={startNewChat}
+						/>
+					</div>
+				{/if}
+			</div>
 			<Button
 				size="icon"
 				variant="ghost"
