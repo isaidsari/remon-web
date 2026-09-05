@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { untrack, tick } from 'svelte';
 	import { page } from '$app/state';
+	import { replaceState } from '$app/navigation';
 	import Banner from '$lib/components/ui/Banner.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
@@ -230,6 +231,25 @@
 			window.removeEventListener('pointerdown', onDown);
 			window.removeEventListener('keydown', onKey);
 		};
+	});
+
+	// `?ask=` seeds one question from elsewhere in the app — today the incident
+	// page. Asked once and then stripped from the URL, so a reload re-reads the
+	// saved conversation instead of asking again.
+	let seeded = $state(false);
+
+	$effect(() => {
+		const text = page.url.searchParams.get('ask');
+		if (!text || seeded || !conn?.isAuthenticated || !vault.isOpen) return;
+		untrack(() => {
+			seeded = true;
+			const url = new URL(page.url);
+			url.searchParams.delete('ask');
+			replaceState(url, {});
+			entries = [];
+			activeId = null;
+			void ask(text);
+		});
 	});
 
 	function startNewChat() {

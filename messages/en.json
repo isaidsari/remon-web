@@ -1220,6 +1220,8 @@
 	"events_actor_by": "by {name}",
 	"incident_title": "snapshot",
 	"incident_back": "back to events",
+	"incident_investigate": "investigate with the assistant",
+	"incident_ask_prompt": "Look at incident snapshot #{id}. What happened, what caused it, and what would you check next?",
 	"incident_not_found": "this snapshot is gone — captures age out after 90 days",
 	"incident_loading": "opening the snapshot…",
 	"incident_trigger_alert": "fired by a rule",

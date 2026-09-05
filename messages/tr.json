@@ -1220,6 +1220,8 @@
 	"events_actor_by": "{name} tarafından",
 	"incident_title": "anık görüntü",
 	"incident_back": "olaylara dön",
+	"incident_investigate": "asistanla incele",
+	"incident_ask_prompt": "{id} numaralı anık görüntüyü incele. Ne olmuş, sebebi ne, sırada neye bakmalıyım?",
 	"incident_not_found": "bu anık görüntü yok — kayıtlar 90 gün sonra siliniyor",
 	"incident_loading": "anık görüntü açılıyor…",
 	"incident_trigger_alert": "kural tetikledi",
