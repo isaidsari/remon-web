@@ -11,7 +11,6 @@
 	import { ApiError } from '$lib/api/error';
 	import { StreamUnsupportedError } from '$lib/api/client';
 	import { cn } from '$lib/utils/cn';
-	import { sessionTone, type LiveTone } from '$lib/utils/connTone';
 	import { m } from '$lib/paraglide/messages';
 	import type { ProposedAction, AssistantTraceStep } from '$lib/types/api';
 	import Markdown from '$lib/components/assistant/Markdown.svelte';
@@ -72,10 +71,6 @@
 	let aborter: AbortController | null = null;
 
 	let busy = $derived(entries.some((e) => e.loading));
-
-	// Mirrors the sidebar dot so the state stays visible on mobile, where the
-	// sidebar is behind the drawer. Session state, not the live-stats stream.
-	let connectionTone = $derived<LiveTone>(conn ? sessionTone(conn) : 'offline');
 
 	let conversations = $state<Conversation[]>([]);
 	let activeId = $state<string | null>(null);
@@ -442,20 +437,6 @@
 		<div class="flex min-w-0 items-center gap-2">
 			<IconBotMessageSquare class="size-4 shrink-0 text-[var(--color-accent)]" />
 			<h1 class="text-md truncate font-semibold tracking-tight">{m.assistant_title()}</h1>
-			<span
-				class={cn(
-					'ml-0.5 size-2 shrink-0 rounded-full',
-					connectionTone === 'online'
-						? 'bg-[var(--color-success)] shadow-[0_0_6px_rgba(52,211,153,0.55)]'
-						: connectionTone === 'connecting'
-							? 'bg-[var(--color-warning)]'
-							: connectionTone === 'offline'
-								? 'bg-[var(--color-danger)]'
-								: 'bg-[var(--color-fg-faint)]'
-				)}
-				title={connectionTone === 'online' ? m.detail_status_live() : connectionTone}
-				aria-label={connectionTone === 'online' ? m.detail_status_live() : connectionTone}
-			></span>
 		</div>
 		<div class="flex shrink-0 items-center gap-0.5">
 			<div class="relative" bind:this={historyEl}>
