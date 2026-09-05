@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import Banner from '$lib/components/ui/Banner.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import Card from '$lib/components/ui/Card.svelte';
 	import { profiles } from '$lib/stores/profiles.svelte';
 	import { connections } from '$lib/stores/connections.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
@@ -663,7 +664,7 @@
 		<div class="mx-auto w-full max-w-3xl">
 			{#if devMode}
 				<div
-					class="mb-2 rounded-xl bg-[var(--color-surface)] p-2.5"
+					class="mb-2 rounded-[var(--radius-card)] bg-[var(--color-surface)] p-2.5"
 					style="box-shadow: inset 0 0 0 1px var(--color-warning)"
 				>
 					<p class="text-2xs mb-1.5 font-medium text-[var(--color-warning)]">
@@ -686,12 +687,10 @@
 				</div>
 			{/if}
 
-			<div
-				class={cn(
-					'flex items-end gap-1.5 rounded-2xl bg-[var(--color-surface)] p-1.5',
-					'shadow-[0_1px_2px_rgba(0,0,0,0.2),0_0_0_1px_var(--color-border)] transition-shadow duration-[var(--dur-fast)]',
-					'focus-within:shadow-[0_1px_2px_rgba(0,0,0,0.2),0_0_0_1px_var(--color-accent)]'
-				)}
+			<!-- p-1 keeps the button concentric: the card's 10px minus 4px is its own 6px. -->
+			<Card
+				padding="none"
+				class="flex items-end gap-1.5 p-1 focus-within:shadow-[var(--shadow-flat-hover)]"
 			>
 				<!-- 16px on mobile so iOS doesn't zoom the page on focus -->
 				<textarea
@@ -714,7 +713,7 @@
 				{#if busy}
 					<Button
 						size="icon"
-						class="size-9 shrink-0 rounded-[10px]"
+						class="size-9 shrink-0"
 						onclick={() => aborter?.abort()}
 						aria-label={m.assistant_stop()}
 						title={m.assistant_stop()}
@@ -724,7 +723,7 @@
 				{:else}
 					<Button
 						size="icon"
-						class="size-9 shrink-0 rounded-[10px]"
+						class="size-9 shrink-0"
 						onclick={() => ask(question)}
 						disabled={!canSend}
 						aria-label={m.assistant_send()}
@@ -732,7 +731,7 @@
 						<IconArrowUp class="size-4" />
 					</Button>
 				{/if}
-			</div>
+			</Card>
 			<p class="text-3xs md:text-2xs mt-1.5 px-1 text-center text-[var(--color-fg-subtle)]">
 				{m.assistant_readonly_note()}
 			</p>
