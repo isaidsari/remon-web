@@ -158,10 +158,11 @@
 		color: var(--color-fg);
 	}
 
+	/* No border-radius here: an outline already follows the element's own corners,
+	   so forcing one squares off every rounded control the moment it takes focus. */
 	*:focus-visible {
 		outline: 2px solid var(--color-ring);
 		outline-offset: 2px;
-		border-radius: 4px;
 	}
 
 	::-webkit-scrollbar {

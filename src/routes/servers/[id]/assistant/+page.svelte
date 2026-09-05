@@ -714,7 +714,7 @@
 				{#if busy}
 					<Button
 						size="icon"
-						class="size-9 shrink-0 rounded-xl"
+						class="size-9 shrink-0 rounded-[10px]"
 						onclick={() => aborter?.abort()}
 						aria-label={m.assistant_stop()}
 						title={m.assistant_stop()}
@@ -724,7 +724,7 @@
 				{:else}
 					<Button
 						size="icon"
-						class="size-9 shrink-0 rounded-xl"
+						class="size-9 shrink-0 rounded-[10px]"
 						onclick={() => ask(question)}
 						disabled={!canSend}
 						aria-label={m.assistant_send()}
