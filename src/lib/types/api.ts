@@ -1174,11 +1174,38 @@ export interface IncidentProcess {
 	name: string;
 	cpu_percent?: number | null;
 	memory_bytes?: number | null;
-	/** Present when the daemon still had in-memory history for this pid. */
-	window_secs?: number;
-	cpu_avg_percent?: number;
-	cpu_max_percent?: number;
-	memory_avg_bytes?: number;
+	memory_percent?: number | null;
+	user?: string | null;
+	/** Clamped to 160 chars by the daemon. */
+	cmd?: string | null;
+	started_at?: number | null;
+	/** The daemon's in-memory ring for this pid, when it still had one. Nested
+	 *  because it describes a window, not the instant the rest of the row is. */
+	recent?: {
+		window_secs?: number;
+		cpu_avg_percent?: number;
+		cpu_max_percent?: number;
+		memory_avg_bytes?: number;
+	} | null;
+}
+
+/** The daemon ranks by cpu and by memory and sends the union, stamped with the
+ *  collector sample it came from — so the slice is an object, not a bare list. */
+export interface IncidentProcessSlice {
+	snapshot_at?: number;
+	processes?: IncidentProcess[];
+}
+
+/** Bounded lines pulled from journald (Linux) or the Windows event log. */
+export interface IncidentSystemEvents {
+	source?: string;
+	count?: number;
+	events?: string[];
+}
+
+export interface IncidentFailedService {
+	name: string;
+	raw_state?: string | null;
 }
 
 export interface IncidentDaemonError {
@@ -1202,11 +1229,11 @@ export interface IncidentCoActiveAlert {
 export interface IncidentBundle {
 	captured_at: number;
 	vitals?: IncidentVitals | SliceError | null;
-	top_processes?: IncidentProcess[] | SliceError | null;
+	top_processes?: IncidentProcessSlice | SliceError | null;
 	recent_daemon_errors?: IncidentDaemonError[] | SliceError | null;
 	co_active_alerts?: IncidentCoActiveAlert[] | SliceError | null;
-	failed_services?: unknown;
-	system_errors?: unknown;
+	failed_services?: IncidentFailedService[] | SliceError | null;
+	system_errors?: IncidentSystemEvents | SliceError | null;
 }
 
 export interface IncidentDto extends Omit<IncidentSummaryDto, 'has_after'> {

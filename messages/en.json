@@ -1235,6 +1235,8 @@
 	"incident_slice_empty": "nothing recorded",
 	"incident_load": "load",
 	"incident_swap": "swap",
+	"incident_system_errors": "kernel & system errors",
+	"incident_failed_services": "failed units",
 	"events_ref_incident": "snapshot",
 	"events_ref_alert": "rule",
 	"events_count": "{count} events",

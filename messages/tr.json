@@ -1235,6 +1235,8 @@
 	"incident_slice_empty": "kayıt yok",
 	"incident_load": "yük",
 	"incident_swap": "takas",
+	"incident_system_errors": "çekirdek ve sistem hataları",
+	"incident_failed_services": "başarısız birimler",
 	"events_ref_incident": "anlık görüntü",
 	"events_ref_alert": "kural",
 	"events_count": "{count} olay",

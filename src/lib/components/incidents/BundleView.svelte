@@ -3,7 +3,9 @@
 		IncidentBundle,
 		IncidentCoActiveAlert,
 		IncidentDaemonError,
-		IncidentProcess,
+		IncidentFailedService,
+		IncidentProcessSlice,
+		IncidentSystemEvents,
 		IncidentVitals,
 		SliceError
 	} from '$lib/types/api';
@@ -36,7 +38,12 @@
 	let { bundle, compact = false }: Props = $props();
 
 	let vitals = $derived(slice<IncidentVitals>(bundle.vitals));
-	let processes = $derived(slice<IncidentProcess[]>(bundle.top_processes));
+	// The daemon wraps the ranked union in `{ snapshot_at, processes }`; unwrap it
+	// here so the markup keeps iterating a plain list.
+	let procSlice = $derived(slice<IncidentProcessSlice>(bundle.top_processes));
+	let processes = $derived({ data: procSlice.data?.processes ?? null, error: procSlice.error });
+	let failedServices = $derived(slice<IncidentFailedService[]>(bundle.failed_services));
+	let systemErrors = $derived(slice<IncidentSystemEvents>(bundle.system_errors));
 	let daemonErrors = $derived(slice<IncidentDaemonError[]>(bundle.recent_daemon_errors));
 	let coActive = $derived(slice<IncidentCoActiveAlert[]>(bundle.co_active_alerts));
 
@@ -109,13 +116,16 @@
 					<span class="min-w-0 truncate">
 						<span class="font-mono text-[var(--color-fg)]">{p.name}</span>
 						<span class="text-3xs ml-1.5 font-mono text-[var(--color-fg-subtle)]">{p.pid}</span>
+						{#if p.user}
+							<span class="text-3xs ml-1.5 font-mono text-[var(--color-fg-faint)]">{p.user}</span>
+						{/if}
 					</span>
 					<span class="shrink-0 font-mono text-[var(--color-fg-subtle)] tabular-nums">
 						{p.cpu_percent == null ? '—' : fmtPercent(p.cpu_percent, 1)}
-						{#if p.cpu_max_percent != null}
+						{#if p.recent?.cpu_max_percent != null}
 							<!-- The in-memory window the daemon still had for this pid. -->
 							<span class="text-[var(--color-fg-faint)]">
-								(max {fmtPercent(p.cpu_max_percent, 0)})
+								(max {fmtPercent(p.recent.cpu_max_percent, 0)})
 							</span>
 						{/if}
 						· {p.memory_bytes == null ? '—' : fmtBytes(p.memory_bytes)}
@@ -174,6 +184,40 @@
 			</ul>
 		{:else}
 			{@render unavailable(daemonErrors.error)}
+		{/if}
+	</PanelSection>
+
+	<!-- Captured on every bundle but never surfaced until now: during a resource
+	     incident the kernel's own account (OOM kills, disk errors) is usually the
+	     line that explains the graph. -->
+	<PanelSection label={m.incident_system_errors()}>
+		{#if systemErrors.data?.events && systemErrors.data.events.length > 0}
+			<ul class="flex flex-col gap-1">
+				{#each systemErrors.data.events as line, i (i)}
+					<li class="truncate font-mono text-xs text-[var(--color-fg-muted)]" title={line}>
+						{line}
+					</li>
+				{/each}
+			</ul>
+		{:else}
+			{@render unavailable(systemErrors.error)}
+		{/if}
+	</PanelSection>
+
+	<PanelSection label={m.incident_failed_services()}>
+		{#if failedServices.data && failedServices.data.length > 0}
+			<ul class="flex flex-col gap-1.5">
+				{#each failedServices.data as s (s.name)}
+					<li class="flex items-baseline justify-between gap-3 text-xs">
+						<span class="min-w-0 truncate font-mono text-[var(--color-fg)]">{s.name}</span>
+						{#if s.raw_state}
+							<span class="shrink-0 font-mono text-[var(--color-danger)]">{s.raw_state}</span>
+						{/if}
+					</li>
+				{/each}
+			</ul>
+		{:else}
+			{@render unavailable(failedServices.error)}
 		{/if}
 	</PanelSection>
 {/if}
