@@ -109,11 +109,7 @@
 			{#if summary === null && !failed}
 				<Skeleton class="h-9 w-56" />
 			{:else if summary !== null}
-				<span
-					class="live-pulse relative inline-flex size-2.5 shrink-0 rounded-full"
-					style="background: {TONE_COLOR[tone]}; --pulse-color: {TONE_COLOR[tone]}"
-					aria-hidden="true"
-				></span>
+				<!-- No dot: the verdict is already written, and in the tone's colour. -->
 				<div class="min-w-0">
 					<p
 						class="truncate text-sm font-semibold tracking-tight"
