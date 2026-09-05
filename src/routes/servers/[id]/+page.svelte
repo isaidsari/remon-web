@@ -11,6 +11,8 @@
 	import DashboardGrid from '$lib/components/dashboard/DashboardGrid.svelte';
 	import WidgetEditorModal from '$lib/components/dashboard/WidgetEditorModal.svelte';
 	import StatusBand from '$lib/components/overview/StatusBand.svelte';
+	import LiveBadge from '$lib/components/ui/LiveBadge.svelte';
+	import { connectionTone } from '$lib/utils/connTone';
 	import { defaultDashboard, normalizeDashboard, widgetId } from '$lib/dashboard/defaults';
 	import { compact, findSlot } from '$lib/dashboard/layout';
 	import { layoutNeedsLive, WIDGET_META } from '$lib/dashboard/registry';
@@ -162,7 +164,18 @@
 {#if profile}
 	<div class="px-4 py-6 md:px-8 md:py-8">
 		<header class="mb-6 flex items-center justify-between gap-3">
-			<h1 class="text-2xl font-semibold tracking-tight">{m.section_overview()}</h1>
+			<div class="flex min-w-0 items-center gap-2.5">
+				<h1 class="text-2xl font-semibold tracking-tight">{m.section_overview()}</h1>
+				<!-- Only where it is true: this is the page whose widgets stream, so a
+				     dropped feed means the numbers on screen have stopped moving. -->
+				{#if conn?.isAuthenticated && needsLive}
+					<LiveBadge
+						tone={connectionTone(conn)}
+						live={conn.live.status === 'open'}
+						showLabel={false}
+					/>
+				{/if}
+			</div>
 			{#if conn?.isAuthenticated}
 				<div class="flex items-center gap-2">
 					{#if editing}

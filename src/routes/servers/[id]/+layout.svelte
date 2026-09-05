@@ -8,7 +8,7 @@
 	import Card from '$lib/components/ui/Card.svelte';
 	import { cn } from '$lib/utils/cn';
 	import { applyAccent, clearAccent } from '$lib/utils/accent';
-	import type { LiveTone } from '$lib/utils/connTone';
+	import { sessionTone, type LiveTone } from '$lib/utils/connTone';
 
 	import { sidebar } from '$lib/stores/sidebar.svelte';
 	import IconChevronLeft from '~icons/lucide/chevron-left';
@@ -137,16 +137,9 @@
 		}
 	}
 
-	let connectionTone = $derived<LiveTone>(
-		conn?.isAuthenticated
-			? conn.live.status === 'open'
-				? 'online'
-				: 'idle'
-			: conn?.status === 'authenticating'
-				? 'connecting'
-				: 'offline'
-	);
-	let connectionLive = $derived(conn?.isAuthenticated === true && conn.live.status === 'open');
+	// Beside the server's name this answers one question: can I reach it. Whether
+	// a live stream happens to be open is the current page's business.
+	let connectionTone = $derived<LiveTone>(conn ? sessionTone(conn) : 'offline');
 
 	// Auto-close on route change so the drawer doesn't linger after a nav item tap.
 	$effect(() => {
@@ -214,8 +207,8 @@
 										? 'bg-[var(--color-danger)]'
 										: 'bg-[var(--color-fg-faint)]'
 						)}
-						title={connectionLive ? m.detail_status_live() : connectionTone}
-						aria-label={connectionLive ? m.detail_status_live() : connectionTone}
+						title={connectionTone}
+						aria-label={connectionTone}
 					></span>
 				</div>
 				<p class="mt-1 truncate font-mono text-xs text-[var(--color-fg-muted)]">

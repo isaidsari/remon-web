@@ -11,6 +11,7 @@
 	import { ApiError } from '$lib/api/error';
 	import { StreamUnsupportedError } from '$lib/api/client';
 	import { cn } from '$lib/utils/cn';
+	import { sessionTone, type LiveTone } from '$lib/utils/connTone';
 	import { m } from '$lib/paraglide/messages';
 	import type { ProposedAction, AssistantTraceStep } from '$lib/types/api';
 	import Markdown from '$lib/components/assistant/Markdown.svelte';
@@ -72,17 +73,9 @@
 
 	let busy = $derived(entries.some((e) => e.loading));
 
-	// Mirrors the sidebar's connection dot so the state stays visible on
-	// mobile, where the sidebar is hidden behind the drawer.
-	let connectionTone = $derived(
-		conn?.isAuthenticated
-			? conn.live.status === 'open'
-				? 'online'
-				: 'idle'
-			: conn?.status === 'authenticating'
-				? 'connecting'
-				: 'offline'
-	);
+	// Mirrors the sidebar dot so the state stays visible on mobile, where the
+	// sidebar is behind the drawer. Session state, not the live-stats stream.
+	let connectionTone = $derived<LiveTone>(conn ? sessionTone(conn) : 'offline');
 
 	let conversations = $state<Conversation[]>([]);
 	let activeId = $state<string | null>(null);
