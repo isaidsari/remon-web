@@ -141,6 +141,18 @@
 	// a live stream happens to be open is the current page's business.
 	let connectionTone = $derived<LiveTone>(conn ? sessionTone(conn) : 'offline');
 
+	// The dot is the only cue here, so its tooltip and label have to carry the
+	// word; LiveBadge already owns the translated vocabulary for these.
+	let connectionLabel = $derived(
+		connectionTone === 'online'
+			? m.livebadge_online()
+			: connectionTone === 'connecting'
+				? m.livebadge_connecting()
+				: connectionTone === 'offline'
+					? m.livebadge_offline()
+					: m.livebadge_idle()
+	);
+
 	// Auto-close on route change so the drawer doesn't linger after a nav item tap.
 	$effect(() => {
 		void currentPath;
@@ -207,8 +219,8 @@
 										? 'bg-[var(--color-danger)]'
 										: 'bg-[var(--color-fg-faint)]'
 						)}
-						title={connectionTone}
-						aria-label={connectionTone}
+						title={connectionLabel}
+						aria-label={connectionLabel}
 					></span>
 				</div>
 				<p class="mt-1 truncate font-mono text-xs text-[var(--color-fg-muted)]">

@@ -196,6 +196,7 @@
 	"alerts_editor_expr_no_window": "{ns} örnek geçmişi tutmaz, pencere alamaz.",
 	"section_events": "olaylar",
 	"section_logs": "sunucu günlüğü",
+	"section_incidents": "anlık görüntüler",
 	"section_processes": "işlemler",
 	"format_just_now": "şimdi",
 	"format_in_future": "ileride",

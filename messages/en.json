@@ -196,6 +196,7 @@
 	"alerts_editor_expr_no_window": "{ns} keeps no sample history, so it cannot take a window.",
 	"section_events": "events",
 	"section_logs": "server log",
+	"section_incidents": "snapshots",
 	"section_processes": "processes",
 	"format_just_now": "just now",
 	"format_in_future": "in the future",

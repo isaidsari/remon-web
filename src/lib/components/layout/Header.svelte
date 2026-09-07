@@ -16,6 +16,8 @@
 		switch (name) {
 			case 'overview':
 				return m.section_overview();
+			case 'assistant':
+				return m.section_assistant();
 			case 'metrics':
 				return m.section_metrics();
 			case 'services':
@@ -38,6 +40,12 @@
 				return m.section_alerts();
 			case 'processes':
 				return m.section_processes();
+			case 'events':
+				return m.section_events();
+			case 'logs':
+				return m.section_logs();
+			case 'incidents':
+				return m.section_incidents();
 			default:
 				return name;
 		}
