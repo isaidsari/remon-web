@@ -64,6 +64,7 @@ import type {
 	MemoryHistoryResponse,
 	MetricsRangeQuery,
 	NetworkHistoryResponse,
+	NetworkUsageResponse,
 	NotificationChannelResponse,
 	PairCompleteRequest,
 	PairCompleteResponse,
@@ -345,6 +346,16 @@ export class ApiClient {
 
 	networkHistory(q: MetricsRangeQuery = {}): Promise<NetworkHistoryResponse> {
 		return this.request<NetworkHistoryResponse>('/metrics/network', { query: { ...q } });
+	}
+
+	/** Bytes moved over the window, not bytes per second. The live counters in
+	 *  `NetworkStats` only ever answer "since boot"; this answers "since when
+	 *  you asked". 404s on a daemon older than the endpoint. */
+	networkUsage(q: MetricsRangeQuery = {}, opts: Cancellable = {}): Promise<NetworkUsageResponse> {
+		return this.request<NetworkUsageResponse>('/metrics/network/usage', {
+			query: { ...q },
+			signal: opts.signal
+		});
 	}
 
 	dockerHistory(container: string, q: MetricsRangeQuery = {}): Promise<DockerHistoryResponse> {

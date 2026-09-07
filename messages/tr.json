@@ -1294,5 +1294,11 @@
 	"incidents_category_availability": "erişilebilirlik",
 	"incidents_category_security": "güvenlik",
 	"incidents_category_custom": "diğer",
-	"incident_delta_vs_capture": "yakalama anına göre"
+	"incident_delta_vs_capture": "yakalama anına göre",
+	"metrics_network_usage_label": "bu aralıkta taşınan",
+	"metrics_network_usage_combined": "toplam",
+	"metrics_network_usage_partial": "aralığın {percent} kadarı ölçüldü",
+	"metrics_network_usage_coverage_hint": "bu aralığın bir kısmında daemon kapalıydı ya da satırlar yaşlanıp silindi — toplamlar bir alt sınır, tüm gerçek değil",
+	"overview_network_total_title": "fiziksel arayüzlerin taşıdığı toplam",
+	"overview_network_total_since": "fiziksel arayüzlerin taşıdığı toplam, açılıştan beri ({uptime} önce)"
 }

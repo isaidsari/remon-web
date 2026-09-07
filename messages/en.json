@@ -1294,5 +1294,11 @@
 	"incidents_category_availability": "availability",
 	"incidents_category_security": "security",
 	"incidents_category_custom": "custom",
-	"incident_delta_vs_capture": "against the capture"
+	"incident_delta_vs_capture": "against the capture",
+	"metrics_network_usage_label": "moved in this window",
+	"metrics_network_usage_combined": "total",
+	"metrics_network_usage_partial": "measured {percent} of the window",
+	"metrics_network_usage_coverage_hint": "the daemon was down, or the rows aged out, for part of this window — the totals are a floor, not the whole truth",
+	"overview_network_total_title": "total moved by the physical interfaces",
+	"overview_network_total_since": "total moved by the physical interfaces, since boot ({uptime} ago)"
 }

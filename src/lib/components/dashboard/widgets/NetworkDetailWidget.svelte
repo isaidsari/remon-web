@@ -5,7 +5,7 @@
 	import type { Connection } from '$lib/stores/connections.svelte';
 	import type { NetworkStats } from '$lib/types/api';
 	import { classifyInterface } from '$lib/utils/netClassify';
-	import { fmtBps, fmtBytes } from '$lib/utils/format';
+	import { fmtBps, fmtBytes, fmtDuration } from '$lib/utils/format';
 	import { m } from '$lib/paraglide/messages';
 
 	interface Props {
@@ -23,6 +23,18 @@
 		network.filter((n) => classifyInterface(n.interface) === 'container')
 	);
 	let virtualNet = $derived(network.filter((n) => classifyInterface(n.interface) === 'virtual'));
+
+	// The per-interface counters were already here, four of them in grey 3xs
+	// type, leaving "how much has this box moved" as arithmetic for the reader.
+	// Physical only: a container bridge carries bytes that also cross the NIC.
+	let totalBytes = $derived(
+		physicalNet.reduce((sum, n) => sum + n.rx_bytes_total + n.tx_bytes_total, 0)
+	);
+
+	// These are the kernel's own counters (sysfs rx_bytes/tx_bytes), which start
+	// at boot and reset with it — so the number is meaningless without the span
+	// it covers, and uptime is the only honest label for it.
+	let uptimeSecs = $derived(conn?.systemInfo?.data?.description?.uptime_secs ?? null);
 </script>
 
 {#snippet ifaceRow(n: NetworkStats)}
@@ -49,9 +61,21 @@
 {/snippet}
 
 <Card class="flex h-full flex-col" padding="sm">
-	<p class="mb-4 text-xs tracking-wide text-[var(--color-fg-muted)]">
-		{m.overview_card_network_title()}
-	</p>
+	<div class="mb-4 flex items-baseline justify-between gap-2">
+		<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">
+			{m.overview_card_network_title()}
+		</p>
+		{#if physicalNet.length > 0}
+			<span
+				class="text-2xs shrink-0 font-mono text-[var(--color-fg-subtle)] tabular-nums"
+				title={uptimeSecs == null
+					? m.overview_network_total_title()
+					: m.overview_network_total_since({ uptime: fmtDuration(uptimeSecs) })}
+			>
+				{fmtBytes(totalBytes)}
+			</span>
+		{/if}
+	</div>
 
 	{#if network.length > 0}
 		<ul class="flex flex-col gap-2.5">

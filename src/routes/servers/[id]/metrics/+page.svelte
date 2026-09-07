@@ -21,7 +21,7 @@
 	import { connections } from '$lib/stores/connections.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { ApiError } from '$lib/api/error';
-	import { fmtBps, fmtNumber, fmtPercent } from '$lib/utils/format';
+	import { fmtBps, fmtBytes, fmtNumber, fmtPercent } from '$lib/utils/format';
 	import { cn } from '$lib/utils/cn';
 	import { m } from '$lib/paraglide/messages';
 	import {
@@ -37,6 +37,7 @@
 		EventDto,
 		MemoryHistoryResponse,
 		NetworkHistoryResponse,
+		NetworkUsageResponse,
 		PressureHistoryResponse,
 		SmartResponse
 	} from '$lib/types/api';
@@ -94,6 +95,13 @@
 	let showAnnotations = $state(true);
 	let queryEnd = $state(0);
 	let smart = $state<SmartResponse | null>(null);
+	// Null until it lands, and stays null against a daemon older than the
+	// endpoint — the card omits the line rather than claiming zero traffic.
+	let netUsage = $state<NetworkUsageResponse | null>(null);
+
+	// Below this the gap is big enough to change what an operator concludes
+	// from the number; above it, the caveat is noise on every single load.
+	const COVERAGE_FLOOR = 0.98;
 
 	let cancelCtrl: AbortController | null = null;
 
@@ -117,7 +125,7 @@
 
 		busy = true;
 		try {
-			const [batch, pc, pm, pi, ev] = await Promise.all([
+			const [batch, pc, pm, pi, ev, usage] = await Promise.all([
 				conn.client.metricsBatch(
 					{
 						resources: 'cpu,memory,disk,network,components',
@@ -131,7 +139,10 @@
 				conn.client
 					.events({ ...q, limit: 500 }, { signal })
 					.then((r) => r.events)
-					.catch(() => [])
+					.catch(() => []),
+				// A daemon without the endpoint 404s here; that is a missing line
+				// on one card, not a failed page load.
+				conn.client.networkUsage(q, { signal }).catch(() => null)
 			]);
 			// The optional calls swallow their own aborts and resolve to null/[],
 			// so re-check before committing anything to state.
@@ -166,6 +177,7 @@
 			pressureMem = pm;
 			pressureIo = pi;
 			events = ev;
+			netUsage = usage;
 			resolution = res;
 			lastFetched = Date.now();
 		} catch (e) {
@@ -853,6 +865,41 @@
 					{#if loading}
 						{@render chartSkeleton()}
 					{:else}
+						{#if netUsage}
+							<!-- The chart answers "how fast"; this is the only thing on the
+							     page that answers "how much", which is the question a
+							     bandwidth quota is written in. -->
+							<div
+								class="mb-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-[var(--color-border)] pb-3"
+							>
+								<span class="text-3xs tracking-wide text-[var(--color-fg-subtle)]">
+									{m.metrics_network_usage_label()}
+								</span>
+								<span class="text-md font-mono text-[var(--color-info)] tabular-nums">
+									↓ {fmtBytes(netUsage.total_rx_bytes)}
+								</span>
+								<span class="text-md font-mono text-[var(--color-success)] tabular-nums">
+									↑ {fmtBytes(netUsage.total_tx_bytes)}
+								</span>
+								<span class="text-2xs font-mono text-[var(--color-fg-muted)] tabular-nums">
+									{fmtBytes(netUsage.total_rx_bytes + netUsage.total_tx_bytes)}
+									{m.metrics_network_usage_combined()}
+								</span>
+								{#if netUsage.coverage < COVERAGE_FLOOR}
+									<!-- A total read against a quota must not look complete when
+									     it is not. Only shown once the gap is big enough to
+									     change a decision. -->
+									<span
+										class="text-2xs ml-auto font-mono text-[var(--color-warning)] tabular-nums"
+										title={m.metrics_network_usage_coverage_hint()}
+									>
+										{m.metrics_network_usage_partial({
+											percent: fmtPercent(netUsage.coverage * 100, 0)
+										})}
+									</span>
+								{/if}
+							</div>
+						{/if}
 						{#if networkSeries.length > 0}
 							<SeriesStrips series={networkSeries} format={fmtBpsCell} class="mb-3" />
 						{/if}

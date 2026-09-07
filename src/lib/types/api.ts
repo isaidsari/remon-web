@@ -287,6 +287,29 @@ export interface NetworkHistoryResponse {
 	points: NetworkPoint[];
 }
 
+export interface NetworkUsageInterface {
+	name: string;
+	rx_bytes: number;
+	tx_bytes: number;
+	/** An encapsulating tunnel: its payload also crosses a physical NIC, so it
+	 *  is listed but left out of the totals. */
+	is_tunnel: boolean;
+}
+
+/** Bytes moved over a window, integrated server-side from the stored rates. */
+export interface NetworkUsageResponse {
+	start: number;
+	end: number;
+	resolution: MetricsResolution;
+	/** Non-tunnel interfaces only. */
+	total_rx_bytes: number;
+	total_tx_bytes: number;
+	/** 0..=1. Below 1 the daemon was down or rows aged out, so the totals are a
+	 *  floor rather than the whole truth. */
+	coverage: number;
+	interfaces: NetworkUsageInterface[];
+}
+
 export interface DockerPoint {
 	timestamp: number;
 	cpu_percent: number;
