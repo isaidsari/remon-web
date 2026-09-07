@@ -54,6 +54,9 @@ export function openSseStream(opts: OpenSseOptions): SseSubscription {
 		},
 		onclose() {
 			opts.handlers.onClose?.();
+			// These are live subscriptions: a clean EOF (including daemon
+			// shutdown) must enter the library's retry loop too.
+			throw new Error('SSE stream ended; reconnecting');
 		}
 	}).catch((err) => {
 		// Surfaces the AbortError when the consumer calls close().

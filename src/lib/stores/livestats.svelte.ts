@@ -110,6 +110,14 @@ export class LiveStats {
 		}, LiveStats.RELEASE_GRACE_MS);
 	}
 
+	/** Stop streams and delayed cleanup when the owning connection is discarded. */
+	dispose(): void {
+		if (this.releaseTimer !== null) clearTimeout(this.releaseTimer);
+		this.releaseTimer = null;
+		this.subscribers = 0;
+		this.closeStream();
+	}
+
 	/** Forced full restart — used after auth resets so the stream re-handshakes. */
 	restart(): void {
 		if (this.subscribers === 0) return;

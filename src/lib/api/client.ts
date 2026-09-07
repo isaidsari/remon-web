@@ -131,6 +131,7 @@ export class ApiClient {
 	private getAccessToken: AccessTokenProvider;
 	private getCache = new Map<string, { data: unknown; ts: number }>();
 	private inflight = new Map<string, Promise<unknown>>();
+	private cacheGeneration = 0;
 
 	constructor(baseUrl: string, getAccessToken: AccessTokenProvider = () => null) {
 		this.baseUrl = baseUrl.replace(/\/+$/, '');
@@ -139,6 +140,13 @@ export class ApiClient {
 
 	setAccessTokenProvider(provider: AccessTokenProvider) {
 		this.getAccessToken = provider;
+		this.clearCache();
+	}
+
+	clearCache(): void {
+		this.cacheGeneration++;
+		this.getCache.clear();
+		this.inflight.clear();
 	}
 
 	async request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
@@ -154,6 +162,7 @@ export class ApiClient {
 		} = opts;
 
 		const url = this.buildUrl(path, query);
+		const generation = this.cacheGeneration;
 
 		const cacheable = method === 'GET' && !bypassCache && !signal;
 		if (cacheable) {
@@ -198,6 +207,9 @@ export class ApiClient {
 			}
 
 			if (!res.ok) throw await errorFromResponse(res);
+			// Invalidate before parsing: even an empty or malformed response
+			// may represent a successfully committed write on the server.
+			if (method !== 'GET') this.clearCache();
 
 			if (parse === 'none') return undefined as T;
 			if (parse === 'text') return (await res.text()) as T;
@@ -217,11 +229,17 @@ export class ApiClient {
 			}
 		}
 		promise
-			.then((data) => this.getCache.set(url, { data, ts: Date.now() }))
+			.then((data) => {
+				if (generation === this.cacheGeneration) {
+					this.getCache.set(url, { data, ts: Date.now() });
+				}
+			})
 			.catch(() => {
 				/* don't cache failures */
 			})
-			.finally(() => this.inflight.delete(url));
+			.finally(() => {
+				if (this.inflight.get(url) === promise) this.inflight.delete(url);
+			});
 		return promise;
 	}
 
