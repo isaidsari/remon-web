@@ -56,7 +56,7 @@
 	<div class="px-4 py-6 md:px-8 md:py-8">
 		<button
 			type="button"
-			onclick={() => goto(`/servers/${id}/events`)}
+			onclick={() => goto(`/servers/${id}/incidents`)}
 			class="mb-5 inline-flex items-center gap-1.5 text-xs text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]"
 		>
 			<IconChevronLeft class="size-[14px]" stroke-width="2" />
@@ -109,7 +109,7 @@
 				<Card>
 					<h2 class="mb-3 text-sm font-medium text-[var(--color-fg)]">{m.incident_after()}</h2>
 					{#if incident.after_bundle}
-						<BundleView bundle={incident.after_bundle} compact />
+						<BundleView bundle={incident.after_bundle} compact baseline={incident.bundle} />
 					{:else}
 						<p class="text-xs text-[var(--color-fg-subtle)]">{m.incident_after_missing()}</p>
 					{/if}

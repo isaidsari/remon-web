@@ -23,6 +23,7 @@
 	import IconTriangleAlert from '~icons/lucide/triangle-alert';
 	import IconZap from '~icons/lucide/zap';
 	import IconScrollText from '~icons/lucide/scroll-text';
+	import IconCamera from '~icons/lucide/camera';
 	import IconFileText from '~icons/lucide/file-text';
 	import IconBell from '~icons/lucide/bell';
 	import IconSettings from '~icons/lucide/settings';
@@ -76,6 +77,7 @@
 		{ href: '/alerts', label: m.section_alerts(), icon: IconTriangleAlert, enabled: true },
 		{ href: '/actions', label: m.section_actions(), icon: IconZap, enabled: true },
 		{ href: '/events', label: m.section_events(), icon: IconScrollText, enabled: true },
+		{ href: '/incidents', label: m.section_incidents(), icon: IconCamera, enabled: true },
 		{ href: '/logs', label: m.section_logs(), icon: IconFileText, enabled: true },
 		{ href: '/notifications', label: m.section_notifications(), icon: IconBell, enabled: true },
 		{ href: '/config', label: m.section_config(), icon: IconSettings, enabled: true },
@@ -126,6 +128,9 @@
 				break;
 			case '/events':
 				void c.events({ limit: 1000 }).catch(() => {});
+				break;
+			case '/incidents':
+				void c.listIncidents(200).catch(() => {});
 				break;
 			case '/notifications':
 				void c.listChannels().catch(() => {});

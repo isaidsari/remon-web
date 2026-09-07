@@ -1119,12 +1119,15 @@ export interface TestChannelResponse {
 	delivered: number;
 }
 
+/** The four buckets a capture can be filed under. */
+export type IncidentCategory = 'resource' | 'availability' | 'security' | 'custom';
+
 /** Manual capture of host context; alert transitions capture on their own. */
 export interface CaptureIncidentRequest {
 	/** Why this moment is worth recording (stored, clamped server-side). */
 	reason: string;
 	/** Defaults to `custom` on the server. */
-	category?: 'resource' | 'availability' | 'security' | 'custom';
+	category?: IncidentCategory;
 }
 
 export interface CaptureIncidentResponse {
@@ -1136,7 +1139,7 @@ export interface IncidentSummaryDto {
 	id: number;
 	created_at: number;
 	trigger_kind: 'alert' | 'manual';
-	category: 'resource' | 'availability' | 'security' | 'custom';
+	category: IncidentCategory;
 	rule_name?: string;
 	label_set?: string;
 	metric_value?: number;

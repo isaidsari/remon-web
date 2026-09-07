@@ -33,9 +33,13 @@
 		bundle: IncidentBundle;
 		/** The follow-up carries vitals and processes only. */
 		compact?: boolean;
+		/** The capture this one is read against. Set on the follow-up: the only
+		 *  question a minute later is "better or worse", and two columns of bare
+		 *  numbers make the reader do that subtraction by eye. */
+		baseline?: IncidentBundle;
 	}
 
-	let { bundle, compact = false }: Props = $props();
+	let { bundle, compact = false, baseline }: Props = $props();
 
 	let vitals = $derived(slice<IncidentVitals>(bundle.vitals));
 	// The daemon wraps the ranked union in `{ snapshot_at, processes }`; unwrap it
@@ -47,17 +51,46 @@
 	let daemonErrors = $derived(slice<IncidentDaemonError[]>(bundle.recent_daemon_errors));
 	let coActive = $derived(slice<IncidentCoActiveAlert[]>(bundle.co_active_alerts));
 
-	let memPct = $derived.by(() => {
-		const v = vitals.data;
+	function memPercentOf(v: IncidentVitals | null): number | null {
 		if (!v?.memory_total_bytes) return null;
 		return ((v.memory_used_bytes ?? 0) / v.memory_total_bytes) * 100;
-	});
+	}
+
+	let memPct = $derived(memPercentOf(vitals.data));
+
+	let baseVitals = $derived(baseline ? slice<IncidentVitals>(baseline.vitals).data : null);
+	let baseMemPct = $derived(memPercentOf(baseVitals));
+
+	/** Signed change against the baseline, already worded. `null` whenever the
+	 *  comparison would be a guess — no baseline, a missing side, or no movement
+	 *  worth a line. Every vital below is lower-is-better, so a fall is good. */
+	function delta(
+		now: number | null | undefined,
+		before: number | null | undefined,
+		format: (n: number) => string
+	): { text: string; better: boolean } | null {
+		if (baseVitals == null || now == null || before == null) return null;
+		const d = now - before;
+		// Formatting decides the resolution; a change that rounds away is noise.
+		if (format(Math.abs(d)) === format(0)) return null;
+		return { text: `${d < 0 ? '↓' : '↑'} ${format(Math.abs(d))}`, better: d < 0 };
+	}
 </script>
 
-{#snippet stat(label: string, value: string)}
+{#snippet stat(label: string, value: string, change?: { text: string; better: boolean } | null)}
 	<div>
 		<dt class="text-3xs tracking-wide text-[var(--color-fg-subtle)]">{label}</dt>
 		<dd class="text-md font-mono text-[var(--color-fg)] tabular-nums">{value}</dd>
+		{#if change}
+			<dd
+				class={change.better
+					? 'text-3xs font-mono text-[var(--color-success)] tabular-nums'
+					: 'text-3xs font-mono text-[var(--color-danger)] tabular-nums'}
+				title={m.incident_delta_vs_capture()}
+			>
+				{change.text}
+			</dd>
+		{/if}
 	</div>
 {/snippet}
 
@@ -70,10 +103,24 @@
 {#if vitals.data}
 	{@const v = vitals.data}
 	<dl class="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
-		{@render stat('cpu', v.cpu_percent == null ? '—' : fmtPercent(v.cpu_percent, 1))}
+		{@render stat(
+			'cpu',
+			v.cpu_percent == null ? '—' : fmtPercent(v.cpu_percent, 1),
+			delta(v.cpu_percent, baseVitals?.cpu_percent, (n) => fmtPercent(n, 1))
+		)}
+		<!-- Load is a triple, so a single arrow beside it would be ambiguous;
+		     the 1-minute figure carries the comparison in the other three. -->
 		{@render stat(m.incident_load(), v.load ? v.load.map((n) => fmtNumber(n, 2)).join(' · ') : '—')}
-		{@render stat(m.overview_card_memory_title(), memPct == null ? '—' : fmtPercent(memPct, 1))}
-		{@render stat(m.incident_swap(), v.swap_used_bytes == null ? '—' : fmtBytes(v.swap_used_bytes))}
+		{@render stat(
+			m.overview_card_memory_title(),
+			memPct == null ? '—' : fmtPercent(memPct, 1),
+			delta(memPct, baseMemPct, (n) => fmtPercent(n, 1))
+		)}
+		{@render stat(
+			m.incident_swap(),
+			v.swap_used_bytes == null ? '—' : fmtBytes(v.swap_used_bytes),
+			delta(v.swap_used_bytes, baseVitals?.swap_used_bytes, (n) => fmtBytes(n))
+		)}
 	</dl>
 
 	{#if v.disks && v.disks.length > 0}
