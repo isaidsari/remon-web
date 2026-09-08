@@ -74,8 +74,8 @@
 </script>
 
 <div class="app-content mx-auto max-w-6xl px-4 py-7 sm:px-6 sm:py-10">
-	<header class="mb-7 flex flex-wrap items-center justify-between gap-4 sm:mb-9">
-		<div class="min-w-0">
+	<header class="mb-6 flex flex-wrap items-center gap-3">
+		<div class="mr-auto min-w-0 lg:mr-0">
 			<h1 class="flex items-center gap-2.5 text-2xl font-semibold tracking-tight">
 				{m.servers_title()}
 				<span
@@ -84,22 +84,12 @@
 					{profiles.list.length}
 				</span>
 			</h1>
-			<p class="mt-2 text-sm text-[var(--color-fg-subtle)]">{m.servers_description()}</p>
 		</div>
 
 		{#if profiles.list.length > 0}
-			<Button onclick={() => goto('/servers/new')} class="h-10 shrink-0">
-				<IconPlus class="size-4" aria-hidden="true" />
-				{m.servers_add_card()}
-			</Button>
-		{/if}
-	</header>
-
-	{#if profiles.list.length > 0}
-		<div
-			class="mb-5 flex flex-col gap-4 border-b border-[var(--color-border)] pb-5 sm:flex-row sm:items-center sm:justify-between"
-		>
-			<div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-[var(--color-fg-muted)]">
+			<div
+				class="text-2xs mr-auto hidden flex-wrap items-center gap-x-3 gap-y-1 text-[var(--color-fg-subtle)] lg:flex"
+			>
 				<span class="inline-flex items-center gap-2">
 					<span class="size-1.5 rounded-full bg-[var(--color-success)]" aria-hidden="true"></span>
 					{m.servers_connected_count({ count: toneCounts.connected })}
@@ -117,7 +107,7 @@
 					</span>
 				{/if}
 			</div>
-			<div class="relative w-full sm:w-64">
+			<div class="relative order-last w-full sm:order-none sm:w-52">
 				<IconSearch
 					class="pointer-events-none absolute top-3 left-3 size-4 text-[var(--color-fg-subtle)]"
 					aria-hidden="true"
@@ -140,8 +130,12 @@
 					</button>
 				{/if}
 			</div>
-		</div>
-	{/if}
+			<Button onclick={() => goto('/servers/new')} class="h-10 shrink-0">
+				<IconPlus class="size-4" aria-hidden="true" />
+				{m.servers_add_card()}
+			</Button>
+		{/if}
+	</header>
 
 	{#if profiles.list.length === 0}
 		<div

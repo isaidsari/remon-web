@@ -149,19 +149,13 @@
 
 <article
 	class={cn(
-		'group enter relative flex min-w-0 flex-col rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-inset-hi)]',
+		'group enter relative flex min-w-0 flex-col rounded-[var(--radius-card)] border border-[var(--card-border,var(--color-border))] bg-[var(--color-surface)] shadow-[var(--shadow-inset-hi)]',
 		'transition-[border-color,box-shadow] duration-[var(--dur-mid)] ease-[var(--ease-snap)]',
-		'hover:border-[var(--color-border-strong)] hover:shadow-[0_4px_20px_-10px_rgba(0,0,0,0.25)]'
+		'hover:border-[var(--card-border,var(--color-border-strong))] hover:shadow-[0_4px_20px_-10px_rgba(0,0,0,0.25)]'
 	)}
+	style={profile.accent ? `--card-border: ${profile.accent}` : undefined}
 >
-	{#if profile.accent}
-		<span
-			class="pointer-events-none absolute top-0 right-5 left-5 h-0.5 rounded-full"
-			style:background={profile.accent}
-			aria-hidden="true"
-		></span>
-	{/if}
-	<header class="flex items-start gap-3 px-5 pt-5">
+	<header class="flex items-start gap-3 px-4 pt-4">
 		<div
 			class="grid size-10 shrink-0 place-items-center rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-soft)]"
 			aria-hidden="true"
@@ -227,14 +221,12 @@
 		{/if}
 	</header>
 
-	<div
-		class="mx-5 mt-4 flex items-center justify-between border-b border-[var(--color-border)] pb-3"
-	>
+	<div class="mx-4 mt-2.5 flex items-center justify-between">
 		<LiveBadge {tone} live={isStreaming} />
 		{#if cpuLabel}<span class="text-2xs font-mono text-[var(--color-fg-subtle)]">{cpuLabel}</span
 			>{/if}
 	</div>
-	<div class={cn('flex flex-1 flex-col gap-1.5 px-5 py-3', !isStreaming && 'opacity-50')}>
+	<div class={cn('flex flex-1 flex-col gap-0.5 px-4 py-2', !isStreaming && 'opacity-50')}>
 		{@render sparkRow(
 			'CPU',
 			cpuPct,
@@ -251,7 +243,7 @@
 	</div>
 
 	<footer
-		class="text-2xs flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-b-[var(--radius-card)] border-t border-[var(--color-border)] bg-[var(--color-bg-soft)] px-5 py-3 text-[var(--color-fg-subtle)]"
+		class="text-2xs flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-b-[var(--radius-card)] border-t border-[var(--color-border)] bg-[var(--color-bg-soft)] px-4 py-2.5 text-[var(--color-fg-subtle)]"
 	>
 		{#if osLabel}
 			<span class="min-w-0 truncate">{osLabel}</span>
