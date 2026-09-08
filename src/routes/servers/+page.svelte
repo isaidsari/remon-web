@@ -10,6 +10,8 @@
 	import { confirm } from '$lib/stores/confirm.svelte';
 	import IconPlus from '~icons/lucide/plus';
 	import IconServer from '~icons/lucide/server';
+	import IconSearch from '~icons/lucide/search';
+	import IconX from '~icons/lucide/x';
 	import { ApiError } from '$lib/api/error';
 	import type { ServerProfile } from '$lib/types/profile';
 	import { m } from '$lib/paraglide/messages';
@@ -40,16 +42,14 @@
 		);
 	});
 
-	let showFilter = $derived(profiles.list.length >= 6);
-
-	// $effect not $derived.by: conn.live lazily creates the LiveStats instance; $derived's strict mode suppresses that side effect.
-	let toneCounts = $state({ connecting: 0, offline: 0 });
+	let toneCounts = $state({ connected: 0, connecting: 0, offline: 0 });
 	$effect(() => {
-		const counts = { connecting: 0, offline: 0 };
+		const counts = { connected: 0, connecting: 0, offline: 0 };
 		for (const p of profiles.list) {
 			const conn = connections.connect(p);
-			if (conn.status === 'authenticating') counts.connecting++;
-			else if (!conn.isAuthenticated) counts.offline++;
+			if (conn.isAuthenticated) counts.connected++;
+			else if (conn.status === 'authenticating') counts.connecting++;
+			else counts.offline++;
 		}
 		toneCounts = counts;
 	});
@@ -73,9 +73,9 @@
 	}
 </script>
 
-<div class="app-content mx-auto max-w-6xl px-6 py-12">
-	<header class="mb-8 flex flex-wrap items-end justify-between gap-4">
-		<div>
+<div class="app-content mx-auto max-w-6xl px-4 py-7 sm:px-6 sm:py-10">
+	<header class="mb-7 flex flex-wrap items-center justify-between gap-4 sm:mb-9">
+		<div class="min-w-0">
 			<h1 class="flex items-center gap-2.5 text-2xl font-semibold tracking-tight">
 				{m.servers_title()}
 				<span
@@ -83,31 +83,65 @@
 				>
 					{profiles.list.length}
 				</span>
+			</h1>
+			<p class="mt-2 text-sm text-[var(--color-fg-subtle)]">{m.servers_description()}</p>
+		</div>
+
+		{#if profiles.list.length > 0}
+			<Button onclick={() => goto('/servers/new')} class="h-10 shrink-0">
+				<IconPlus class="size-4" aria-hidden="true" />
+				{m.servers_add_card()}
+			</Button>
+		{/if}
+	</header>
+
+	{#if profiles.list.length > 0}
+		<div
+			class="mb-5 flex flex-col gap-4 border-b border-[var(--color-border)] pb-5 sm:flex-row sm:items-center sm:justify-between"
+		>
+			<div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-[var(--color-fg-muted)]">
+				<span class="inline-flex items-center gap-2">
+					<span class="size-1.5 rounded-full bg-[var(--color-success)]" aria-hidden="true"></span>
+					{m.servers_connected_count({ count: toneCounts.connected })}
+				</span>
 				{#if toneCounts.connecting > 0}
-					<span
-						class="text-2xs inline-flex items-center gap-1 font-mono font-medium text-[var(--color-warning)]"
-					>
-						<span class="h-1.5 w-1.5 rounded-full bg-[var(--color-warning)]"></span>
-						{toneCounts.connecting}
+					<span class="inline-flex items-center gap-2">
+						<span class="size-1.5 rounded-full bg-[var(--color-warning)]" aria-hidden="true"></span>
+						{m.servers_connecting_count({ count: toneCounts.connecting })}
 					</span>
 				{/if}
 				{#if toneCounts.offline > 0}
-					<span
-						class="text-2xs inline-flex items-center gap-1 font-mono font-medium text-[var(--color-danger)]"
-					>
-						<span class="h-1.5 w-1.5 rounded-full bg-[var(--color-danger)]"></span>
-						{toneCounts.offline}
+					<span class="inline-flex items-center gap-2 text-[var(--color-danger)]">
+						<span class="size-1.5 rounded-full bg-current" aria-hidden="true"></span>
+						{m.servers_offline_count({ count: toneCounts.offline })}
 					</span>
 				{/if}
-			</h1>
-		</div>
-
-		{#if showFilter}
-			<div class="flex flex-shrink-0 items-center gap-2">
-				<Input placeholder={m.servers_filter_placeholder()} bind:value={q} class="w-48" />
 			</div>
-		{/if}
-	</header>
+			<div class="relative w-full sm:w-64">
+				<IconSearch
+					class="pointer-events-none absolute top-3 left-3 size-4 text-[var(--color-fg-subtle)]"
+					aria-hidden="true"
+				/>
+				<Input
+					type="search"
+					aria-label={m.servers_search_label()}
+					placeholder={m.servers_search_label()}
+					bind:value={q}
+					class="h-10 pr-10 pl-9 [&::-webkit-search-cancel-button]:appearance-none"
+				/>
+				{#if q}
+					<button
+						type="button"
+						onclick={() => (q = '')}
+						aria-label={m.servers_clear_search()}
+						class="absolute top-0 right-0 grid size-10 place-items-center rounded-[var(--radius-input)] text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)]"
+					>
+						<IconX class="size-4" aria-hidden="true" />
+					</button>
+				{/if}
+			</div>
+		</div>
+	{/if}
 
 	{#if profiles.list.length === 0}
 		<div
@@ -130,32 +164,19 @@
 		</div>
 	{:else if filtered.length === 0}
 		<div
-			class="rounded-[var(--radius-card)] border border-dashed border-[var(--color-border)] px-6 py-12 text-center text-sm text-[var(--color-fg-muted)]"
+			class="rounded-[var(--radius-card)] border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-14 text-center text-sm text-[var(--color-fg-muted)]"
 		>
-			{m.servers_no_match({ q })}
+			<IconSearch class="mx-auto mb-4 size-6 text-[var(--color-fg-subtle)]" aria-hidden="true" />
+			<p role="status">{m.servers_no_match({ q })}</p>
+			<Button variant="secondary" onclick={() => (q = '')} class="mt-5 h-10"
+				>{m.servers_clear_search()}</Button
+			>
 		</div>
 	{:else}
 		<div class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
 			{#each filtered as p (p.id)}
 				<ServerCard profile={p} conn={connections.connect(p)} onRemove={(e) => remove(p, e)} />
 			{/each}
-			{#if !q.trim()}
-				<a
-					href="/servers/new"
-					class="group flex min-h-[260px] flex-col items-center justify-center rounded-[var(--radius-card)] border border-dashed border-[var(--color-border)] bg-transparent p-5 text-center transition-colors duration-[var(--dur-fast)] hover:border-[var(--color-fg-subtle)] hover:bg-[var(--color-surface)]/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-ring)]"
-				>
-					<div
-						class="grid h-11 w-11 place-items-center rounded-full bg-[var(--color-surface-2)] text-[var(--color-fg-muted)] transition-colors group-hover:bg-[var(--color-surface-3)] group-hover:text-[var(--color-fg)]"
-					>
-						<IconPlus class="size-[18px]" stroke-width="1.8" />
-					</div>
-					<p
-						class="mt-3 font-mono text-xs tracking-[0.04em] text-[var(--color-fg-muted)] transition-colors group-hover:text-[var(--color-fg)]"
-					>
-						{m.servers_add_card()}
-					</p>
-				</a>
-			{/if}
 		</div>
 	{/if}
 </div>

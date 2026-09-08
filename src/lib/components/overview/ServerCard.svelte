@@ -9,6 +9,7 @@
 	import type { Connection } from '$lib/stores/connections.svelte';
 	import type { LiveTone } from '$lib/utils/connTone';
 	import IconTrash from '~icons/lucide/trash-2';
+	import IconServer from '~icons/lucide/server';
 	import OsIcon from './OsIcon.svelte';
 	import { connectionTone } from '$lib/utils/connTone';
 	import { m } from '$lib/paraglide/messages';
@@ -35,7 +36,7 @@
 	// — it's cached on the connection, so visiting /overview later costs nothing.
 	$effect(() => {
 		if (!conn.isAuthenticated) return;
-		void conn.fetchSystemInfo();
+		void conn.fetchSystemInfo().catch(() => {});
 	});
 
 	let cpuPct = $derived(live.cpu?.usage_percent ?? null);
@@ -146,43 +147,57 @@
 	}
 </script>
 
-<a
-	href={`/servers/${profile.id}`}
-	onmouseenter={prefetchOverview}
-	onfocus={prefetchOverview}
+<article
 	class={cn(
-		'group enter relative block overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-surface)]',
-		'shadow-[var(--shadow-inset-hi),0_0_0_1px_var(--card-border,var(--color-border))]',
-		'transition-shadow duration-[var(--dur-mid)] ease-[var(--ease-snap)]',
-		'hover:shadow-[var(--shadow-inset-hi-strong),0_0_0_1px_var(--card-border-strong,var(--color-border-strong))]',
-		'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-ring)]'
+		'group enter relative flex min-w-0 flex-col rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-inset-hi)]',
+		'transition-[border-color,box-shadow] duration-[var(--dur-mid)] ease-[var(--ease-snap)]',
+		'hover:border-[var(--color-border-strong)] hover:shadow-[0_4px_20px_-10px_rgba(0,0,0,0.25)]'
 	)}
-	style={profile.accent
-		? `--card-border: ${profile.accent}; --card-border-strong: ${profile.accent}`
-		: ''}
-	aria-label={m.servercard_aria_open({ name: displayName })}
 >
-	<header class="flex items-start gap-3 px-4 pt-4">
+	{#if profile.accent}
+		<span
+			class="pointer-events-none absolute top-0 right-5 left-5 h-0.5 rounded-full"
+			style:background={profile.accent}
+			aria-hidden="true"
+		></span>
+	{/if}
+	<header class="flex items-start gap-3 px-5 pt-5">
+		<div
+			class="grid size-10 shrink-0 place-items-center rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-soft)]"
+			aria-hidden="true"
+		>
+			{#if sysInfo}
+				<OsIcon
+					os={sysInfo.description.os}
+					version={sysInfo.description.os_version}
+					class="size-5"
+				/>
+			{:else}
+				<IconServer class="size-5 text-[var(--color-fg-subtle)]" />
+			{/if}
+		</div>
 		<div class="min-w-0 flex-1">
-			<h3
-				class="flex items-center gap-2 font-mono text-sm font-semibold tracking-[0.01em] text-[var(--color-fg)]"
-			>
-				{#if sysInfo}
-					<OsIcon
-						os={sysInfo.description.os}
-						version={sysInfo.description.os_version}
-						class="size-4 shrink-0"
-					/>
-				{/if}
-				<span class="truncate">{displayName}</span>
+			<h3 class="text-base font-semibold tracking-tight text-[var(--color-fg)]">
+				<a
+					href={`/servers/${profile.id}`}
+					onmouseenter={prefetchOverview}
+					onfocus={prefetchOverview}
+					aria-label={m.servercard_aria_open({ name: displayName })}
+					title={profile.baseUrl}
+					class="after:absolute after:inset-0 after:z-10 after:rounded-[var(--radius-card)] after:content-[''] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-[var(--color-ring)]"
+					><span class="block truncate">{displayName}</span></a
+				>
 			</h3>
-			<p class="text-2xs mt-1 truncate font-mono text-[var(--color-fg-muted)]">
+			<p
+				class="text-2xs mt-0.5 truncate font-mono text-[var(--color-fg-subtle)]"
+				title={profile.baseUrl}
+			>
 				{profile.baseUrl}
 			</p>
 			{#if !conn.isAuthenticated && conn.error}
 				<div class="mt-1.5 flex items-center gap-2">
 					<p
-						class="text-3xs min-w-0 flex-1 truncate font-mono text-[var(--color-danger)]/80"
+						class="min-w-0 flex-1 text-xs text-[var(--color-danger)]"
 						title={conn.error.userMessage}
 					>
 						{conn.error.userMessage}
@@ -191,7 +206,7 @@
 						<button
 							type="button"
 							onclick={handleRepairClick}
-							class="text-3xs shrink-0 rounded-md border border-[var(--color-warning)]/40 bg-[var(--color-warning)]/10 px-2 py-0.5 font-mono tracking-wide text-[var(--color-warning)] transition-all duration-[var(--dur-fast)] hover:border-[var(--color-warning)]/60 hover:bg-[var(--color-warning)]/15"
+							class="relative z-20 min-h-10 shrink-0 rounded-md border border-[var(--color-warning)]/40 bg-[var(--color-warning)]/10 px-2 text-xs text-[var(--color-warning)] transition-colors duration-[var(--dur-fast)] hover:bg-[var(--color-warning)]/15"
 						>
 							{m.servercard_repair_button()}
 						</button>
@@ -203,16 +218,23 @@
 			<button
 				type="button"
 				onclick={handleRemoveClick}
-				class="grid h-7 w-7 shrink-0 place-items-center rounded-md text-[var(--color-fg-subtle)] opacity-60 transition-all duration-[var(--dur-fast)] group-hover:opacity-100 hover:bg-[var(--color-surface-3)] hover:text-[var(--color-danger)] hover:opacity-100 focus-visible:opacity-100"
+				class="relative z-20 -mt-1 -mr-2 grid size-10 shrink-0 place-items-center rounded-md text-[var(--color-fg-subtle)] transition-colors duration-[var(--dur-fast)] hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger)]"
 				aria-label={m.servercard_aria_remove()}
 				title={m.servercard_remove_title()}
 			>
-				<IconTrash class="size-[13px]" stroke-width="2" />
+				<IconTrash class="size-3.5" stroke-width="1.8" />
 			</button>
 		{/if}
 	</header>
 
-	<div class="mt-2.5 flex flex-col gap-1 px-4">
+	<div
+		class="mx-5 mt-4 flex items-center justify-between border-b border-[var(--color-border)] pb-3"
+	>
+		<LiveBadge {tone} live={isStreaming} />
+		{#if cpuLabel}<span class="text-2xs font-mono text-[var(--color-fg-subtle)]">{cpuLabel}</span
+			>{/if}
+	</div>
+	<div class={cn('flex flex-1 flex-col gap-1.5 px-5 py-3', !isStreaming && 'opacity-50')}>
 		{@render sparkRow(
 			'CPU',
 			cpuPct,
@@ -229,24 +251,18 @@
 	</div>
 
 	<footer
-		class="mt-2.5 flex items-center gap-2 border-t border-[var(--color-border)] px-4 py-2.5 text-xs text-[var(--color-fg-muted)]"
+		class="text-2xs flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-b-[var(--radius-card)] border-t border-[var(--color-border)] bg-[var(--color-bg-soft)] px-5 py-3 text-[var(--color-fg-subtle)]"
 	>
 		{#if osLabel}
-			<span class="truncate">{osLabel}</span>
+			<span class="min-w-0 truncate">{osLabel}</span>
 		{:else}
 			<span class="text-[var(--color-fg-subtle)]">{m.servercard_awaiting_host()}</span>
 		{/if}
 		{#if sysInfo}
-			<span class="text-[var(--color-fg-faint)]" aria-hidden="true">·</span>
 			<span class="shrink-0">{m.servercard_uptime_prefix()} {fmtDuration(liveUptime)}</span>
-			{#if cpuLabel}
-				<span class="text-[var(--color-fg-faint)]" aria-hidden="true">·</span>
-				<span class="shrink-0 font-mono">{cpuLabel}</span>
-			{/if}
 		{/if}
-		<LiveBadge {tone} live={isStreaming} showLabel={false} class="ml-auto shrink-0" />
 	</footer>
-</a>
+</article>
 
 {#snippet sparkRow(
 	label: string,
