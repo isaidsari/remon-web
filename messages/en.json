@@ -1304,5 +1304,11 @@
 	"metrics_network_usage_partial": "measured {percent} of the window",
 	"metrics_network_usage_coverage_hint": "the daemon was down, or the rows aged out, for part of this window — the totals are a floor, not the whole truth",
 	"overview_network_total_title": "total moved by the physical interfaces",
-	"overview_network_total_since": "total moved by the physical interfaces, since boot ({uptime} ago)"
+	"overview_network_total_since": "total moved by the physical interfaces, since boot ({uptime} ago)",
+	"metrics_disk_runway_label": "how long the space lasts",
+	"metrics_disk_runway_per_day": "/day",
+	"metrics_disk_runway_full_in": "full in {days} d",
+	"metrics_disk_runway_range": "between {low} and {high} days, from the spread of the fitted trend",
+	"metrics_disk_runway_range_open": "at least {low} days; the slower end of the trend is not filling at all",
+	"metrics_disk_runway_hint": "extrapolated from the last two weeks; volumes with no clear trend are left out"
 }

@@ -1304,5 +1304,11 @@
 	"metrics_network_usage_partial": "aralığın {percent} kadarı ölçüldü",
 	"metrics_network_usage_coverage_hint": "bu aralığın bir kısmında daemon kapalıydı ya da satırlar yaşlanıp silindi — toplamlar bir alt sınır, tüm gerçek değil",
 	"overview_network_total_title": "fiziksel arayüzlerin taşıdığı toplam",
-	"overview_network_total_since": "fiziksel arayüzlerin taşıdığı toplam, açılıştan beri ({uptime} önce)"
+	"overview_network_total_since": "fiziksel arayüzlerin taşıdığı toplam, açılıştan beri ({uptime} önce)",
+	"metrics_disk_runway_label": "alan ne kadar yeter",
+	"metrics_disk_runway_per_day": "/gün",
+	"metrics_disk_runway_full_in": "{days} günde dolar",
+	"metrics_disk_runway_range": "uydurulan eğilimin yayılımına göre {low} ile {high} gün arası",
+	"metrics_disk_runway_range_open": "en az {low} gün; eğilimin yavaş ucu hiç dolmuyor",
+	"metrics_disk_runway_hint": "son iki haftadan çıkarıldı; belirgin eğilimi olmayan bölümler listelenmez"
 }

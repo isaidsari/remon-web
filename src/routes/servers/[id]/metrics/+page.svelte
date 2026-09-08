@@ -33,6 +33,8 @@
 	import type {
 		ComponentsHistoryResponse,
 		CpuHistoryResponse,
+		DiskForecastMount,
+		DiskForecastResponse,
 		DiskHistoryResponse,
 		EventDto,
 		MemoryHistoryResponse,
@@ -98,10 +100,32 @@
 	// Null until it lands, and stays null against a daemon older than the
 	// endpoint — the card omits the line rather than claiming zero traffic.
 	let netUsage = $state<NetworkUsageResponse | null>(null);
+	// Same contract: null against a daemon that does not serve the endpoint.
+	let diskForecast = $state<DiskForecastResponse | null>(null);
 
 	// Below this the gap is big enough to change what an operator concludes
 	// from the number; above it, the caveat is noise on every single load.
 	const COVERAGE_FLOOR = 0.98;
+
+	// Inside a fortnight the fill is close enough to be this week's problem.
+	const RUNWAY_URGENT_DAYS = 14;
+
+	// Only mounts the server was willing to date. `unclear` and `stable` carry
+	// no day, and printing a row that says nothing would bury the ones that do.
+	let datedMounts = $derived(
+		(diskForecast?.mounts ?? []).filter((f) => f.verdict === 'filling' && f.days_until_full != null)
+	);
+
+	/** The interquartile spread, for the tooltip — the headline stays one number
+	 *  because a range in the row would read as false precision at a glance. */
+	function runwayRangeText(f: DiskForecastMount): string {
+		const lo = f.days_until_full_low;
+		const hi = f.days_until_full_high;
+		if (lo == null) return m.metrics_disk_runway_hint();
+		return hi == null
+			? m.metrics_disk_runway_range_open({ low: fmtNumber(lo, 0) })
+			: m.metrics_disk_runway_range({ low: fmtNumber(lo, 0), high: fmtNumber(hi, 0) });
+	}
 
 	let cancelCtrl: AbortController | null = null;
 
@@ -208,6 +232,16 @@
 		conn.client
 			.systemSmart()
 			.then((r) => (smart = r))
+			.catch(() => null);
+	});
+
+	// Fitted over its own fixed window server-side, so unlike everything above it
+	// does not move with the range picker — fetched once, like SMART.
+	$effect(() => {
+		if (!conn?.isAuthenticated || diskForecast !== null) return;
+		conn.client
+			.diskForecast()
+			.then((r) => (diskForecast = r))
 			.catch(() => null);
 	});
 
@@ -766,6 +800,38 @@
 								annotations={showAnnotations ? chartAnnotations : []}
 							/>
 						{/key}
+						{#if datedMounts.length > 0}
+							<!-- The chart says how full; only this says how long. Mounts
+							     whose drift is lost in their own churn are left out
+							     entirely rather than shown as a shrug. -->
+							<PanelSection label={m.metrics_disk_runway_label()}>
+								<ul class="flex flex-col gap-1.5">
+									{#each datedMounts as f (f.mount_point)}
+										<li class="flex items-baseline justify-between gap-3 text-xs">
+											<span class="truncate font-mono text-[var(--color-fg-muted)]">
+												{f.mount_point}
+											</span>
+											<span class="flex shrink-0 items-baseline gap-2 tabular-nums">
+												<span class="text-3xs font-mono text-[var(--color-fg-subtle)]">
+													+{fmtBytes(f.bytes_per_day)}{m.metrics_disk_runway_per_day()}
+												</span>
+												<span
+													class={f.days_until_full != null &&
+													f.days_until_full <= RUNWAY_URGENT_DAYS
+														? 'font-mono text-[var(--color-danger)]'
+														: 'font-mono text-[var(--color-warning)]'}
+													title={runwayRangeText(f)}
+												>
+													{m.metrics_disk_runway_full_in({
+														days: fmtNumber(f.days_until_full ?? 0, 0)
+													})}
+												</span>
+											</span>
+										</li>
+									{/each}
+								</ul>
+							</PanelSection>
+						{/if}
 						{#if inodeRows.length > 0}
 							<PanelSection label={m.metrics_inode_usage_label()}>
 								<ul class="flex flex-col gap-2">

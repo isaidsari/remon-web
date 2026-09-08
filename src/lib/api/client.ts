@@ -28,6 +28,7 @@ import type {
 	CreateAlertRuleRequest,
 	CreateChannelRequest,
 	DeviceLoginRequest,
+	DiskForecastResponse,
 	DiskHistoryResponse,
 	DockerActionResponse,
 	DockerHistoryResponse,
@@ -342,6 +343,19 @@ export class ApiClient {
 
 	diskHistory(q: MetricsRangeQuery = {}): Promise<DiskHistoryResponse> {
 		return this.request<DiskHistoryResponse>('/metrics/disk', { query: { ...q } });
+	}
+
+	/** When each volume runs out of room, fitted server-side over its stored
+	 *  history. A mount whose drift is lost in its own churn comes back
+	 *  `unclear` rather than dated. 404s on a daemon older than the endpoint. */
+	diskForecast(
+		q: { window_days?: number; horizon_days?: number } = {},
+		opts: Cancellable = {}
+	): Promise<DiskForecastResponse> {
+		return this.request<DiskForecastResponse>('/metrics/disk/forecast', {
+			query: { ...q },
+			signal: opts.signal
+		});
 	}
 
 	networkHistory(q: MetricsRangeQuery = {}): Promise<NetworkHistoryResponse> {

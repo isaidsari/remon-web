@@ -269,6 +269,35 @@ export interface DiskHistoryResponse {
 	points: DiskPoint[];
 }
 
+/** `unclear` is a real answer, not a failure: the volume's drift is smaller
+ *  than its own churn, so no date drawn through it would be trustworthy. */
+export type DiskForecastVerdict = 'filling' | 'draining' | 'stable' | 'unclear';
+
+export interface DiskForecastMount {
+	mount_point: string;
+	used_bytes: number;
+	total_bytes: number;
+	verdict: DiskForecastVerdict;
+	/** Signed: negative while space is being freed. */
+	bytes_per_day: number;
+	/** Only present on `filling`. */
+	days_until_full?: number;
+	/** Interquartile spread of the same estimate, not a confidence interval.
+	 *  `low` is the steeper quartile, so it is the nearer day; `high` is absent
+	 *  when the slower quartile is not filling at all. */
+	days_until_full_low?: number;
+	days_until_full_high?: number;
+	points: number;
+}
+
+export interface DiskForecastResponse {
+	start: number;
+	end: number;
+	resolution: MetricsResolution;
+	horizon_days: number;
+	mounts: DiskForecastMount[];
+}
+
 export interface NetworkPoint {
 	timestamp: number;
 	interface_name: string;
