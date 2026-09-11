@@ -4,6 +4,15 @@
 
 	interface Props {
 		data: TimeSeries;
+		/** Optional source statistics; chart samples may be aggregated or duplicated. */
+		summary?: {
+			current: number | null;
+			avg: number | null;
+			min: number | null;
+			max: number | null;
+			p95: number | null;
+		};
+		showPercentile?: boolean;
 		format?: (v: number | null) => string;
 		accent?: string;
 		class?: string;
@@ -11,6 +20,8 @@
 
 	let {
 		data,
+		summary,
+		showPercentile = true,
 		format = (v) => (v == null ? '—' : v.toFixed(1)),
 		accent,
 		class: klass = ''
@@ -37,7 +48,7 @@
 		return { current: Number.isFinite(current) ? current : null, avg, min, max, p95 };
 	}
 
-	let stats = $derived(quickStats(data.ys));
+	let stats = $derived(summary ?? quickStats(data.ys));
 </script>
 
 <dl
@@ -47,7 +58,7 @@
 	{@render cell('avg', stats?.avg ?? null)}
 	{@render cell('min', stats?.min ?? null)}
 	{@render cell('max', stats?.max ?? null)}
-	{@render cell('p95', stats?.p95 ?? null)}
+	{#if showPercentile}{@render cell('p95', stats?.p95 ?? null)}{/if}
 </dl>
 
 {#snippet cell(label: string, v: number | null)}

@@ -1,4 +1,9 @@
 {
+	"history_disk_read": "okuma",
+	"history_disk_write": "yazma",
+	"history_range_explanation": "Her zaman kovasında gözlenen en düşük ve en yüksek değer. Yüzdelik bandı değildir; pikin ne kadar sürdüğünü göstermez.",
+	"history_observed_range": "gözlenen min–maks",
+	"history_range_unknown": "geçmiş min–maks bilgisi yok",
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"common_cancel": "iptal",
 	"common_confirm": "onayla",

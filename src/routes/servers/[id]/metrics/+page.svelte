@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onDestroy, untrack } from 'svelte';
+	import { cpuUsageHistory, cpuUsageStats } from '$lib/charts/cpu-history';
+	import { observedHistory, groupHistory } from '$lib/charts/observed-history';
 	import { page } from '$app/state';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
@@ -24,12 +26,7 @@
 	import { fmtBps, fmtBytes, fmtNumber, fmtPercent } from '$lib/utils/format';
 	import { cn } from '$lib/utils/cn';
 	import { m } from '$lib/paraglide/messages';
-	import {
-		classifyInterface,
-		isPhysicalInterface,
-		isContainerMount,
-		type IfaceClass
-	} from '$lib/utils/netClassify';
+	import { classifyInterface, isContainerMount, type IfaceClass } from '$lib/utils/netClassify';
 	import type {
 		ComponentsHistoryResponse,
 		CpuHistoryResponse,
@@ -191,7 +188,7 @@
 					: null;
 			network =
 				netBatch && netBatch.resource === 'network'
-					? { resolution: res, points: netBatch.points }
+					? { resolution: res, points: netBatch.points, totals: netBatch.totals }
 					: null;
 			components =
 				compBatch && compBatch.resource === 'components'
@@ -267,44 +264,42 @@
 		return false;
 	}
 
-	const isPhysicalIface = isPhysicalInterface;
 	const isDockerMount = isContainerMount;
 
 	let cpuSeries = $derived.by((): Series[] => {
 		if (!cpu) return [];
-		const xs = cpu.points.map((p) => p.timestamp);
 		const series: Series[] = [
 			{
 				name: m.metrics_series_usage(),
-				data: { xs, ys: cpu.points.map((p) => p.usage_percent) },
+				...cpuUsageHistory(cpu.points),
 				color: 'rgb(96, 165, 250)'
 			}
 		];
 		if (hasAny(cpu.points, (p) => p.user_percent)) {
 			series.push({
 				name: m.metrics_series_user(),
-				data: { xs, ys: cpu.points.map((p) => p.user_percent ?? 0) },
+				...observedHistory(cpu.points, 'user_percent', (p) => p.user_percent),
 				color: 'rgb(52, 211, 153)'
 			});
 		}
 		if (hasAny(cpu.points, (p) => p.system_percent)) {
 			series.push({
 				name: m.metrics_series_system(),
-				data: { xs, ys: cpu.points.map((p) => p.system_percent ?? 0) },
+				...observedHistory(cpu.points, 'system_percent', (p) => p.system_percent),
 				color: 'rgb(192, 132, 252)'
 			});
 		}
 		if (hasAny(cpu.points, (p) => p.steal_percent)) {
 			series.push({
 				name: m.metrics_series_steal(),
-				data: { xs, ys: cpu.points.map((p) => p.steal_percent ?? 0) },
+				...observedHistory(cpu.points, 'steal_percent', (p) => p.steal_percent),
 				color: 'rgb(248, 113, 113)'
 			});
 		}
 		if (hasAny(cpu.points, (p) => p.iowait_percent)) {
 			series.push({
 				name: m.metrics_series_iowait(),
-				data: { xs, ys: cpu.points.map((p) => p.iowait_percent ?? 0) },
+				...observedHistory(cpu.points, 'iowait_percent', (p) => p.iowait_percent),
 				color: 'rgb(251, 191, 36)'
 			});
 		}
@@ -313,58 +308,40 @@
 
 	let memorySeries = $derived.by((): Series[] => {
 		if (!memory) return [];
-		const xs = memory.points.map((p) => p.timestamp);
-		const ys = memory.points.map((p) => {
-			const total = p.used_bytes + p.available_bytes;
-			return total > 0 ? (p.used_bytes / total) * 100 : 0;
-		});
 		return [
 			{
 				name: m.overview_card_memory_title(),
-				data: { xs, ys },
-				color: 'rgb(167, 139, 250)'
+				...observedHistory(memory.points, 'used_percent', (p) => p.used_percent),
+				color: 'rgb(167,139,250)'
 			}
 		];
 	});
-
 	let memoryPressureSeries = $derived.by((): Series[] => {
 		if (!memory) return [];
-		const xs = memory.points.map((p) => p.timestamp);
-		const series: Series[] = [];
-		if (hasAny(memory.points, (p) => p.page_faults_major_per_sec)) {
-			series.push({
+		return [
+			{
+				field: 'page_faults_major_per_sec' as const,
 				name: m.metrics_series_major_faults(),
-				data: {
-					xs,
-					ys: memory.points.map((p) => p.page_faults_major_per_sec ?? 0)
-				},
-				color: 'rgb(248, 113, 113)',
-				fill: true
-			});
-		}
-		if (hasAny(memory.points, (p) => p.swap_in_pages_per_sec)) {
-			series.push({
+				color: 'rgb(248,113,113)'
+			},
+			{
+				field: 'swap_in_pages_per_sec' as const,
 				name: m.metrics_series_swap_in(),
-				data: {
-					xs,
-					ys: memory.points.map((p) => p.swap_in_pages_per_sec ?? 0)
-				},
-				color: 'rgb(251, 113, 133)'
-			});
-		}
-		if (hasAny(memory.points, (p) => p.swap_out_pages_per_sec)) {
-			series.push({
+				color: 'rgb(251,113,133)'
+			},
+			{
+				field: 'swap_out_pages_per_sec' as const,
 				name: m.metrics_series_swap_out(),
-				data: {
-					xs,
-					ys: memory.points.map((p) => p.swap_out_pages_per_sec ?? 0)
-				},
-				color: 'rgb(244, 114, 182)'
-			});
-		}
-		return series;
+				color: 'rgb(244,114,182)'
+			}
+		]
+			.filter((s) => hasAny(memory?.points, (p) => p[s.field]))
+			.map((s) => ({
+				name: s.name,
+				color: s.color,
+				...observedHistory(memory!.points, s.field, (p) => p[s.field])
+			}));
 	});
-
 	const DISK_PALETTE = [
 		'rgb(251, 191, 36)',
 		'rgb(244, 114, 182)',
@@ -375,85 +352,65 @@
 
 	let diskSeries = $derived.by((): Series[] => {
 		if (!disk) return [];
-		const byMount = new Map<string, { xs: number[]; ys: number[] }>();
-		for (const p of disk.points) {
-			if (isDockerMount(p.mount_point)) continue;
-			let s = byMount.get(p.mount_point);
-			if (!s) {
-				s = { xs: [], ys: [] };
-				byMount.set(p.mount_point, s);
-			}
-			s.xs.push(p.timestamp);
-			const total = p.used_bytes + p.available_bytes;
-			s.ys.push(total > 0 ? (p.used_bytes / total) * 100 : 0);
-		}
-		return [...byMount.entries()].map(([name, data], i) => ({
+		return [
+			...groupHistory(
+				disk.points.filter((p) => !isDockerMount(p.mount_point)),
+				(p) => p.mount_point
+			)
+		].map(([name, points], i) => ({
 			name,
-			data,
-			color: DISK_PALETTE[i % DISK_PALETTE.length]
+			color: DISK_PALETTE[i % DISK_PALETTE.length],
+			...observedHistory(points, 'used_percent', (p) => p.used_percent)
 		}));
 	});
-
+	let diskIoMode = $state<'bytes' | 'iops' | 'util'>('bytes');
+	let diskIoFormat = $derived(
+		diskIoMode === 'bytes' ? fmtBpsCell : diskIoMode === 'util' ? fmtPct : fmtRate
+	);
 	let diskIopsSeries = $derived.by((): Series[] => {
 		if (!disk) return [];
-		const readByTs = new Map<number, number>();
-		const writeByTs = new Map<number, number>();
-		for (const p of disk.points) {
-			if (isDockerMount(p.mount_point)) continue;
-			if (p.read_iops != null)
-				readByTs.set(p.timestamp, (readByTs.get(p.timestamp) ?? 0) + p.read_iops);
-			if (p.write_iops != null)
-				writeByTs.set(p.timestamp, (writeByTs.get(p.timestamp) ?? 0) + p.write_iops);
-		}
-		if (readByTs.size === 0) return [];
-		const xs = [...readByTs.keys()].sort((a, b) => a - b);
 		return [
-			{
-				name: m.metrics_series_read_iops(),
-				data: { xs, ys: xs.map((x) => readByTs.get(x) ?? 0) },
-				color: 'rgb(251, 191, 36)'
-			},
-			{
-				name: m.metrics_series_write_iops(),
-				data: { xs, ys: xs.map((x) => writeByTs.get(x) ?? 0) },
-				color: 'rgb(244, 114, 182)'
-			}
-		];
+			...groupHistory(
+				disk.points.filter((p) => !isDockerMount(p.mount_point)),
+				(p) => p.mount_point
+			)
+		].flatMap(([mount, points], i) => {
+			const fields =
+				diskIoMode === 'bytes'
+					? [
+							{ field: 'read_bytes_per_sec' as const, name: m.history_disk_read() },
+							{ field: 'write_bytes_per_sec' as const, name: m.history_disk_write() }
+						]
+					: diskIoMode === 'iops'
+						? [
+								{ field: 'read_iops' as const, name: m.metrics_series_read_iops() },
+								{ field: 'write_iops' as const, name: m.metrics_series_write_iops() }
+							]
+						: [{ field: 'io_util_percent' as const, name: m.metrics_disk_util_label() }];
+			return fields
+				.filter((s) => hasAny(points, (p) => p[s.field]))
+				.map((s, j) => ({
+					name: mount + ' · ' + s.name,
+					color: DISK_PALETTE[(i * 2 + j) % DISK_PALETTE.length],
+					...observedHistory(points, s.field, (p) => p[s.field])
+				}));
+		});
 	});
-
 	let networkSeries = $derived.by((): Series[] => {
 		if (!network) return [];
-		// Physical interfaces only — veth pairs double-count bytes.
-		const sums = new Map<number, { rx: number; tx: number }>();
-		for (const p of network.points) {
-			if (!isPhysicalIface(p.interface_name)) continue;
-			let s = sums.get(p.timestamp);
-			if (!s) {
-				s = { rx: 0, tx: 0 };
-				sums.set(p.timestamp, s);
-			}
-			s.rx += p.rx_bytes_per_sec;
-			s.tx += p.tx_bytes_per_sec;
-		}
-		const xs = [...sums.keys()].sort((a, b) => a - b);
-		const rx = xs.map((x) => sums.get(x)!.rx);
-		const tx = xs.map((x) => sums.get(x)!.tx);
 		return [
 			{
 				name: 'RX',
-				data: { xs, ys: rx },
-				color: 'rgb(96, 165, 250)',
-				fill: true
+				color: 'rgb(96,165,250)',
+				...observedHistory(network.totals, 'rx_bytes_per_sec', (p) => p.rx_bytes_per_sec)
 			},
 			{
 				name: 'TX',
-				data: { xs, ys: tx },
-				color: 'rgb(52, 211, 153)',
-				fill: true
+				color: 'rgb(52,211,153)',
+				...observedHistory(network.totals, 'tx_bytes_per_sec', (p) => p.tx_bytes_per_sec)
 			}
 		];
 	});
-
 	let loading = $derived(cpu === null);
 
 	// Same overlay on every chart: correlation is the point ("did the OOM kill
@@ -716,6 +673,8 @@
 						{#if cpuSeries.length > 0}
 							<StatStrip
 								data={cpuSeries[0].data}
+								summary={cpuUsageStats(cpu?.points ?? [])}
+								showPercentile={cpu?.resolution === 'raw'}
 								format={fmtPct}
 								accent={cpuSeries[0].color}
 								class="mb-3"
@@ -763,6 +722,8 @@
 						{#if memorySeries.length > 0}
 							<StatStrip
 								data={memorySeries[0].data}
+								summary={memorySeries[0].summary}
+								showPercentile={memorySeries[0].showPercentile}
 								format={fmtPct}
 								accent={memorySeries[0].color}
 								class="mb-3"
@@ -858,14 +819,32 @@
 					{/if}
 				</MetricPanel>
 
-				{#if loading || diskIopsSeries.length > 0}
+				{#if loading || (disk?.points.length ?? 0) > 0}
 					<MetricPanel title={m.metrics_disk_iops_label()}>
+						<div class="mb-3 flex gap-1" role="group" aria-label={m.metrics_disk_iops_label()}>
+							{#each ['bytes', 'iops', 'util'] as mode (mode)}
+								<button
+									type="button"
+									aria-pressed={diskIoMode === mode}
+									class="rounded border border-[var(--color-border)] px-2 py-1 text-xs aria-pressed:bg-[var(--color-bg-hover)]"
+									onclick={() => (diskIoMode = mode as typeof diskIoMode)}
+								>
+									{mode === 'bytes' ? 'B/s' : mode === 'iops' ? 'IOPS' : '%'}
+								</button>
+							{/each}
+						</div>
 						{#if loading}
 							{@render chartSkeleton()}
 						{:else}
-							<SeriesStrips series={diskIopsSeries} format={fmtRate} class="mb-3" />
+							<SeriesStrips series={diskIopsSeries} format={diskIoFormat} class="mb-3" />
 							{#key diskIopsKey}
-								<HistoryChart series={diskIopsSeries} valueFormatter={fmtRate} group="metrics" />
+								<HistoryChart
+									series={diskIopsSeries}
+									valueFormatter={diskIoFormat}
+									yMin={0}
+									yMax={diskIoMode === 'util' ? 100 : undefined}
+									group="metrics"
+								/>
 							{/key}
 							{#if ioUtilRows.length > 0}
 								<PanelSection label={m.metrics_disk_util_label()}>

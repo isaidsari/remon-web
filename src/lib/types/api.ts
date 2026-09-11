@@ -185,7 +185,7 @@ export interface MetricsRangeQuery {
 	limit?: number;
 }
 
-export interface CpuPoint {
+export interface CpuPoint extends HistoryStatistics {
 	timestamp: number;
 	usage_percent: number;
 	load_1m: number;
@@ -224,7 +224,20 @@ export interface CpuCoresHistoryResponse {
 	points: CpuCorePoint[];
 }
 
-export interface MemoryPoint {
+export interface GaugeStatistics {
+	min: number | null;
+	max: number | null;
+	sum: number;
+	valid_count: number;
+}
+
+export interface HistoryStatistics {
+	bucket_seconds: number;
+	statistics: Record<string, GaugeStatistics> | null;
+}
+
+export interface MemoryPoint extends HistoryStatistics {
+	used_percent: number | null;
 	timestamp: number;
 	total_bytes: number;
 	used_bytes: number;
@@ -246,7 +259,8 @@ export interface MemoryHistoryResponse {
 	points: MemoryPoint[];
 }
 
-export interface DiskPoint {
+export interface DiskPoint extends HistoryStatistics {
+	used_percent: number | null;
 	timestamp: number;
 	mount_point: string;
 	total_bytes: number;
@@ -298,7 +312,7 @@ export interface DiskForecastResponse {
 	mounts: DiskForecastMount[];
 }
 
-export interface NetworkPoint {
+export interface NetworkPoint extends HistoryStatistics {
 	timestamp: number;
 	interface_name: string;
 	rx_bytes_per_sec: number;
@@ -312,6 +326,7 @@ export interface NetworkPoint {
 }
 
 export interface NetworkHistoryResponse {
+	totals: NetworkPoint[];
 	resolution: MetricsResolution;
 	points: NetworkPoint[];
 }
@@ -411,7 +426,7 @@ export type BatchSeries =
 	| { resource: 'cpu_cores'; points: CpuCorePoint[] }
 	| { resource: 'memory'; points: MemoryPoint[] }
 	| { resource: 'disk'; points: DiskPoint[] }
-	| { resource: 'network'; points: NetworkPoint[] }
+	| { resource: 'network'; points: NetworkPoint[]; totals: NetworkPoint[] }
 	| { resource: 'components'; points: ComponentPoint[] };
 
 export interface BatchMetricsResponse {

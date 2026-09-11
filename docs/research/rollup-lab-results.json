@@ -1,0 +1,55 @@
+{
+	"bun": "1.4.0",
+	"spike": {
+		"rawMax": 100,
+		"maximumMinuteMean": 13,
+		"maximumFiveMinuteMean": 10.6,
+		"hourMean": 10.05,
+		"hourMax": 100,
+		"hourP99": 10
+	},
+	"nullWeights": {
+		"current": 50,
+		"correct": 3.225806451612903
+	},
+	"integerTruncation": {
+		"current": 0,
+		"correct": 1
+	},
+	"counter": {
+		"max": 1000,
+		"last": 30,
+		"observedIncrease": 130
+	},
+	"network": {
+		"sumOfMaxima": 200,
+		"maximumOfSum": 100
+	},
+	"partitionTrials": 200,
+	"storage": [
+		{
+			"extraStatsPerField": 0,
+			"trackedFields": 6,
+			"rows": 70680,
+			"allocatedBytes": 9166848
+		},
+		{
+			"extraStatsPerField": 2,
+			"trackedFields": 6,
+			"rows": 70680,
+			"allocatedBytes": 13393920
+		},
+		{
+			"extraStatsPerField": 4,
+			"trackedFields": 6,
+			"rows": 70680,
+			"allocatedBytes": 15618048
+		},
+		{
+			"extraStatsPerField": 6,
+			"trackedFields": 6,
+			"rows": 70680,
+			"allocatedBytes": 18239488
+		}
+	]
+}
