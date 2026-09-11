@@ -24,7 +24,12 @@
 				<span class="size-1.5 shrink-0 rounded-full" style="background: {s.color}"></span>
 				<span class="truncate" title={s.name}>{s.name}</span>
 			</p>
-			<StatStrip data={s.data} {format} />
+			<StatStrip
+				data={s.data}
+				summary={s.summary}
+				showPercentile={s.showPercentile ?? true}
+				{format}
+			/>
 		</div>
 	{/each}
 </div>

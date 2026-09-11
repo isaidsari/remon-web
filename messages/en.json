@@ -1,4 +1,9 @@
 {
+	"history_disk_read": "read",
+	"history_disk_write": "write",
+	"history_range_explanation": "Observed minimum and maximum within each time bucket. This is not a percentile band and does not show how long a peak lasted.",
+	"history_observed_range": "observed min–max",
+	"history_range_unknown": "historical min–max unavailable",
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"common_cancel": "cancel",
 	"common_confirm": "confirm",

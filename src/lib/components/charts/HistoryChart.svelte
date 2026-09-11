@@ -1,11 +1,22 @@
 <script lang="ts" module>
 	import type { TimeSeries } from '$lib/stores/livestats.svelte';
+	import type { ObservedBucket } from '$lib/charts/cpu-history';
 
 	export interface Series {
 		name: string;
 		data: TimeSeries;
 		color: string;
 		fill?: boolean;
+		/** Aligned to data; NULL entries are raw points or explicit gaps. */
+		buckets?: (ObservedBucket | null)[];
+		summary?: {
+			current: number | null;
+			avg: number | null;
+			min: number | null;
+			max: number | null;
+			p95: number | null;
+		};
+		showPercentile?: boolean;
 	}
 
 	/** An instant, or a shaded band when `endTs` is set. Unix seconds. */
@@ -32,6 +43,7 @@
 	import { chartPalette } from '$lib/charts/chart-theme';
 	import { rgbAt } from '$lib/charts/color';
 	import { tabVisible } from '$lib/utils/visibility.svelte';
+	import { m } from '$lib/paraglide/messages';
 
 	interface Props {
 		series: Series[];
@@ -68,6 +80,10 @@
 	}: Props = $props();
 
 	let tickFormatter = $derived(axisFormatter ?? valueFormatter);
+	let rangeMode = $state<'auto' | 'hide'>('auto');
+	let focusedSeries = $state(0);
+	let hasRanges = $derived(series.some((s) => s.buckets?.some((b) => b != null)));
+	let showRanges = $derived(rangeMode !== 'hide');
 
 	let container: HTMLDivElement | null = $state(null);
 	let chart: ECharts | null = null;
@@ -100,20 +116,69 @@
 	}
 
 	function buildOption(): EChartsCoreOption {
-		const seriesArr: Record<string, unknown>[] = series.map((s) => ({
+		const extrema = showRanges
+			? series.flatMap(
+					(s) =>
+						s.buckets?.flatMap((b) =>
+							b && b.min != null && b.max != null ? [b.min, b.max] : []
+						) ?? []
+				)
+			: [];
+		const rangeMin = extrema.length ? Math.min(...extrema) : Infinity;
+		const rangeMax = extrema.length ? Math.max(...extrema) : -Infinity;
+		const seriesArr: Record<string, unknown>[] = series.map((s, index) => ({
 			type: 'line' as const,
 			name: s.name,
 			data: zip(s.data.xs, s.data.ys),
-			smooth: 0.55,
+			smooth: s.buckets ? false : 0.55,
+			step: s.buckets?.some((b) => b != null) ? 'end' : undefined,
 			smoothMonotone: 'x' as const,
 			symbol: 'none',
-			sampling: 'lttb',
+			sampling: s.buckets ? undefined : 'lttb',
 			animation: false,
 			lineStyle: { color: s.color, width: 1.5 },
 			itemStyle: { color: s.color },
 			areaStyle: s.fill ? { color: gradientFor(s.color), opacity: 1 } : undefined,
 			emphasis: { focus: 'series' as const, lineStyle: { width: 2.25 } },
-			connectNulls: false
+			connectNulls: false,
+			markArea:
+				s.buckets && showRanges && (series.length <= 3 || index === focusedSeries)
+					? {
+							silent: true,
+							animation: false,
+							itemStyle: {
+								color: rgbAt(s.color, 0.14),
+								borderColor: rgbAt(s.color, 0.3),
+								borderWidth: 0.5
+							},
+							data: s.buckets
+								.filter(
+									(b, i, all) =>
+										b &&
+										b.min != null &&
+										b.max != null &&
+										(i === 0 || all[i - 1]?.start !== b.start)
+								)
+								.map((b) => [
+									{ xAxis: b!.start * 1000, yAxis: b!.min },
+									{ xAxis: b!.end * 1000, yAxis: b!.max }
+								])
+						}
+					: undefined,
+			tooltip: s.buckets
+				? {
+						valueFormatter: (v: number, index: number) => {
+							const value = valueFormatter ? valueFormatter(v) : String(v);
+							const bucket = s.buckets?.[index];
+							if (!bucket) return value;
+							const fmt = (n: number) => (valueFormatter ? valueFormatter(n) : String(n));
+							const interval = `${new Date(bucket.start * 1000).toLocaleTimeString()}–${new Date(bucket.end * 1000).toLocaleTimeString()}`;
+							return bucket.min == null || bucket.max == null
+								? `${value} · ${m.history_range_unknown()} (${interval})`
+								: `${value} · ${m.history_observed_range()}: ${fmt(bucket.min)}–${fmt(bucket.max)} · n=${bucket.count} (${interval})`;
+						}
+					}
+				: undefined
 		}));
 
 		// Marks must attach to a series, so the overlay rides on the first one.
@@ -140,17 +205,22 @@
 				};
 			}
 			if (bands.length > 0) {
+				const observed = seriesArr[0].markArea as { data?: unknown[] } | undefined;
 				seriesArr[0].markArea = {
+					...observed,
 					silent: true,
 					animation: false,
-					data: bands.map((a) => [
-						{
-							xAxis: a.ts * 1000,
-							name: a.label,
-							itemStyle: { color: rgbAt(ANNOTATION_COLORS[a.severity], 0.08) }
-						},
-						{ xAxis: (a.endTs ?? a.ts) * 1000 }
-					])
+					data: [
+						...(observed?.data ?? []),
+						...bands.map((a) => [
+							{
+								xAxis: a.ts * 1000,
+								name: a.label,
+								itemStyle: { color: rgbAt(ANNOTATION_COLORS[a.severity], 0.08) }
+							},
+							{ xAxis: (a.endTs ?? a.ts) * 1000 }
+						])
+					]
 				};
 			}
 		}
@@ -168,12 +238,13 @@
 			grid: {
 				left: 4,
 				right: 10,
-				top: hasLegend ? 28 : 10,
+				top: hasLegend || hasRanges ? 30 : 10,
 				bottom: 4,
 				outerBoundsMode: 'same',
 				outerBoundsContain: 'axisLabel'
 			},
 			tooltip: {
+				confine: true,
 				trigger: 'axis',
 				axisPointer: {
 					type: 'cross',
@@ -187,6 +258,7 @@
 				valueFormatter: valueFormatter ? (v: unknown) => valueFormatter(v as number) : undefined
 			},
 			legend: {
+				right: hasRanges ? 160 : undefined,
 				show: hasLegend,
 				// Scrolls instead of wrapping: a second legend row would sit on the plot,
 				// because the grid reserves one row's worth of space and no more.
@@ -212,8 +284,16 @@
 				nameTextStyle: { color: palette.axisText, fontSize: 10 },
 				// scale:true frees the axis from the zero baseline so small deltas are visible.
 				scale: relativeScale,
-				min: yMin ?? undefined,
-				max: yMax ?? undefined,
+				min:
+					yMin ??
+					(relativeScale && Number.isFinite(rangeMin)
+						? (v: { min: number }) => Math.min(v.min, rangeMin)
+						: undefined),
+				max:
+					yMax ??
+					(Number.isFinite(rangeMax)
+						? (v: { max: number }) => Math.max(v.max, rangeMax)
+						: undefined),
 				axisLine: { show: false },
 				axisTick: { show: false },
 				axisLabel: {
@@ -289,6 +369,10 @@
 				if (cancelled || !container) return;
 				chart = echarts.init(container, undefined, { renderer: 'canvas' });
 				chart.setOption(buildOption());
+				chart.on('mouseover', (params: unknown) => {
+					const index = (params as { seriesIndex?: number }).seriesIndex;
+					if (index != null && index < series.length) focusedSeries = index;
+				});
 
 				// coordRange is in axis units; feed dataZoom, then drop the rect.
 				chart.on('brushEnd', (params: unknown) => {
@@ -337,6 +421,8 @@
 		// Touch sources before the early return so $effect tracks them even when chart is null.
 		void series.length;
 		void annotations.length;
+		void showRanges;
+		void focusedSeries;
 		for (const s of series) {
 			void s.data.xs.length;
 			void s.data.ys.length;
@@ -347,7 +433,19 @@
 	});
 </script>
 
-<div class={klass}>
+<div class="relative {klass}">
+	{#if hasRanges}
+		<button
+			type="button"
+			class="text-2xs absolute top-0 right-2 z-10 rounded px-1.5 py-0.5 text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-hover)]"
+			aria-pressed={showRanges}
+			title={m.history_range_explanation()}
+			onclick={() => (rangeMode = showRanges ? 'hide' : 'auto')}
+		>
+			{showRanges ? '▣' : '□'}
+			{m.history_observed_range()}
+		</button>
+	{/if}
 	<!-- height={0} opts into a fill-parent container so the chart can size to a flex/grid cell. -->
 	<div
 		bind:this={container}
