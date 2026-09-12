@@ -126,60 +126,67 @@
 			: [];
 		const rangeMin = extrema.length ? Math.min(...extrema) : Infinity;
 		const rangeMax = extrema.length ? Math.max(...extrema) : -Infinity;
-		const seriesArr: Record<string, unknown>[] = series.map((s, index) => ({
-			type: 'line' as const,
-			name: s.name,
-			data: zip(s.data.xs, s.data.ys),
-			smooth: s.buckets ? false : 0.55,
-			step: s.buckets?.some((b) => b != null) ? 'end' : undefined,
-			smoothMonotone: 'x' as const,
-			symbol: 'none',
-			sampling: s.buckets ? undefined : 'lttb',
-			animation: false,
-			lineStyle: { color: s.color, width: 1.5 },
-			itemStyle: { color: s.color },
-			areaStyle: s.fill ? { color: gradientFor(s.color), opacity: 1 } : undefined,
-			emphasis: { focus: 'series' as const, lineStyle: { width: 2.25 } },
-			connectNulls: false,
-			markArea:
-				s.buckets && showRanges && (series.length <= 3 || index === focusedSeries)
+		const seriesArr: Record<string, unknown>[] = series.map((s, index) => {
+			// Bucket-end duplicates extend the line; they are not extra measurements.
+			const isObservation = (i: number) =>
+				Number.isFinite(s.data.ys[i]) && (!s.buckets?.[i] || s.data.xs[i] === s.buckets[i]!.start);
+			const pointCount = s.data.ys.filter((_, i) => isObservation(i)).length;
+			const sparse = pointCount <= 24;
+			return {
+				type: 'line' as const,
+				name: s.name,
+				data: zip(s.data.xs, s.data.ys),
+				smooth: false,
+				step: false,
+				symbol: sparse ? 'circle' : 'none',
+				symbolSize: (_value: unknown, params: { dataIndex: number }) =>
+					sparse && isObservation(params.dataIndex) ? 4 : 0,
+				sampling: s.buckets ? undefined : 'lttb',
+				animation: false,
+				lineStyle: { color: s.color, width: 1.5 },
+				itemStyle: { color: s.color },
+				areaStyle: s.fill ? { color: gradientFor(s.color), opacity: 1 } : undefined,
+				emphasis: { focus: 'series' as const, lineStyle: { width: 2.25 } },
+				connectNulls: false,
+				markArea:
+					s.buckets && showRanges && (series.length <= 3 || index === focusedSeries)
+						? {
+								silent: true,
+								animation: false,
+								itemStyle: {
+									color: rgbAt(s.color, 0.09),
+									borderWidth: 0
+								},
+								data: s.buckets
+									.filter(
+										(b, i, all) =>
+											b &&
+											b.min != null &&
+											b.max != null &&
+											(i === 0 || all[i - 1]?.start !== b.start)
+									)
+									.map((b) => [
+										{ xAxis: b!.start * 1000, yAxis: b!.min },
+										{ xAxis: b!.end * 1000, yAxis: b!.max }
+									])
+							}
+						: undefined,
+				tooltip: s.buckets
 					? {
-							silent: true,
-							animation: false,
-							itemStyle: {
-								color: rgbAt(s.color, 0.14),
-								borderColor: rgbAt(s.color, 0.3),
-								borderWidth: 0.5
-							},
-							data: s.buckets
-								.filter(
-									(b, i, all) =>
-										b &&
-										b.min != null &&
-										b.max != null &&
-										(i === 0 || all[i - 1]?.start !== b.start)
-								)
-								.map((b) => [
-									{ xAxis: b!.start * 1000, yAxis: b!.min },
-									{ xAxis: b!.end * 1000, yAxis: b!.max }
-								])
+							valueFormatter: (v: number, index: number) => {
+								const value = valueFormatter ? valueFormatter(v) : String(v);
+								const bucket = s.buckets?.[index];
+								if (!bucket) return value;
+								const fmt = (n: number) => (valueFormatter ? valueFormatter(n) : String(n));
+								const interval = `${new Date(bucket.start * 1000).toLocaleTimeString()}–${new Date(bucket.end * 1000).toLocaleTimeString()}`;
+								return bucket.min == null || bucket.max == null
+									? `${value} · ${m.history_range_unknown()} (${interval})`
+									: `${value} · ${m.history_observed_range()}: ${fmt(bucket.min)}–${fmt(bucket.max)} · n=${bucket.count} (${interval})`;
+							}
 						}
-					: undefined,
-			tooltip: s.buckets
-				? {
-						valueFormatter: (v: number, index: number) => {
-							const value = valueFormatter ? valueFormatter(v) : String(v);
-							const bucket = s.buckets?.[index];
-							if (!bucket) return value;
-							const fmt = (n: number) => (valueFormatter ? valueFormatter(n) : String(n));
-							const interval = `${new Date(bucket.start * 1000).toLocaleTimeString()}–${new Date(bucket.end * 1000).toLocaleTimeString()}`;
-							return bucket.min == null || bucket.max == null
-								? `${value} · ${m.history_range_unknown()} (${interval})`
-								: `${value} · ${m.history_observed_range()}: ${fmt(bucket.min)}–${fmt(bucket.max)} · n=${bucket.count} (${interval})`;
-						}
-					}
-				: undefined
-		}));
+					: undefined
+			};
+		});
 
 		// Marks must attach to a series, so the overlay rides on the first one.
 		if (seriesArr.length > 0 && annotations.length > 0) {
