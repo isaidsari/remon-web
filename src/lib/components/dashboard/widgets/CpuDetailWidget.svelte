@@ -8,129 +8,154 @@
 	interface Props {
 		conn: Connection | null;
 	}
-
 	let { conn }: Props = $props();
-
 	let cpu = $derived(conn?.live?.cpu ?? null);
-
-	// steal/iowait/user/system ride on the live CpuStats snapshot, so no history
-	// fetch is needed — everything here comes straight off the SSE feed.
-	function stealColor(p: number | null | undefined): string {
-		if (p == null) return 'text-[var(--color-fg)]';
-		if (p >= 5) return 'text-[var(--color-danger)]';
-		if (p >= 2) return 'text-[var(--color-warning)]';
-		return 'text-[var(--color-fg)]';
-	}
-	function iowaitColor(p: number | null | undefined): string {
-		if (p == null) return 'text-[var(--color-fg)]';
-		if (p >= 30) return 'text-[var(--color-danger)]';
-		if (p >= 15) return 'text-[var(--color-warning)]';
-		return 'text-[var(--color-fg)]';
-	}
+	let loads = $derived(
+		cpu
+			? [
+					{ label: m.overview_cpu_load_1m(), value: cpu.load_avg.one },
+					{ label: m.overview_cpu_load_5m(), value: cpu.load_avg.five },
+					{ label: m.overview_cpu_load_15m(), value: cpu.load_avg.fifteen }
+				]
+			: []
+	);
+	let times = $derived(
+		cpu
+			? [
+					{
+						label: m.overview_cpu_user(),
+						value: cpu.user_percent,
+						warning: Infinity,
+						danger: Infinity
+					},
+					{
+						label: m.overview_cpu_kernel(),
+						value: cpu.system_percent,
+						warning: Infinity,
+						danger: Infinity
+					},
+					{ label: m.overview_cpu_iowait(), value: cpu.iowait_percent, warning: 15, danger: 30 },
+					{ label: m.overview_cpu_steal(), value: cpu.steal_percent, warning: 2, danger: 5 }
+				].filter((item) => item.value != null)
+			: []
+	);
 </script>
 
-<Card class="flex h-full flex-col" padding="sm">
-	<div class="mb-4 flex items-center justify-between">
-		<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">{m.overview_card_cpu_title()}</p>
-		{#if cpu}
-			<span class="text-2xs font-mono text-[var(--color-fg-muted)]">
-				{m.overview_metric_cores_count({ count: cpu.per_core.length })}
-			</span>
-		{/if}
+<Card class="flex h-full min-h-0 flex-col overflow-hidden" padding="sm">
+	<div class="mb-4 flex shrink-0 items-start justify-between gap-3">
+		<div class="min-w-0">
+			<p class="text-xs text-[var(--color-fg-muted)]">{m.overview_per_core_cpu_title()}</p>
+			{#if cpu}
+				<p class="text-2xs mt-1 text-[var(--color-fg-subtle)]">
+					{m.overview_metric_cores_count({ count: cpu.per_core.length })}
+				</p>
+			{/if}
+		</div>
+		<div class="shrink-0 text-right">
+			{#if cpu}
+				<p class="font-mono text-xl leading-none font-semibold tracking-tight tabular-nums">
+					{fmtPercent(cpu.usage_percent, 1)}
+				</p>
+				<p class="text-2xs mt-1 text-[var(--color-fg-subtle)]">{m.overview_cpu_usage()}</p>
+			{:else}
+				<Skeleton class="h-7 w-20" />
+			{/if}
+		</div>
 	</div>
 
-	<div class="mb-4 flex flex-wrap items-baseline gap-x-6 gap-y-2">
+	<div class="cpu-body min-h-0 flex-1 overflow-y-auto overscroll-contain">
 		{#if cpu}
-			<div class="flex items-baseline gap-1.5">
-				<span class="text-2xs text-[var(--color-fg-subtle)]">{m.overview_cpu_load_1m()}</span>
-				<span class="text-md font-mono font-semibold tabular-nums">
-					{fmtNumber(cpu.load_avg.one)}
-				</span>
+			{#if cpu.per_core.length > 0}
+				<ul class="per-core-grid" aria-label={m.overview_per_core_cpu_title()}>
+					{#each cpu.per_core as core (core.core_index)}
+						{@const pct = Number.isFinite(core.usage_percent)
+							? Math.min(100, Math.max(0, core.usage_percent))
+							: null}
+						<li class="rounded-lg bg-[var(--color-surface-2)] px-3 py-2.5">
+							<div
+								class="text-2xs mb-2 flex items-baseline justify-between gap-2 font-mono tabular-nums"
+							>
+								<span class="text-[var(--color-fg-muted)]">CPU {core.core_index}</span>
+								<span class="font-medium">{pct == null ? '—' : fmtPercent(pct, 0)}</span>
+							</div>
+							<div class="core-track" aria-hidden="true">
+								<div class="core-fill" style:width="{pct ?? 0}%"></div>
+							</div>
+						</li>
+					{/each}
+				</ul>
+			{:else}
+				<p class="py-6 text-center text-xs text-[var(--color-fg-muted)]">
+					{m.probes_metric_no_data()}
+				</p>
+			{/if}
+
+			<div class="mt-4 border-t border-[var(--color-border)] pt-3">
+				<dl class="grid grid-cols-3 gap-3">
+					{#each loads as item (item.label)}
+						<div>
+							<dt class="text-2xs text-[var(--color-fg-subtle)]">{item.label}</dt>
+							<dd class="mt-1 font-mono text-xs font-medium tabular-nums">
+								{fmtNumber(item.value)}
+							</dd>
+						</div>
+					{/each}
+				</dl>
+				{#if times.length > 0}
+					<dl class="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+						{#each times as item (item.label)}
+							<div class="text-2xs flex items-baseline gap-1.5">
+								<dt class="text-[var(--color-fg-subtle)]">{item.label}</dt>
+								<dd
+									class="font-mono tabular-nums"
+									style:color="var(--color-{item.value! >= item.danger
+										? 'danger'
+										: item.value! >= item.warning
+											? 'warning'
+											: 'fg-muted'})"
+								>
+									{fmtPercent(item.value!, 1)}
+								</dd>
+							</div>
+						{/each}
+					</dl>
+				{/if}
 			</div>
-			<div class="flex items-baseline gap-1.5">
-				<span class="text-2xs text-[var(--color-fg-subtle)]">{m.overview_cpu_load_5m()}</span>
-				<span class="text-md font-mono font-semibold tabular-nums">
-					{fmtNumber(cpu.load_avg.five)}
-				</span>
-			</div>
-			<div class="flex items-baseline gap-1.5">
-				<span class="text-2xs text-[var(--color-fg-subtle)]">{m.overview_cpu_load_15m()}</span>
-				<span class="text-md font-mono font-semibold tabular-nums">
-					{fmtNumber(cpu.load_avg.fifteen)}
-				</span>
-			</div>
-			{#if cpu.steal_percent != null}
-				<div class="flex items-baseline gap-1.5">
-					<span class="text-2xs text-[var(--color-fg-subtle)]">{m.overview_cpu_steal()}</span>
-					<span
-						class="text-md font-mono font-semibold tabular-nums {stealColor(cpu.steal_percent)}"
-					>
-						{fmtPercent(cpu.steal_percent, 1)}
-					</span>
-				</div>
-			{/if}
-			{#if cpu.iowait_percent != null}
-				<div class="flex items-baseline gap-1.5">
-					<span class="text-2xs text-[var(--color-fg-subtle)]">{m.overview_cpu_iowait()}</span>
-					<span
-						class="text-md font-mono font-semibold tabular-nums {iowaitColor(cpu.iowait_percent)}"
-					>
-						{fmtPercent(cpu.iowait_percent, 1)}
-					</span>
-				</div>
-			{/if}
-			{#if cpu.user_percent != null}
-				<div class="flex items-baseline gap-1.5">
-					<span class="text-2xs text-[var(--color-fg-subtle)]">{m.overview_cpu_user()}</span>
-					<span class="text-md font-mono font-semibold tabular-nums">
-						{fmtPercent(cpu.user_percent, 1)}
-					</span>
-				</div>
-			{/if}
-			{#if cpu.system_percent != null}
-				<div class="flex items-baseline gap-1.5">
-					<span class="text-2xs text-[var(--color-fg-subtle)]">{m.overview_cpu_kernel()}</span>
-					<span class="text-md font-mono font-semibold tabular-nums">
-						{fmtPercent(cpu.system_percent, 1)}
-					</span>
-				</div>
-			{/if}
 		{:else}
-			{#each Array(3) as _, i (i)}
-				<Skeleton class="h-5 w-16" />
-			{/each}
+			<div class="per-core-grid">
+				{#each Array(8) as _, i (i)}
+					<Skeleton class="h-14 w-full" />
+				{/each}
+			</div>
 		{/if}
 	</div>
-
-	{#if cpu && cpu.per_core.length > 0}
-		<div class="per-core-grid min-h-0 flex-1">
-			{#each cpu.per_core as core (core.core_index)}
-				{@const pct = Math.min(100, Math.max(0, core.usage_percent))}
-				{@const hotAlpha = (0.06 + (pct / 100) * 0.56).toFixed(2)}
-				<div
-					class="flex flex-col items-center justify-center gap-0.5 rounded-md py-2 transition-[background] duration-500"
-					style="background: color-mix(in hsl, hsl(4 80% 60% / {hotAlpha}) {Math.round(
-						pct
-					)}%, hsl(188 42% 54% / 0.1))"
-				>
-					<span class="text-3xs font-mono text-[var(--color-fg-subtle)]">{core.core_index}</span>
-					<span class="text-2xs font-semibold tabular-nums">{Math.round(pct)}%</span>
-				</div>
-			{/each}
-		</div>
-	{:else}
-		<div class="per-core-grid">
-			{#each Array(8) as _, i (i)}
-				<Skeleton class="h-[58px] w-full" />
-			{/each}
-		</div>
-	{/if}
 </Card>
 
 <style>
+	.cpu-body {
+		max-height: 32rem;
+	}
 	.per-core-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
-		gap: 0.375rem;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr));
+		align-content: start;
+		gap: 0.5rem;
+	}
+	.core-track {
+		height: 4px;
+		overflow: hidden;
+		border-radius: 999px;
+		background: var(--color-border);
+	}
+	.core-fill {
+		height: 100%;
+		border-radius: inherit;
+		background: var(--color-info);
+		transition: width 300ms ease;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.core-fill {
+			transition: none;
+		}
 	}
 </style>

@@ -58,7 +58,7 @@ export interface MemoryDetailConfig {
 }
 
 /** Live CPU detail card: load avg + steal/iowait/user/kernel + per-core
- *  heatmap. Config-less — reads the live SSE CpuStats snapshot. */
+ *  usage bars. Config-less — reads the live SSE CpuStats snapshot. */
 export interface CpuDetailConfig {
 	kind: 'cpu-detail';
 }
