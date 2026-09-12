@@ -14,7 +14,7 @@
 	import { toast } from '$lib/stores/toast.svelte';
 	import { ApiError } from '$lib/api/error';
 	import { cn } from '$lib/utils/cn';
-	import { fmtNumber, fmtRelative } from '$lib/utils/format';
+	import { fmtDuration, fmtNumber, fmtRelative } from '$lib/utils/format';
 	import { m } from '$lib/paraglide/messages';
 	import IconCamera from '~icons/lucide/camera';
 	import IconFlame from '~icons/lucide/flame';
@@ -238,14 +238,35 @@
 										{#if i.label_set}
 											<span class="truncate font-mono">{i.label_set}</span>
 										{/if}
-										{#if i.metric_value != null}
-											<span class="font-mono tabular-nums">{fmtNumber(i.metric_value, 2)}</span>
+										{#if i.trigger_value != null}
+											<!-- Crossed at, and the worst it reached. The pair says more
+											     than either number: "81 → 99" is a different incident
+											     from "81 → 82". -->
+											<span class="font-mono tabular-nums">
+												{fmtNumber(i.trigger_value, 2)}
+												{#if i.peak_value != null && i.peak_value > i.trigger_value}
+													<span class="text-[var(--color-warning)]">
+														→ {fmtNumber(i.peak_value, 2)}
+													</span>
+												{/if}
+											</span>
 										{/if}
-										{#if i.has_after}
+										{#if i.closed_at == null}
+											<span
+												class="rounded-full bg-[var(--color-danger)]/15 px-1.5 py-px font-mono tracking-wide text-[var(--color-danger)]"
+											>
+												{m.incidents_live()}
+											</span>
+										{:else}
+											<span class="font-mono tabular-nums">
+												{fmtDuration(i.closed_at - i.opened_at)}
+											</span>
+										{/if}
+										{#if i.frame_count > 1}
 											<span
 												class="rounded-full bg-[var(--color-surface-2)] px-1.5 py-px font-mono tracking-wide"
 											>
-												{m.incidents_has_after()}
+												{m.incidents_frames({ count: i.frame_count })}
 											</span>
 										{/if}
 									</span>
@@ -253,9 +274,9 @@
 
 								<span
 									class="text-3xs shrink-0 font-mono text-[var(--color-fg-faint)] tabular-nums"
-									title={new Date(i.created_at * 1000).toLocaleString()}
+									title={new Date(i.opened_at * 1000).toLocaleString()}
 								>
-									{fmtRelative(i.created_at, nowMs)}
+									{fmtRelative(i.opened_at, nowMs)}
 								</span>
 								<IconChevronRight
 									class={cn(

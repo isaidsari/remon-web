@@ -9,9 +9,10 @@
 	import { profiles } from '$lib/stores/profiles.svelte';
 	import { connections } from '$lib/stores/connections.svelte';
 	import { ApiError } from '$lib/api/error';
-	import { fmtNumber } from '$lib/utils/format';
+	import { cn } from '$lib/utils/cn';
+	import { fmtDuration, fmtNumber } from '$lib/utils/format';
 	import { m } from '$lib/paraglide/messages';
-	import type { IncidentDto } from '$lib/types/api';
+	import type { IncidentDto, IncidentFrameDto, IncidentFrameKind } from '$lib/types/api';
 	import IconChevronLeft from '~icons/lucide/chevron-left';
 
 	let id = $derived(page.params.id ?? '');
@@ -47,9 +48,63 @@
 		goto(`/servers/${id}/assistant?ask=${q}`);
 	}
 
-	// Alert captures name their rule; manual ones carry the operator's reason.
+	// Alert episodes name their rule; manual ones carry the operator's reason.
 	let title = $derived(incident?.rule_name ?? incident?.reason ?? m.incident_title());
-	let capturedAt = $derived(incident ? new Date(incident.created_at * 1000).toLocaleString() : '');
+	let openedAt = $derived(incident ? new Date(incident.opened_at * 1000).toLocaleString() : '');
+	let stillOpen = $derived(incident != null && incident.closed_at == null);
+	let duration = $derived(
+		incident?.closed_at != null ? fmtDuration(incident.closed_at - incident.opened_at) : null
+	);
+
+	// The onset is what every later frame is read against — "worse or better
+	// than when this started" is the question the reel exists to answer.
+	let baseline = $derived(incident?.frames[0]?.payload ?? null);
+
+	function frameLabel(kind: IncidentFrameKind): string {
+		switch (kind) {
+			case 'onset':
+				return m.incident_frame_onset();
+			case 'escalation':
+				return m.incident_frame_escalation();
+			case 'peak':
+				return m.incident_frame_peak();
+			case 'resolution':
+				return m.incident_frame_resolution();
+			default:
+				return m.incident_frame_followup();
+		}
+	}
+
+	/** How far into the episode this frame was taken. */
+	function offsetLabel(f: IncidentFrameDto): string {
+		if (!incident) return '';
+		const delta = f.captured_at - incident.opened_at;
+		return delta <= 0 ? m.incident_frame_at_start() : `+${fmtDuration(delta)}`;
+	}
+
+	function dotClass(kind: IncidentFrameKind): string {
+		switch (kind) {
+			case 'peak':
+				return 'bg-[var(--color-danger)]';
+			case 'resolution':
+				return 'bg-[var(--color-success)]';
+			case 'escalation':
+				return 'bg-[var(--color-warning)]';
+			default:
+				return 'bg-[var(--color-fg-faint)]';
+		}
+	}
+
+	function closeReasonLabel(reason: string | undefined): string | null {
+		switch (reason) {
+			case 'expired':
+				return m.incident_close_expired();
+			case 'daemon_restart':
+				return m.incident_close_restart();
+			default:
+				return null;
+		}
+	}
 </script>
 
 {#if profile}
@@ -70,7 +125,14 @@
 					<p
 						class="text-2xs mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[var(--color-fg-muted)]"
 					>
-						<span>{capturedAt}</span>
+						<span>{openedAt}</span>
+						{#if stillOpen}
+							<span class="text-[var(--color-danger)]">{m.incidents_live()}</span>
+						{:else if duration}
+							<span class="text-[var(--color-fg-subtle)]">
+								{m.incident_lasted({ duration })}
+							</span>
+						{/if}
 						<span class="text-[var(--color-fg-subtle)]">
 							{incident.trigger_kind === 'alert'
 								? m.incident_trigger_alert()
@@ -80,41 +142,77 @@
 						{#if incident.label_set}
 							<span class="text-[var(--color-fg-subtle)]">{incident.label_set}</span>
 						{/if}
-						{#if incident.metric_value != null}
+						{#if incident.trigger_value != null}
 							<span class="text-[var(--color-fg)] tabular-nums">
-								{fmtNumber(incident.metric_value, 2)}
+								{fmtNumber(incident.trigger_value, 2)}
+								{#if incident.peak_value != null && incident.peak_value > incident.trigger_value}
+									<span class="text-[var(--color-warning)]">
+										→ {fmtNumber(incident.peak_value, 2)}
+									</span>
+								{/if}
+							</span>
+						{/if}
+						{#if closeReasonLabel(incident.close_reason)}
+							<span class="text-[var(--color-warning)]">
+								{closeReasonLabel(incident.close_reason)}
 							</span>
 						{/if}
 					</p>
 				</div>
 
 				<!-- The daemon's assistant already has an `incident_detail` tool, so it
-				     is handed the id and fetches the bundle itself. -->
+				     is handed the id and fetches the reel itself. -->
 				<Button variant="secondary" size="sm" class="shrink-0" onclick={investigate}>
 					<IconBotMessageSquare class="size-4" stroke-width="2" />
 					{m.incident_investigate()}
 				</Button>
 			</header>
 
-			<div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
-				<Card>
-					<h2 class="mb-3 text-sm font-medium text-[var(--color-fg)]">
-						{m.incident_at_capture()}
-					</h2>
-					<BundleView bundle={incident.bundle} />
-				</Card>
+			<!-- One column, oldest first: the reel is a sequence, and reading it top
+			     to bottom is the point. Every frame after the first is scored against
+			     the onset, so the deltas answer "worse or better than when it began". -->
+			<ol class="flex flex-col gap-4">
+				{#each incident.frames as f, i (f.seq)}
+					<li class="relative pl-6">
+						<span
+							class={cn('absolute top-[1.15rem] left-0 size-2.5 rounded-full', dotClass(f.kind))}
+							aria-hidden="true"
+						></span>
+						{#if i < incident.frames.length - 1}
+							<span
+								class="absolute top-[1.9rem] bottom-[-1rem] left-[4.5px] w-px bg-[var(--color-border)]"
+								aria-hidden="true"
+							></span>
+						{/if}
+						<Card>
+							<div class="mb-3 flex items-baseline justify-between gap-3">
+								<h2 class="text-sm font-medium text-[var(--color-fg)]">
+									{frameLabel(f.kind)}
+								</h2>
+								<span
+									class="text-2xs shrink-0 font-mono text-[var(--color-fg-subtle)] tabular-nums"
+									title={new Date(f.captured_at * 1000).toLocaleString()}
+								>
+									{offsetLabel(f)}
+								</span>
+							</div>
+							<!-- `compact` follows what the frame actually holds, not its
+							     position: onset and resolution are captured at full depth, so
+							     the closing frame still shows the failed units and kernel
+							     errors that appeared *during* the episode. -->
+							<BundleView
+								bundle={f.payload}
+								compact={f.kind !== 'onset' && f.kind !== 'resolution'}
+								baseline={i > 0 ? (baseline ?? undefined) : undefined}
+							/>
+						</Card>
+					</li>
+				{/each}
+			</ol>
 
-				<!-- Same shape, one minute on. The point is the comparison, so it sits
-				     beside the capture rather than below it. -->
-				<Card>
-					<h2 class="mb-3 text-sm font-medium text-[var(--color-fg)]">{m.incident_after()}</h2>
-					{#if incident.after_bundle}
-						<BundleView bundle={incident.after_bundle} compact baseline={incident.bundle} />
-					{:else}
-						<p class="text-xs text-[var(--color-fg-subtle)]">{m.incident_after_missing()}</p>
-					{/if}
-				</Card>
-			</div>
+			{#if stillOpen}
+				<p class="mt-4 text-xs text-[var(--color-fg-subtle)]">{m.incident_still_recording()}</p>
+			{/if}
 		{:else if busy}
 			<Card padding="lg">
 				<p class="text-sm text-[var(--color-fg-muted)]">{m.incident_loading()}</p>

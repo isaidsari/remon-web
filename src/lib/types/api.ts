@@ -1201,18 +1201,26 @@ export interface CaptureIncidentResponse {
 	id: number;
 }
 
-/** Listing row: everything but the bundles, which the detail call carries. */
+/** Why an episode stopped recording. */
+export type IncidentCloseReason = 'resolved' | 'expired' | 'daemon_restart';
+
+/** Listing row: the episode envelope, without any frame payloads. */
 export interface IncidentSummaryDto {
 	id: number;
-	created_at: number;
+	opened_at: number;
+	/** Absent while the episode is still recording. */
+	closed_at?: number;
+	close_reason?: IncidentCloseReason;
 	trigger_kind: 'alert' | 'manual';
 	category: IncidentCategory;
 	rule_name?: string;
 	label_set?: string;
-	metric_value?: number;
+	/** The value that opened the episode, and the worst it reached. */
+	trigger_value?: number;
+	peak_value?: number;
 	reason?: string;
-	/** The ~60 s follow-up landed, so the detail carries `after_bundle`. */
-	has_after: boolean;
+	/** Frames captured so far. One means only the opening moment is on record. */
+	frame_count: number;
 }
 
 export interface ListIncidentsResponse {
@@ -1297,6 +1305,8 @@ export interface IncidentCoActiveAlert {
  *  builds what it can reach and leaves the rest null rather than failing the
  *  capture, and `system_errors` is Linux-only. */
 export interface IncidentBundle {
+	/** Echoed inside the payload as well as on the frame envelope. */
+	kind?: IncidentFrameKind;
 	captured_at: number;
 	vitals?: IncidentVitals | SliceError | null;
 	top_processes?: IncidentProcessSlice | SliceError | null;
@@ -1306,11 +1316,20 @@ export interface IncidentBundle {
 	system_errors?: IncidentSystemEvents | SliceError | null;
 }
 
-export interface IncidentDto extends Omit<IncidentSummaryDto, 'has_after'> {
-	bundle: IncidentBundle;
-	/** Absent when the follow-up never landed — a restart, or a capture
-	 *  younger than a minute. */
-	after_bundle?: IncidentBundle;
+/** Why this moment was worth freezing. `peak` and `resolution` are the two the
+ *  old capture-plus-follow-up shape could never take. */
+export type IncidentFrameKind = 'onset' | 'escalation' | 'peak' | 'resolution' | 'followup';
+
+export interface IncidentFrameDto {
+	seq: number;
+	kind: IncidentFrameKind;
+	captured_at: number;
+	payload: IncidentBundle;
+}
+
+export interface IncidentDto extends Omit<IncidentSummaryDto, 'frame_count'> {
+	/** Oldest first, so reading top to bottom replays the episode. */
+	frames: IncidentFrameDto[];
 }
 
 /** Who a `GET /events` row was produced by. */
