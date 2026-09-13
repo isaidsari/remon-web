@@ -277,7 +277,20 @@
 												{/if}
 											</span>
 										{/if}
-										{#if i.closed_at == null}
+										{#if i.trigger_kind === 'alert' && i.violation_count > 1}
+											<span
+												>{m.incident_excursions({
+													violations: i.violation_count,
+													confirmations: i.confirmation_count
+												})}</span
+											>
+										{/if}
+										{#if i.closed_at == null && i.recovery_started_at != null}
+											<span
+												class="rounded-full bg-[var(--color-warning)]/15 px-1.5 py-px text-[var(--color-warning)]"
+												>{m.incident_recovering()}</span
+											>
+										{:else if i.closed_at == null}
 											<span
 												class="rounded-full bg-[var(--color-danger)]/15 px-1.5 py-px font-mono tracking-wide text-[var(--color-danger)]"
 											>
@@ -285,7 +298,11 @@
 											</span>
 										{:else}
 											<span class="font-mono tabular-nums">
-												{fmtDuration(i.closed_at - i.opened_at)}
+												{fmtDuration(
+													(i.close_reason === 'resolved'
+														? (i.recovery_started_at ?? i.closed_at)
+														: i.closed_at) - i.opened_at
+												)}
 											</span>
 										{/if}
 										{#if i.frame_count > 1}

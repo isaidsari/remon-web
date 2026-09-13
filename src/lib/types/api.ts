@@ -1224,6 +1224,7 @@ export interface IncidentTriggerContext {
 	severity: string;
 	start_kind: 'crossing' | 'continuation';
 	previous_incident_id?: number | null;
+	capture_policy?: { recovery_hold_secs: number };
 }
 export interface IncidentSummaryDto {
 	id: number;
@@ -1231,6 +1232,10 @@ export interface IncidentSummaryDto {
 	/** Absent while the episode is still recording. */
 	closed_at?: number;
 	close_reason?: IncidentCloseReason;
+	/** Start of the latest healthy run; on open records recovery is still being checked. */
+	recovery_started_at: number | null;
+	violation_count: number;
+	confirmation_count: number;
 	trigger_kind: 'alert' | 'manual';
 	category: IncidentCategory;
 	rule_name?: string;
@@ -1348,6 +1353,8 @@ export type IncidentFrameKind =
 	| 'escalation'
 	| 'peak'
 	| 'checkpoint'
+	| 'recovery'
+	| 'relapse'
 	| 'resolution'
 	| 'cleared'
 	| 'interrupted'

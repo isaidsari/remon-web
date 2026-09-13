@@ -77,8 +77,15 @@
 	let title = $derived(incident?.rule_name ?? incident?.reason ?? m.incident_title());
 	let openedAt = $derived(incident ? new Date(incident.opened_at * 1000).toLocaleString() : '');
 	let stillOpen = $derived(incident != null && incident.closed_at == null);
+	let recovering = $derived(stillOpen && incident?.recovery_started_at != null);
 	let duration = $derived(
-		incident?.closed_at != null ? fmtDuration(incident.closed_at - incident.opened_at) : null
+		incident?.closed_at != null
+			? fmtDuration(
+					(incident.close_reason === 'resolved'
+						? (incident.recovery_started_at ?? incident.closed_at)
+						: incident.closed_at) - incident.opened_at
+				)
+			: null
 	);
 
 	// The onset is what every later frame is read against — "worse or better
@@ -89,6 +96,10 @@
 		switch (kind) {
 			case 'continuation':
 				return m.incident_frame_continuation();
+			case 'recovery':
+				return m.incident_frame_recovery();
+			case 'relapse':
+				return m.incident_frame_relapse();
 			case 'checkpoint':
 				return m.incident_frame_checkpoint();
 			case 'cleared':
@@ -123,6 +134,8 @@
 				return 'bg-[var(--color-danger)]';
 			case 'resolution':
 				return 'bg-[var(--color-success)]';
+			case 'recovery':
+			case 'relapse':
 			case 'escalation':
 				return 'bg-[var(--color-warning)]';
 			default:
@@ -171,11 +184,13 @@
 						class="text-2xs mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[var(--color-fg-muted)]"
 					>
 						<span>{openedAt}</span>
-						{#if stillOpen}
+						{#if recovering}
+							<span class="text-[var(--color-warning)]">{m.incident_recovering()}</span>
+						{:else if stillOpen}
 							<span class="text-[var(--color-danger)]">{m.incidents_live()}</span>
 						{:else if duration}
 							<span class="text-[var(--color-fg-subtle)]">
-								{m.incident_lasted({ duration })}
+								{m.incident_span({ duration })}
 							</span>
 						{/if}
 						<span class="text-[var(--color-fg-subtle)]">
@@ -213,6 +228,22 @@
 				</Button>
 			</header>
 
+			{#if incident.trigger_kind === 'alert'}
+				<p class="mb-4 text-xs text-[var(--color-fg-muted)]">
+					{m.incident_excursions({
+						violations: incident.violation_count,
+						confirmations: incident.confirmation_count
+					})}
+				</p>
+			{/if}
+			{#if incident.close_reason === 'resolved' && incident.recovery_started_at != null && incident.closed_at != null}
+				<p class="text-2xs mb-4 text-[var(--color-fg-subtle)]">
+					{m.incident_recovery_timing({
+						start: new Date(incident.recovery_started_at * 1000).toLocaleTimeString(),
+						end: new Date(incident.closed_at * 1000).toLocaleTimeString()
+					})}
+				</p>
+			{/if}
 			{#if incident.trigger_context}
 				<Card class="mb-5" padding="sm">
 					<p class="text-2xs text-[var(--color-fg-muted)]">{m.incident_trigger_definition()}</p>
@@ -299,7 +330,15 @@
 			</ol>
 
 			{#if stillOpen}
-				<p class="mt-4 text-xs text-[var(--color-fg-subtle)]">{m.incident_still_recording()}</p>
+				<p class="mt-4 text-xs text-[var(--color-fg-subtle)]">
+					{recovering
+						? m.incident_recovering_hint({
+								duration: fmtDuration(
+									incident.trigger_context?.capture_policy?.recovery_hold_secs ?? 60
+								)
+							})
+						: m.incident_still_recording()}
+				</p>
 			{/if}
 		{:else if busy}
 			<Card padding="lg">
