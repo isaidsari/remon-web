@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { tabVisible } from '$lib/utils/visibility.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import Card from '$lib/components/ui/Card.svelte';
@@ -23,24 +24,48 @@
 	let incident = $state<IncidentDto | null>(null);
 	let error = $state<string | null>(null);
 	let busy = $state(true);
+	let loadedTarget = '';
 
 	$effect(() => {
-		const c = conn;
-		const target = iid;
-		if (!c?.isAuthenticated || !Number.isFinite(target)) return;
+		const c = conn,
+			target = iid;
+		const visible = tabVisible();
 		untrack(() => {
-			busy = true;
-			c.client
-				.getIncident(target)
-				.then((res) => {
-					incident = res;
-					error = null;
-				})
-				.catch((e) => {
-					error = e instanceof ApiError ? e.userMessage : String(e);
-				})
-				.finally(() => (busy = false));
+			if (loadedTarget !== id + '/' + target) {
+				loadedTarget = id + '/' + target;
+				incident = null;
+				error = null;
+				busy = true;
+			}
 		});
+		if (!c?.isAuthenticated || !Number.isFinite(target)) return;
+		let cancelled = false;
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		async function refresh() {
+			try {
+				const res = await c!.client.getIncident(target, true);
+				if (cancelled) return;
+				incident = res;
+				error = null;
+				if (
+					visible &&
+					(res.closed_at == null || res.frames.some((f) => f.payload.enrichment === 'pending'))
+				) {
+					timer = setTimeout(refresh, 5000);
+				}
+			} catch (e) {
+				if (cancelled) return;
+				error = e instanceof ApiError ? e.userMessage : String(e);
+				if (visible) timer = setTimeout(refresh, 10000);
+			} finally {
+				if (!cancelled) busy = false;
+			}
+		}
+		if (visible) void refresh();
+		return () => {
+			cancelled = true;
+			clearTimeout(timer);
+		};
 	});
 
 	function investigate() {
@@ -62,8 +87,18 @@
 
 	function frameLabel(kind: IncidentFrameKind): string {
 		switch (kind) {
+			case 'continuation':
+				return m.incident_frame_continuation();
+			case 'checkpoint':
+				return m.incident_frame_checkpoint();
+			case 'cleared':
+				return m.incident_frame_cleared();
+			case 'interrupted':
+				return m.incident_frame_interrupted();
 			case 'onset':
-				return m.incident_frame_onset();
+				return incident?.trigger_kind === 'manual'
+					? m.incident_frame_manual()
+					: m.incident_frame_onset();
 			case 'escalation':
 				return m.incident_frame_escalation();
 			case 'peak':
@@ -97,6 +132,16 @@
 
 	function closeReasonLabel(reason: string | undefined): string | null {
 		switch (reason) {
+			case 'data_gap':
+				return m.incident_close_data_gap();
+			case 'rule_removed':
+				return m.incident_close_rule_removed();
+			case 'rule_disabled':
+				return m.incident_close_rule_disabled();
+			case 'rule_changed':
+				return m.incident_close_rule_changed();
+			case 'completed':
+				return m.incident_close_completed();
 			case 'expired':
 				return m.incident_close_expired();
 			case 'daemon_restart':
@@ -145,9 +190,9 @@
 						{#if incident.trigger_value != null}
 							<span class="text-[var(--color-fg)] tabular-nums">
 								{fmtNumber(incident.trigger_value, 2)}
-								{#if incident.peak_value != null && incident.peak_value > incident.trigger_value}
+								{#if incident.worst_value != null && incident.worst_value !== incident.trigger_value}
 									<span class="text-[var(--color-warning)]">
-										→ {fmtNumber(incident.peak_value, 2)}
+										→ {fmtNumber(incident.worst_value, 2)}
 									</span>
 								{/if}
 							</span>
@@ -168,6 +213,28 @@
 				</Button>
 			</header>
 
+			{#if incident.trigger_context}
+				<Card class="mb-5" padding="sm">
+					<p class="text-2xs text-[var(--color-fg-muted)]">{m.incident_trigger_definition()}</p>
+					<p class="mt-2 font-mono text-xs break-words">{incident.trigger_context.expression}</p>
+					<p class="text-2xs mt-2 text-[var(--color-fg-subtle)]">
+						{m.incident_trigger_timing({
+							duration: fmtDuration(incident.trigger_context.for_duration_secs),
+							interval: fmtDuration(incident.trigger_context.eval_interval_secs)
+						})}
+					</p>
+				</Card>
+			{/if}
+			{#if error}<p role="status" class="mb-4 text-xs text-[var(--color-warning)]">{error}</p>{/if}
+
+			<p class="mb-4 text-xs text-[var(--color-fg-subtle)]">{m.incident_selected_frames()}</p>
+			{#if incident.trigger_context?.previous_incident_id}
+				<a
+					class="mb-4 inline-block text-xs text-[var(--color-accent)] hover:underline"
+					href={`/servers/${id}/incidents/${incident.trigger_context.previous_incident_id}`}
+					>{m.incident_previous_recording()}</a
+				>
+			{/if}
 			<!-- One column, oldest first: the reel is a sequence, and reading it top
 			     to bottom is the point. Every frame after the first is scored against
 			     the onset, so the deltas answer "worse or better than when it began". -->
@@ -200,9 +267,30 @@
 							     position: onset and resolution are captured at full depth, so
 							     the closing frame still shows the failed units and kernel
 							     errors that appeared *during* the episode. -->
+
+							{#if f.payload.trigger_value != null}
+								<p class="mb-3 font-mono text-xs tabular-nums">
+									{m.incident_observed_value()}: {fmtNumber(f.payload.trigger_value, 2)}
+								</p>
+							{/if}
+							{#if f.payload.enrichment === 'pending' || f.payload.enrichment === 'skipped_busy' || f.payload.enrichment === 'interrupted'}
+								<p class="text-2xs mb-3 text-[var(--color-fg-subtle)]">
+									{f.payload.enrichment === 'pending'
+										? m.incident_enrichment_pending()
+										: f.payload.enrichment === 'interrupted'
+											? m.incident_enrichment_interrupted()
+											: m.incident_enrichment_skipped()}
+								</p>
+							{/if}
 							<BundleView
 								bundle={f.payload}
-								compact={f.kind !== 'onset' && f.kind !== 'resolution'}
+								compact={![
+									'onset',
+									'continuation',
+									'resolution',
+									'cleared',
+									'interrupted'
+								].includes(f.kind)}
 								baseline={i > 0 ? (baseline ?? undefined) : undefined}
 							/>
 						</Card>
