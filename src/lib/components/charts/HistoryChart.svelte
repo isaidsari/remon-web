@@ -178,10 +178,9 @@
 								const bucket = s.buckets?.[index];
 								if (!bucket) return value;
 								const fmt = (n: number) => (valueFormatter ? valueFormatter(n) : String(n));
-								const interval = `${new Date(bucket.start * 1000).toLocaleTimeString()}–${new Date(bucket.end * 1000).toLocaleTimeString()}`;
 								return bucket.min == null || bucket.max == null
-									? `${value} · ${m.history_range_unknown()} (${interval})`
-									: `${value} · ${m.history_observed_range()}: ${fmt(bucket.min)}–${fmt(bucket.max)} · n=${bucket.count} (${interval})`;
+									? `${value} · min–max —`
+									: `${value} · min–max ${fmt(bucket.min)}–${fmt(bucket.max)}`;
 							}
 						}
 					: undefined
