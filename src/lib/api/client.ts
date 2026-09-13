@@ -763,9 +763,9 @@ export class ApiClient {
 		return this.request<ListIncidentsResponse>(`/incidents${q}`);
 	}
 
-	/** The context frozen at trigger time — the only copy that survives rollup. */
-	getIncident(id: number): Promise<IncidentDto> {
-		return this.request<IncidentDto>(`/incidents/${id}`);
+	/** Ordered incident frames; open episodes and pending enrichment can change. */
+	getIncident(id: number, bypassCache = false): Promise<IncidentDto> {
+		return this.request<IncidentDto>(`/incidents/${id}`, { bypassCache });
 	}
 
 	/** Manual trigger; alert transitions capture on their own. */

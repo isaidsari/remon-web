@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { tabVisible } from '$lib/utils/visibility.svelte';
 	import { page } from '$app/state';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
@@ -42,28 +43,53 @@
 	let incidents = $state<IncidentSummaryDto[] | null>(null);
 	let error = $state<ApiError | null>(null);
 	let busy = $state(false);
+	let listConnection: typeof conn = null;
 
-	async function fetchList(bust = false) {
-		if (!conn?.isAuthenticated) return;
-		busy = true;
+	async function fetchList(bust = false, quiet = false) {
+		const c = conn;
+		if (!c?.isAuthenticated) return;
+		if (!quiet) busy = true;
 		try {
 			const res = bust
-				? await conn.client.request<{ incidents: IncidentSummaryDto[] }>(
+				? await c.client.request<{ incidents: IncidentSummaryDto[] }>(
 						`/incidents?limit=${PAGE_LIMIT}`,
 						{ bypassCache: true }
 					)
-				: await conn.client.listIncidents(PAGE_LIMIT);
+				: await c.client.listIncidents(PAGE_LIMIT);
+			if (conn !== c) return;
 			incidents = res.incidents;
 			error = null;
 		} catch (e) {
-			if (e instanceof ApiError) error = e;
+			if (conn === c && e instanceof ApiError) error = e;
 		} finally {
-			busy = false;
+			if (conn === c && !quiet) busy = false;
 		}
 	}
 
 	$effect(() => {
-		if (conn?.isAuthenticated) void fetchList();
+		const c = conn;
+		if (listConnection !== c) {
+			listConnection = c;
+			untrack(() => {
+				incidents = null;
+				error = null;
+				busy = false;
+			});
+		}
+		if (!c?.isAuthenticated || !tabVisible()) return;
+		let stopped = false;
+		let first = true;
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		async function refresh() {
+			await fetchList(true, !first);
+			first = false;
+			if (!stopped) timer = setTimeout(refresh, 10000);
+		}
+		void refresh();
+		return () => {
+			stopped = true;
+			clearTimeout(timer);
+		};
 	});
 
 	type TriggerFilter = 'all' | 'alert' | 'manual';
@@ -244,9 +270,9 @@
 											     from "81 → 82". -->
 											<span class="font-mono tabular-nums">
 												{fmtNumber(i.trigger_value, 2)}
-												{#if i.peak_value != null && i.peak_value > i.trigger_value}
+												{#if i.worst_value != null && i.worst_value !== i.trigger_value}
 													<span class="text-[var(--color-warning)]">
-														→ {fmtNumber(i.peak_value, 2)}
+														→ {fmtNumber(i.worst_value, 2)}
 													</span>
 												{/if}
 											</span>

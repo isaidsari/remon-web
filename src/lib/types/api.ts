@@ -1202,9 +1202,29 @@ export interface CaptureIncidentResponse {
 }
 
 /** Why an episode stopped recording. */
-export type IncidentCloseReason = 'resolved' | 'expired' | 'daemon_restart';
+export type IncidentCloseReason =
+	| 'resolved'
+	| 'expired'
+	| 'daemon_restart'
+	| 'completed'
+	| 'data_gap'
+	| 'rule_removed'
+	| 'rule_disabled'
+	| 'rule_changed';
 
 /** Listing row: the episode envelope, without any frame payloads. */
+export interface IncidentTriggerContext {
+	expression: string;
+	comparator: '>' | '>=' | '<' | '<=' | '==' | '!=';
+	threshold: number;
+	namespace: string;
+	field: string;
+	for_duration_secs: number;
+	eval_interval_secs: number;
+	severity: string;
+	start_kind: 'crossing' | 'continuation';
+	previous_incident_id?: number | null;
+}
 export interface IncidentSummaryDto {
 	id: number;
 	opened_at: number;
@@ -1217,7 +1237,8 @@ export interface IncidentSummaryDto {
 	label_set?: string;
 	/** The value that opened the episode, and the worst it reached. */
 	trigger_value?: number;
-	peak_value?: number;
+	worst_value?: number;
+	trigger_context?: IncidentTriggerContext | null;
 	reason?: string;
 	/** Frames captured so far. One means only the opening moment is on record. */
 	frame_count: number;
@@ -1305,6 +1326,9 @@ export interface IncidentCoActiveAlert {
  *  builds what it can reach and leaves the rest null rather than failing the
  *  capture, and `system_errors` is Linux-only. */
 export interface IncidentBundle {
+	trigger_value?: number | null;
+	enrichment?: 'pending' | 'complete' | 'skipped_busy' | 'not_requested' | 'interrupted';
+	enriched_at?: number;
 	/** Echoed inside the payload as well as on the frame envelope. */
 	kind?: IncidentFrameKind;
 	captured_at: number;
@@ -1318,7 +1342,16 @@ export interface IncidentBundle {
 
 /** Why this moment was worth freezing. `peak` and `resolution` are the two the
  *  old capture-plus-follow-up shape could never take. */
-export type IncidentFrameKind = 'onset' | 'escalation' | 'peak' | 'resolution' | 'followup';
+export type IncidentFrameKind =
+	| 'onset'
+	| 'continuation'
+	| 'escalation'
+	| 'peak'
+	| 'checkpoint'
+	| 'resolution'
+	| 'cleared'
+	| 'interrupted'
+	| 'followup';
 
 export interface IncidentFrameDto {
 	seq: number;
