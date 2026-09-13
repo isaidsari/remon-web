@@ -173,14 +173,18 @@
 						: undefined,
 				tooltip: s.buckets
 					? {
+							// Deliberately wordless: one line per series, and a label would be
+							// repeated on every one of them. The corner toggle already names
+							// the concept once and carries the explanation, so here the
+							// bracket is enough — and with no prose there is nothing to leave
+							// untranslated. A bucket without extrema (a row written before
+							// rollups kept them) says nothing rather than printing a dash.
 							valueFormatter: (v: number, index: number) => {
 								const value = valueFormatter ? valueFormatter(v) : String(v);
 								const bucket = s.buckets?.[index];
-								if (!bucket) return value;
+								if (!bucket || bucket.min == null || bucket.max == null) return value;
 								const fmt = (n: number) => (valueFormatter ? valueFormatter(n) : String(n));
-								return bucket.min == null || bucket.max == null
-									? `${value} · min–max —`
-									: `${value} · min–max ${fmt(bucket.min)}–${fmt(bucket.max)}`;
+								return `${value} (${fmt(bucket.min)}–${fmt(bucket.max)})`;
 							}
 						}
 					: undefined
