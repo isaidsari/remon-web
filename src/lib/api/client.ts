@@ -547,8 +547,15 @@ export class ApiClient {
 		});
 	}
 
-	processes(query?: Record<string, unknown>): Promise<GetProcessesResponse> {
-		return this.request<GetProcessesResponse>('/processes', { query });
+	processes(
+		query?: Record<string, unknown>,
+		options: Cancellable = {}
+	): Promise<GetProcessesResponse> {
+		return this.request<GetProcessesResponse>('/processes', {
+			query,
+			...options,
+			bypassCache: true
+		});
 	}
 
 	killProcess(pid: number, signal: 9 | 15 = 15): Promise<void> {

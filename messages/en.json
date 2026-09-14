@@ -343,7 +343,7 @@
 	"processes_auto_refresh": "auto-refresh ({secs}s)",
 	"processes_action_refresh": "refresh",
 	"processes_signin_required": "sign in on the settings tab to query processes.",
-	"processes_filter_placeholder": "filter by name, user, or pid…",
+	"processes_filter_placeholder": "Search name, PID, user or command…",
 	"processes_action_expand_all": "expand all",
 	"processes_action_collapse_all": "collapse all",
 	"processes_table_name": "name",
@@ -1347,5 +1347,12 @@
 	"incident_frame_relapse": "crossed the threshold again",
 	"incident_excursions": "{violations} crossings · {confirmations} confirmed",
 	"incident_span": "episode span: {duration}",
-	"incident_recovery_timing": "healthy since {start} · confirmed at {end}"
+	"incident_recovery_timing": "healthy since {start} · confirmed at {end}",
+	"processes_incomplete": "The server returned an incomplete process list. Update the server and refresh.",
+	"processes_parent": "Parent PID",
+	"processes_started": "Started",
+	"processes_command": "Command",
+	"processes_executable": "Executable",
+	"processes_directory": "Working directory",
+	"processes_close": "Close"
 }

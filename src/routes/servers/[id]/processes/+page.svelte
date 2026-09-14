@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { SvelteSet } from 'svelte/reactivity';
+	import { SvelteMap } from 'svelte/reactivity';
 	import { page } from '$app/state';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
@@ -9,339 +9,140 @@
 	import AutoRefreshSelect from '$lib/components/ui/AutoRefreshSelect.svelte';
 	import RefreshButton from '$lib/components/ui/RefreshButton.svelte';
 	import SegmentedControl from '$lib/components/ui/SegmentedControl.svelte';
+	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import { profiles } from '$lib/stores/profiles.svelte';
 	import { connections } from '$lib/stores/connections.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { ApiError } from '$lib/api/error';
-	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import { fmtBytes, fmtPercent } from '$lib/utils/format';
+	import { processRows, processKey, type ProcessSort } from '$lib/utils/processes';
 	import { cn } from '$lib/utils/cn';
 	import { m } from '$lib/paraglide/messages';
-	import type { ProcessInfo, ProcessState } from '$lib/types/api';
+	import type { ProcessInfo } from '$lib/types/api';
 
-	type DisplayRow = ProcessInfo & {
-		/** One flag per ancestor level: has further siblings → │ pass-through. The
-		 *  last entry picks ├ or └ for this node. Empty for roots and flat rows. */
-		guides: boolean[];
-		hasChildren: boolean;
-		descendantCount: number;
-		/** CPU% summed over the subtree. No memory equivalent: RSS counts shared
-		 *  pages per process, so summing it invents terabytes. */
-		subtreeCpu: number;
-	};
-
-	let id = $derived(page.params.id ?? '');
-	let profile = $derived(id ? profiles.byId(id) : undefined);
-	let conn = $derived(profile ? connections.connect(profile) : null);
-
-	$effect(() => {
-		if (!conn) return;
-		untrack(() => {
-			conn.ensureSignedIn().catch((e) => {
-				if (e instanceof ApiError)
-					toast.error(m.processes_toast_signin_failed(), { description: e.userMessage });
-			});
-		});
-	});
-
+	const id = $derived(page.params.id ?? '');
+	const profile = $derived(id ? profiles.byId(id) : undefined);
+	const conn = $derived(profile ? connections.connect(profile) : null);
 	let processes = $state<ProcessInfo[]>([]);
 	let loading = $state(false);
 	let lastFetched = $state<number | null>(null);
-
+	let error = $state('');
 	let q = $state('');
-	type SortKey = 'pid' | 'name' | 'user' | 'cpu_percent' | 'memory_bytes' | 'state' | 'threads';
-	let sortKey = $state<SortKey>('cpu_percent');
+	let sortKey = $state<ProcessSort>('cpu_percent');
 	let sortDir = $state<'asc' | 'desc'>('desc');
-
 	let viewMode = $state<'flat' | 'tree'>('flat');
-	// collapsed is an exception list (present = collapsed); seeded on first load to hide noise.
-	let collapsed = new SvelteSet<number>();
-	let initialCollapseDone = $state(false);
-
 	let autoRefresh = $state(false);
-	let refreshIntervalSecs = 5;
+	let visibleCount = $state(100);
+	let selected = $state<string | null>(null);
+	const expansion = new SvelteMap<string, boolean>();
+	let generation = 0;
+	let inFlight = false;
+	let requestController: AbortController | undefined;
+	const result = $derived(
+		processRows(processes, q, sortKey, sortDir, viewMode === 'tree', expansion)
+	);
+	const visible = $derived(result.rows.slice(0, visibleCount));
+	const selectedProcess = $derived(processes.find((p) => processKey(p) === selected));
 
-	let total = $state(0);
-	let filteredTotal = $state(0);
-	let loadingMore = $state(false);
-	let hasMore = $state(false);
-	let sentinel = $state<HTMLElement | null>(null);
-	let searchTimer: ReturnType<typeof setTimeout> | undefined;
-
-	const PAGE_SIZE = 100;
-
-	function toServerSort(k: SortKey): 'cpu' | 'memory' | 'pid' | 'name' | null {
-		switch (k) {
-			case 'cpu_percent':
-				return 'cpu';
-			case 'memory_bytes':
-				return 'memory';
-			case 'pid':
-				return 'pid';
-			case 'name':
-				return 'name';
-			default:
-				return null;
-		}
-	}
-
-	async function fetchProcesses(reset = true) {
-		if (!conn?.isAuthenticated) return;
-
-		if (reset) {
-			loading = true;
-			processes = [];
-			hasMore = false;
-		} else {
-			loadingMore = true;
-		}
-
-		try {
-			const serverSort = toServerSort(sortKey);
-			const isServerPaginated = viewMode === 'flat' && serverSort !== null;
-
-			const query: Record<string, unknown> = {};
-			if (q.trim()) query.search = q.trim();
-
-			if (isServerPaginated) {
-				query.sort = serverSort;
-				query.limit = PAGE_SIZE;
-				query.offset = reset ? 0 : processes.length;
-			} else {
-				query.limit = 1000;
-			}
-
-			const res = await conn.client.processes(query);
-			processes = reset ? res.processes : [...processes, ...res.processes];
-			total = res.total;
-			filteredTotal = res.filtered_total;
-			hasMore =
-				isServerPaginated && processes.length < res.filtered_total && res.processes.length > 0;
-			lastFetched = Date.now();
-		} catch (e) {
-			if (e instanceof ApiError) {
-				toast.error(m.processes_toast_fetch_failed(), { description: e.userMessage });
-			}
-		} finally {
-			loading = false;
-			loadingMore = false;
-		}
-	}
-
-	// Re-fetch when auth state, view mode, or sort key changes.
-	// sortKey is only tracked in flat mode (conditional read = conditional tracking).
 	$effect(() => {
-		const auth = conn?.isAuthenticated;
-		const mode = viewMode;
-		const sort = mode === 'flat' ? sortKey : null;
-		void sort;
-		if (!auth) return;
-		untrack(() => fetchProcesses(true));
+		const current = conn;
+		if (!current) return;
+		untrack(() =>
+			current.ensureSignedIn().catch((e) => {
+				if (current === conn && e instanceof ApiError)
+					toast.error(m.processes_toast_signin_failed(), { description: e.userMessage });
+			})
+		);
+	});
+
+	async function fetchProcesses() {
+		const current = conn;
+		if (!current?.isAuthenticated || inFlight) return;
+		const request = generation;
+		inFlight = true;
+		loading = true;
+		requestController = new AbortController();
+		try {
+			const res = await current.client.processes(
+				{ snapshot: true },
+				{ signal: requestController.signal }
+			);
+			if (request !== generation || current !== conn) return;
+			// Do not present a partial result as a complete tree (e.g. server not updated yet).
+			if (res.processes.length !== res.total) throw new Error(m.processes_incomplete());
+			processes = res.processes;
+			lastFetched = res.timestamp * 1000;
+			error = '';
+			const keys = new Set(processes.map(processKey));
+			for (const key of expansion.keys()) if (!keys.has(key)) expansion.delete(key);
+			if (selected && !keys.has(selected)) selected = null;
+		} catch (e) {
+			if (request !== generation || current !== conn) return;
+			error =
+				e instanceof ApiError
+					? e.userMessage
+					: e instanceof Error
+						? e.message
+						: m.processes_toast_fetch_failed();
+		} finally {
+			if (request === generation) {
+				loading = false;
+				inFlight = false;
+			}
+		}
+	}
+
+	$effect(() => {
+		const current = conn;
+		const auth = current?.isAuthenticated;
+		untrack(() => {
+			generation++;
+			inFlight = false;
+			processes = [];
+			lastFetched = null;
+			error = '';
+			loading = false;
+			selected = null;
+			killTarget = null;
+			expansion.clear();
+			visibleCount = 100;
+			if (auth) void fetchProcesses();
+		});
+		return () => {
+			generation++;
+			requestController?.abort();
+			inFlight = false;
+		};
 	});
 
 	$effect(() => {
 		if (!autoRefresh || !conn?.isAuthenticated) return;
-		const t = setInterval(fetchProcesses, refreshIntervalSecs * 1000);
-		return () => clearInterval(t);
-	});
-
-	// IntersectionObserver: load more pages when sentinel scrolls into view.
-	$effect(() => {
-		const el = sentinel;
-		if (!el) return;
-		const observer = new IntersectionObserver(
-			([entry]) => {
-				if (entry.isIntersecting && hasMore && !loadingMore) fetchProcesses(false);
-			},
-			{ rootMargin: '200px' }
-		);
-		observer.observe(el);
-		return () => observer.disconnect();
-	});
-
-	function onSearchInput() {
-		if (viewMode !== 'flat') return;
-		clearTimeout(searchTimer);
-		searchTimer = setTimeout(() => untrack(() => fetchProcesses(true)), 300);
-	}
-
-	$effect(() => () => clearTimeout(searchTimer));
-
-	// One-shot seed: collapse non-root parents so the initial tree isn't a 500-row dump.
-	$effect(() => {
-		if (initialCollapseDone || processes.length === 0) return;
-		untrack(() => {
-			const byPid = new Set(processes.map((p) => p.pid));
-			// Precompute parent pids so the has-children test is O(1), not O(n²).
-			const parentPids = new Set<number>();
-			for (const p of processes) if (p.parent_pid != null) parentPids.add(p.parent_pid);
-			const seen = new Set<number>();
-			for (const p of processes) {
-				const isRoot = p.parent_pid == null || !byPid.has(p.parent_pid);
-				const hasChildren = parentPids.has(p.pid);
-				if (hasChildren && !isRoot) seen.add(p.pid);
-			}
-			if (byPid.has(2)) seen.add(2); // kernel thread root — noisy, default closed
-			collapsed.clear();
-			for (const pid of seen) collapsed.add(pid);
-			initialCollapseDone = true;
-		});
-	});
-
-	function toggleSort(k: SortKey) {
-		if (sortKey === k) {
-			sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-		} else {
-			sortKey = k;
-			sortDir = k === 'name' || k === 'user' || k === 'state' ? 'asc' : 'desc';
-		}
-	}
-
-	function compareProcs(a: ProcessInfo, b: ProcessInfo, k: SortKey): number {
-		switch (k) {
-			case 'pid':
-				return a.pid - b.pid;
-			case 'name':
-				return a.name.localeCompare(b.name);
-			case 'user':
-				return (a.user ?? '').localeCompare(b.user ?? '');
-			case 'cpu_percent':
-				return a.cpu_percent - b.cpu_percent;
-			case 'memory_bytes':
-				return a.memory_bytes - b.memory_bytes;
-			case 'state':
-				return a.state.localeCompare(b.state);
-			case 'threads':
-				return (a.threads ?? 0) - (b.threads ?? 0);
-		}
-	}
-
-	let filtered = $derived.by(() => {
-		const needle = q.trim().toLowerCase();
-		const list = needle
-			? processes.filter(
-					(p) =>
-						p.name.toLowerCase().includes(needle) ||
-						(p.user ?? '').toLowerCase().includes(needle) ||
-						String(p.pid).includes(needle)
-				)
-			: processes;
-		const dir = sortDir === 'asc' ? 1 : -1;
-		return [...list].sort((a, b) => compareProcs(a, b, sortKey) * dir);
-	});
-
-	let displayList = $derived.by<DisplayRow[]>(() => {
-		if (viewMode === 'flat') {
-			return filtered.map((p) => ({
-				...p,
-				guides: [],
-				hasChildren: false,
-				descendantCount: 0,
-				subtreeCpu: p.cpu_percent
-			}));
-		}
-
-		// Tree + search: keep ancestors of each match (so it stays nested) and
-		// ignore the collapsed set so matches are visible.
-		const needle = q.trim().toLowerCase();
-		const searching = needle.length > 0;
-		let working: ProcessInfo[];
-		if (searching) {
-			const allByPid = new Map<number, ProcessInfo>();
-			for (const p of processes) allByPid.set(p.pid, p);
-			const matches = (p: ProcessInfo) =>
-				p.name.toLowerCase().includes(needle) ||
-				(p.user ?? '').toLowerCase().includes(needle) ||
-				String(p.pid).includes(needle);
-			const included = new Set<number>();
-			for (const p of processes) {
-				if (!matches(p)) continue;
-				// Walk up the ancestor chain, stopping at a shared ancestor.
-				let cur: ProcessInfo | undefined = p;
-				while (cur && !included.has(cur.pid)) {
-					included.add(cur.pid);
-					const pp: number | null = cur.parent_pid;
-					cur = pp != null && pp !== cur.pid ? allByPid.get(pp) : undefined;
-				}
-			}
-			working = processes.filter((p) => included.has(p.pid));
-		} else {
-			working = processes;
-		}
-
-		const byPid = new Map<number, ProcessInfo>();
-		const childrenOf = new Map<number, ProcessInfo[]>();
-		for (const p of working) byPid.set(p.pid, p);
-		const roots: ProcessInfo[] = [];
-		for (const p of working) {
-			const pp = p.parent_pid;
-			if (pp != null && pp !== p.pid && byPid.has(pp)) {
-				const arr = childrenOf.get(pp);
-				if (arr) arr.push(p);
-				else childrenOf.set(pp, [p]);
-			} else {
-				roots.push(p);
-			}
-		}
-
-		const dir = sortDir === 'asc' ? 1 : -1;
-		const sortByActive = (arr: ProcessInfo[]) =>
-			arr.sort((a, b) => compareProcs(a, b, sortKey) * dir);
-		sortByActive(roots);
-		for (const arr of childrenOf.values()) sortByActive(arr);
-
-		const rollup = new Map<number, { cpu: number; count: number }>();
-		const computeRollup = (p: ProcessInfo): { cpu: number; count: number } => {
-			const cached = rollup.get(p.pid);
-			if (cached) return cached;
-			let cpu = p.cpu_percent;
-			let count = 0;
-			for (const c of childrenOf.get(p.pid) ?? []) {
-				const r = computeRollup(c);
-				cpu += r.cpu;
-				count += 1 + r.count;
-			}
-			const result = { cpu, count };
-			rollup.set(p.pid, result);
-			return result;
+		const refresh = () => {
+			if (!document.hidden && !selected && !killTarget) void fetchProcesses();
 		};
-
-		const out: DisplayRow[] = [];
-		const visit = (p: ProcessInfo, guides: boolean[]) => {
-			const children = childrenOf.get(p.pid) ?? [];
-			const r = computeRollup(p);
-			out.push({
-				...p,
-				guides,
-				hasChildren: children.length > 0,
-				descendantCount: r.count,
-				subtreeCpu: r.cpu
-			});
-			if (children.length > 0 && (searching || !collapsed.has(p.pid))) {
-				children.forEach((c, i) => visit(c, [...guides, i < children.length - 1]));
-			}
+		const timer = setInterval(refresh, 5000);
+		document.addEventListener('visibilitychange', refresh);
+		return () => {
+			clearInterval(timer);
+			document.removeEventListener('visibilitychange', refresh);
 		};
-		// Roots render without a connector column, so their guide list is empty.
-		for (const r of roots) visit(r, []);
-		return out;
 	});
 
-	function toggleCollapse(pid: number) {
-		if (collapsed.has(pid)) collapsed.delete(pid);
-		else collapsed.add(pid);
+	function changeView(next: 'flat' | 'tree') {
+		viewMode = next;
+		visibleCount = 100;
 	}
-
-	function collapseAll() {
-		collapsed.clear();
-		for (const p of processes) {
-			if (p.parent_pid != null) collapsed.add(p.parent_pid);
+	function toggleSort(key: ProcessSort) {
+		if (sortKey === key) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+		else {
+			sortKey = key;
+			sortDir = ['name', 'user', 'state', 'pid'].includes(key) ? 'asc' : 'desc';
 		}
+		visibleCount = 100;
 	}
-
-	function expandAll() {
-		collapsed.clear();
+	function expandAll(expanded: boolean) {
+		for (const p of processes) expansion.set(processKey(p), expanded);
 	}
-
 	let killTarget = $state<{ pid: number; name: string } | null>(null);
 	let killSignal = $state<9 | 15>(15);
 	let killing = $state(false);
@@ -353,16 +154,21 @@
 
 	async function confirmKill() {
 		// conn can go null if the user navigates away while the modal is open.
-		if (!killTarget || !conn) return;
+		if (!killTarget || !conn || killing) return;
+		const current = conn;
+		const request = generation;
 		killing = true;
 		const { pid } = killTarget;
 		const sig = killSignal;
 		try {
-			await conn.client.killProcess(pid, sig);
+			await current.client.killProcess(pid, sig);
+			if (request !== generation || current !== conn) return;
 			toast.success(m.processes_toast_killed({ pid, signal: sig }));
 			killTarget = null;
+			selected = null;
 			fetchProcesses();
 		} catch (e) {
+			if (request !== generation || current !== conn) return;
 			if (e instanceof ApiError) {
 				// A guardrail, not a failure — and permanent for this pid, so close
 				// the dialog rather than leave a button that can only fail.
@@ -377,57 +183,23 @@
 			killing = false;
 		}
 	}
-
-	const stateBadge: Record<ProcessState, string> = {
-		running: 'bg-[var(--color-success)]/15 text-[var(--color-success)]',
-		sleeping: 'bg-[var(--color-info)]/15 text-[var(--color-info)]',
-		stopped: 'bg-[var(--color-warning)]/15 text-[var(--color-warning)]',
-		zombie: 'bg-[var(--color-danger)]/15 text-[var(--color-danger)]',
-		idle: 'bg-[var(--color-fg-subtle)]/15 text-[var(--color-fg-subtle)]',
-		unknown: 'bg-[var(--color-fg-subtle)]/15 text-[var(--color-fg-subtle)]'
-	};
-
-	function sortIndicator(k: SortKey) {
-		if (sortKey !== k) return '';
-		return sortDir === 'asc' ? '↑' : '↓';
-	}
 </script>
 
 {#if profile}
 	<div class="px-4 py-6 md:px-8 md:py-8">
-		<header class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-			<div>
-				<h1 class="text-2xl font-semibold tracking-tight">
-					{m.section_processes()}
-					<span
-						class="ml-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-0.5 align-middle font-mono text-xs font-medium text-[var(--color-fg-muted)]"
-					>
-						{total > 0 && filteredTotal < total
-							? `${filteredTotal} / ${total}`
-							: total || processes.length}
-					</span>
-				</h1>
-				{#if lastFetched}
-					<p class="mt-1.5 text-xs text-[var(--color-fg-subtle)]">
-						{m.processes_updated({ time: new Date(lastFetched).toLocaleTimeString() })}
-					</p>
-				{/if}
+		<header class="mb-5 flex flex-wrap items-center justify-between gap-3">
+			<div class="flex items-baseline gap-3">
+				<h1 class="text-2xl font-semibold tracking-tight">{m.section_processes()}</h1>
+				<span class="text-xs text-[var(--color-fg-muted)] tabular-nums"
+					>{q.trim() ? result.matches + ' / ' : ''}{processes.length}</span
+				>
 			</div>
-			<div class="flex flex-wrap items-center gap-2">
-				<SegmentedControl
-					value={viewMode}
-					options={[
-						{ value: 'flat', label: m.processes_view_flat() },
-						{ value: 'tree', label: m.processes_view_tree() }
-					]}
-					onSelect={(next) => (viewMode = next)}
-					ariaLabel={m.processes_aria_view_mode()}
-				/>
+			<div class="flex items-center gap-2">
 				<AutoRefreshSelect
-					value={autoRefresh ? `${refreshIntervalSecs}s` : 'off'}
+					value={autoRefresh ? '5s' : 'off'}
 					options={[
 						{ value: 'off', label: m.chart_autorefresh_off() },
-						{ value: `${refreshIntervalSecs}s`, label: `${refreshIntervalSecs}s` }
+						{ value: '5s', label: '5s' }
 					]}
 					onChange={(next) => (autoRefresh = next !== 'off')}
 					class="w-[8.5rem]"
@@ -439,7 +211,6 @@
 				/>
 			</div>
 		</header>
-
 		<Modal
 			open={killTarget !== null}
 			onClose={() => (killTarget = null)}
@@ -488,276 +259,226 @@
 		</Modal>
 
 		{#if !conn?.isAuthenticated}
-			<Card padding="lg" class="border-[var(--color-warning)]/30">
-				<p class="text-sm text-[var(--color-fg-muted)]">
-					{m.processes_signin_required()}
-				</p>
-			</Card>
+			<Card padding="lg"
+				><p class="text-sm text-[var(--color-fg-muted)]">{m.processes_signin_required()}</p></Card
+			>
 		{:else}
-			<div class="mb-4 flex items-center gap-2">
+			<div class="mb-3 flex flex-wrap items-center gap-2">
 				<Input
 					placeholder={m.processes_filter_placeholder()}
 					bind:value={q}
-					oninput={onSearchInput}
-					class="flex-1 font-mono text-sm"
+					oninput={() => (visibleCount = 100)}
+					class="min-w-48 flex-1 text-sm"
+				/>
+				<SegmentedControl
+					value={viewMode}
+					options={[
+						{ value: 'flat', label: m.processes_view_flat() },
+						{ value: 'tree', label: m.processes_view_tree() }
+					]}
+					onSelect={changeView}
+					ariaLabel={m.processes_aria_view_mode()}
 				/>
 				{#if viewMode === 'tree'}
-					<button
-						type="button"
-						onclick={expandAll}
-						class="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-xs text-[var(--color-fg-muted)] transition hover:text-[var(--color-fg)]"
+					<Button variant="ghost" size="sm" onclick={() => expandAll(true)} disabled={!!q.trim()}
+						>{m.processes_action_expand_all()}</Button
 					>
-						{m.processes_action_expand_all()}
-					</button>
-					<button
-						type="button"
-						onclick={collapseAll}
-						class="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-xs text-[var(--color-fg-muted)] transition hover:text-[var(--color-fg)]"
+					<Button variant="ghost" size="sm" onclick={() => expandAll(false)} disabled={!!q.trim()}
+						>{m.processes_action_collapse_all()}</Button
 					>
-						{m.processes_action_collapse_all()}
-					</button>
 				{/if}
 			</div>
-
+			{#if error}<p role="alert" class="mb-3 text-sm text-[var(--color-danger)]">{error}</p>{/if}
 			<Card padding="none" class="overflow-hidden">
-				<div class="max-h-[max(18rem,calc(100dvh-22rem))] overflow-auto">
-					<table class="w-full text-sm">
+				<div class="max-h-[max(18rem,calc(100dvh-19rem))] overflow-auto">
+					<table
+						class={cn(
+							'w-full table-fixed text-sm',
+							viewMode === 'tree' ? 'min-w-[32rem]' : 'min-w-[20rem]'
+						)}
+					>
 						<thead
-							class="sticky top-0 z-10 bg-[var(--color-surface-2)] text-xs tracking-wide text-[var(--color-fg-muted)]"
+							class="sticky top-0 z-10 bg-[var(--color-surface-2)] text-xs text-[var(--color-fg-muted)]"
 						>
 							<tr>
-								{@render th('pid', 'PID', 'right')}
-								{@render th('name', m.processes_table_name(), 'left')}
-								{@render th('user', m.processes_table_user(), 'left', 'hidden sm:table-cell')}
-								{@render th('cpu_percent', 'CPU', 'right')}
-								{@render th('memory_bytes', m.processes_table_memory(), 'right')}
-								{@render th('state', m.processes_table_state(), 'left', 'hidden md:table-cell')}
-								{@render th(
-									'threads',
-									m.processes_table_threads(),
-									'right',
-									'hidden md:table-cell'
-								)}
-								<th class="px-3 py-2.5"></th>
+								{@render th('name', m.processes_table_name(), '')}
+								{@render th('cpu_percent', 'CPU', 'w-20 text-right')}
+								{@render th('memory_bytes', m.processes_table_memory(), 'w-24 text-right')}
+								{@render th('pid', 'PID', 'hidden w-20 text-right sm:table-cell')}
+								{@render th('user', m.processes_table_user(), 'hidden w-28 lg:table-cell')}
+								{@render th('state', m.processes_table_state(), 'hidden w-24 md:table-cell')}
 							</tr>
 						</thead>
 						<tbody>
-							{#if loading && processes.length === 0}
-								{#each { length: 10 } as _, i (i)}
-									<tr class="border-t border-[var(--color-border)]">
-										<td class="px-3 py-2.5"><Skeleton class="ml-auto h-3 w-10" /></td>
-										<td class="px-3 py-2.5"><Skeleton class="h-3 w-36" /></td>
-										<td class="hidden px-3 py-2.5 sm:table-cell"><Skeleton class="h-3 w-16" /></td>
-										<td class="px-3 py-2.5"><Skeleton class="ml-auto h-3 w-12" /></td>
-										<td class="px-3 py-2.5"><Skeleton class="ml-auto h-3 w-14" /></td>
-										<td class="hidden px-3 py-2.5 md:table-cell"
-											><Skeleton class="h-5 w-16" rounded="full" /></td
-										>
-										<td class="hidden px-3 py-2.5 md:table-cell"
-											><Skeleton class="ml-auto h-3 w-8" /></td
-										>
-										<td class="px-3 py-2.5"></td>
-									</tr>
-								{/each}
+							{#if loading && lastFetched === null}
+								{#each { length: 8 } as _, i (i)}<tr
+										><td colspan="6" class="px-3 py-3"><Skeleton class="h-4 w-full" /></td></tr
+									>{/each}
 							{:else}
-								{#each displayList as p (p.pid)}
-									{@const isCollapsed = collapsed.has(p.pid)}
-									{@const showSubtree = viewMode === 'tree' && p.hasChildren && isCollapsed}
-									{@const cpuDisplay = showSubtree ? p.subtreeCpu : p.cpu_percent}
+								{#each visible as row (processKey(row.process))}
+									{@const p = row.process}
 									<tr
-										class="border-t border-[var(--color-border)] transition hover:bg-[var(--color-surface-2)]/40"
+										class="border-t border-[var(--color-border)] hover:bg-[var(--color-surface-2)]/50"
 									>
-										<td
-											class="px-3 py-2 text-right font-mono text-[var(--color-fg-muted)] tabular-nums"
-											>{p.pid}</td
-										>
-										<!-- w-full + max-w-0: in auto table layout a cell's max-content
-										     width wins, so a long argv here pushed CPU/memory off-screen
-										     no matter how hard the inner span truncated. Zeroing the cell's
-										     content contribution makes it absorb the leftover width
-										     instead, which is what lets the truncate below actually bite. -->
-										<td class="w-full max-w-0 p-0">
-											<!-- Guides must span the full row height for continuous rails,
-											     so the cell drops its padding and the flex children stretch. -->
-											<div class="flex min-h-9 items-stretch pr-3 pl-3">
+										<td class="py-2 pr-2 pl-3">
+											<div
+												class="flex min-w-0 items-center gap-1"
+												style:padding-left={viewMode === 'tree'
+													? Math.min(row.depth, 8) * 12 + 'px'
+													: '0'}
+											>
 												{#if viewMode === 'tree'}
-													{#each p.guides as g, gi (gi)}
-														<span
-															class="relative w-4 shrink-0 self-stretch md:w-5"
-															aria-hidden="true"
-														>
-															{#if gi < p.guides.length - 1}
-																<!-- Pass-through rail of an ancestor that continues below;
-																     -top-px bridges the row's hairline border. -->
-																{#if g}
-																	<span
-																		class="absolute -top-px bottom-0 left-1/2 w-px bg-[var(--color-border-strong)]"
-																	></span>
-																{/if}
-															{:else}
-																<!-- This node's connector: ├ when siblings follow, └ when last -->
-																<span
-																	class={cn(
-																		'absolute -top-px left-1/2 w-px bg-[var(--color-border-strong)]',
-																		g ? 'bottom-0' : 'h-[calc(50%+1px)]'
-																	)}
-																></span>
-																<span
-																	class="absolute top-1/2 left-1/2 h-px w-2 bg-[var(--color-border-strong)] md:w-2.5"
-																></span>
-															{/if}
-														</span>
-													{/each}
-													{#if p.hasChildren}
-														<!-- 20px visual keeps the chevron aligned to the w-4/w-5 guide
-														     rail, but that is under the 24px minimum target size, so a
-														     ::before pad grows the hit area to 32px without moving
-														     anything in the tree layout. -->
-														<button
+													{#if row.hasChildren}<button
 															type="button"
-															onclick={() => toggleCollapse(p.pid)}
-															class="relative my-auto grid size-5 shrink-0 place-items-center rounded text-[var(--color-fg-muted)] transition before:absolute before:-inset-1.5 before:content-[''] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)]"
-															aria-expanded={!isCollapsed}
-															aria-label={isCollapsed
-																? m.processes_aria_expand()
-																: m.processes_aria_collapse()}
-														>
-															<svg
+															class="grid size-7 shrink-0 place-items-center rounded text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-2)]"
+															aria-expanded={row.expanded}
+															aria-label={row.expanded
+																? m.processes_aria_collapse()
+																: m.processes_aria_expand()}
+															disabled={!!q.trim()}
+															onclick={() => expansion.set(processKey(p), !row.expanded)}
+															><svg
 																width="12"
 																height="12"
 																viewBox="0 0 24 24"
 																fill="none"
 																stroke="currentColor"
 																stroke-width="2"
-																stroke-linecap="round"
-																stroke-linejoin="round"
-																style="transform: rotate({isCollapsed
-																	? 0
-																	: 90}deg); transition: transform var(--dur-fast) var(--ease-snap)"
-															>
-																<path d="m9 18 6-6-6-6" />
-															</svg>
-														</button>
-													{:else}
-														<span
-															class="grid size-5 shrink-0 place-items-center self-center"
+																class={row.expanded ? 'rotate-90' : ''}
+																><path d="m9 18 6-6-6-6" /></svg
+															></button
+														>
+													{:else}<span
 															aria-hidden="true"
-														>
-															<span class="block size-[3px] rounded-full bg-[var(--color-fg-faint)]"
-															></span>
-														</span>
-													{/if}
+															class="grid size-7 shrink-0 place-items-center text-[var(--color-fg-faint)]"
+															>·</span
+														>{/if}
 												{/if}
-												<div
-													class="flex min-w-0 flex-1 items-baseline gap-2 self-center py-1.5 pl-1"
-													title={p.cmd.length > 0 ? p.cmd.join(' ') : undefined}
+												<button
+													type="button"
+													class={cn(
+														'min-w-0 flex-1 rounded text-left hover:text-[var(--color-accent)]',
+														!row.match && 'opacity-50'
+													)}
+													onclick={() => (selected = processKey(p))}
 												>
-													<span
-														class="max-w-[24ch] shrink-0 truncate font-medium text-[var(--color-fg)]"
+													<span class="block truncate font-medium">{p.name}</span>
+													<span class="text-2xs block text-[var(--color-fg-muted)] sm:hidden"
+														>{p.pid}</span
 													>
-														{p.name}
-													</span>
-													{#if viewMode === 'tree' && p.hasChildren && isCollapsed}
-														<span
-															class="text-3xs shrink-0 rounded-full bg-[var(--color-surface-2)] px-1.5 py-px font-mono text-[var(--color-fg-subtle)] shadow-[inset_0_0_0_1px_var(--color-border)]"
-															title={m.processes_descendants_hidden({ count: p.descendantCount })}
-														>
-															+{p.descendantCount}
-														</span>
-													{/if}
-													{#if p.cmd.length > 1}
-														<span
-															class="text-2xs min-w-0 flex-1 truncate font-mono text-[var(--color-fg-faint)]"
-														>
-															{p.cmd.slice(1).join(' ')}
-														</span>
-													{/if}
-												</div>
+												</button>
 											</div>
 										</td>
-										<td class="hidden px-3 py-2 text-[var(--color-fg-muted)] sm:table-cell"
+										<td class="px-3 py-2 text-right font-mono text-xs tabular-nums"
+											>{fmtPercent(p.cpu_percent, 1)}</td
+										>
+										<td class="px-3 py-2 text-right font-mono text-xs tabular-nums"
+											>{fmtBytes(p.memory_bytes)}</td
+										>
+										<td
+											class="hidden px-3 py-2 text-right font-mono text-xs text-[var(--color-fg-muted)] sm:table-cell"
+											>{p.pid}</td
+										>
+										<td
+											class="hidden truncate px-3 py-2 text-xs text-[var(--color-fg-muted)] lg:table-cell"
 											>{p.user ?? '—'}</td
 										>
-										<td class="px-3 py-2 text-right font-mono whitespace-nowrap tabular-nums">
-											{fmtPercent(cpuDisplay, 1)}
-											{#if showSubtree}
-												<span
-													class="text-3xs ml-1 text-[var(--color-fg-subtle)]"
-													title={m.processes_subtree_total()}>Σ</span
-												>
-											{/if}
-										</td>
-										<td class="px-3 py-2 text-right font-mono whitespace-nowrap tabular-nums">
-											{fmtBytes(p.memory_bytes)}
-										</td>
-										<td class="hidden px-3 py-2 md:table-cell">
-											<span
-												class={cn(
-													'text-2xs inline-flex items-center rounded-full px-2 py-0.5',
-													stateBadge[p.state]
-												)}
-											>
-												{p.state}
-											</span>
-										</td>
 										<td
-											class="hidden px-3 py-2 text-right font-mono text-[var(--color-fg-muted)] tabular-nums md:table-cell"
-											>{p.threads ?? '—'}</td
+											class={cn(
+												'hidden px-3 py-2 text-xs md:table-cell',
+												p.state === 'zombie' || p.state === 'stopped'
+													? 'text-[var(--color-warning)]'
+													: 'text-[var(--color-fg-muted)]'
+											)}>{p.state}</td
 										>
-										<td class="px-3 py-2 text-right">
-											<button
-												type="button"
-												onclick={() => openKillModal(p.pid, p.name)}
-												class="rounded-md p-1.5 text-[var(--color-fg-subtle)] transition hover:bg-[var(--color-danger)]/15 hover:text-[var(--color-danger)]"
-												aria-label={m.processes_aria_kill()}
-												title={m.processes_kill_title()}
-												disabled={killing && killTarget?.pid === p.pid}
-											>
-												<svg
-													width="14"
-													height="14"
-													viewBox="0 0 24 24"
-													fill="none"
-													stroke="currentColor"
-													stroke-width="2"><path d="M18 6 6 18M6 6l12 12" /></svg
-												>
-											</button>
-										</td>
 									</tr>
 								{/each}
-								{#if displayList.length === 0}
-									<tr>
-										<td
-											colspan="8"
-											class="px-3 py-8 text-center text-sm text-[var(--color-fg-subtle)]"
-											>{m.processes_empty_state()}</td
-										>
-									</tr>
-								{/if}
+								{#if !result.rows.length}<tr
+										><td
+											colspan="6"
+											class="px-3 py-10 text-center text-sm text-[var(--color-fg-muted)]"
+											>{error ? m.processes_toast_fetch_failed() : m.processes_empty_state()}</td
+										></tr
+									>{/if}
 							{/if}
 						</tbody>
 					</table>
-					<div bind:this={sentinel} class="h-px"></div>
-					{#if loadingMore}
-						<div class="py-3 text-center text-xs text-[var(--color-fg-subtle)]">
-							{m.processes_load_more()}…
-						</div>
-					{/if}
+					{#if visibleCount < result.rows.length}<div
+							class="border-t border-[var(--color-border)] p-3 text-center"
+						>
+							<Button variant="ghost" size="sm" onclick={() => (visibleCount += 100)}
+								>{m.processes_load_more()} ({result.rows.length - visible.length})</Button
+							>
+						</div>{/if}
 				</div>
 			</Card>
+			{#if lastFetched}<p class="mt-2 text-xs text-[var(--color-fg-subtle)]">
+					{m.processes_updated({ time: new Date(lastFetched).toLocaleTimeString() })}
+				</p>{/if}
 		{/if}
 	</div>
 {/if}
 
-{#snippet th(k: SortKey, label: string, align: 'left' | 'right', extraClass = '')}
-	<th class={cn('px-3 py-2.5 font-medium', align === 'right' && 'text-right', extraClass)}>
+<Modal
+	open={!!selectedProcess && !killTarget}
+	onClose={() => (selected = null)}
+	title={selectedProcess?.name ?? ''}
+	width="lg"
+>
+	{#if selectedProcess}
+		{@const p = selectedProcess}
+		<div class="grid grid-cols-2 gap-x-6 gap-y-4 text-sm sm:grid-cols-3">
+			{@render detail('PID', String(p.pid))}
+			{@render detail(m.processes_parent(), p.parent_pid === null ? '—' : String(p.parent_pid))}
+			{@render detail(m.processes_table_user(), p.user ?? '—')}
+			{@render detail('CPU', fmtPercent(p.cpu_percent, 1))}
+			{@render detail(m.processes_table_memory(), fmtBytes(p.memory_bytes))}
+			{@render detail(m.processes_table_threads(), String(p.threads ?? '—'))}
+			{@render detail(m.processes_table_state(), p.state)}
+			{@render detail(
+				m.processes_started(),
+				p.started_at ? new Date(p.started_at * 1000).toLocaleString() : '—'
+			)}
+		</div>
+		<div class="mt-5 space-y-4">
+			{@render detail(m.processes_command(), p.cmd.join(' ') || '—')}
+			{@render detail(m.processes_executable(), p.exe ?? '—')}
+			{@render detail(m.processes_directory(), p.cwd ?? '—')}
+		</div>
+	{/if}
+	{#snippet footer()}
+		<Button variant="ghost" size="sm" onclick={() => (selected = null)}
+			>{m.processes_close()}</Button
+		>
+		{#if selectedProcess}<Button
+				variant="danger"
+				size="sm"
+				onclick={() => {
+					if (selectedProcess) openKillModal(selectedProcess.pid, selectedProcess.name);
+				}}>{m.processes_kill_title()}</Button
+			>{/if}
+	{/snippet}
+</Modal>
+
+{#snippet detail(label: string, value: string)}
+	<div class="min-w-0">
+		<div class="mb-1 text-xs text-[var(--color-fg-muted)]">{label}</div>
+		<div class="font-mono text-xs break-all whitespace-pre-wrap select-text">{value}</div>
+	</div>
+{/snippet}
+
+{#snippet th(key: ProcessSort, label: string, className: string)}
+	<th
+		class={cn('px-3 py-3 text-left font-medium', className)}
+		aria-sort={sortKey === key ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+	>
 		<button
 			type="button"
-			onclick={() => toggleSort(k)}
-			class="inline-flex items-center gap-1 transition hover:text-[var(--color-fg)]"
+			class="inline-flex items-center gap-1 hover:text-[var(--color-fg)]"
+			onclick={() => toggleSort(key)}
+			>{label}<span class="inline-block w-2"
+				>{sortKey === key ? (sortDir === 'asc' ? '↑' : '↓') : ''}</span
+			></button
 		>
-			{label}
-			<span class="text-3xs font-mono">{sortIndicator(k)}</span>
-		</button>
 	</th>
 {/snippet}
