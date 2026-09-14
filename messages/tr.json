@@ -343,7 +343,7 @@
 	"processes_auto_refresh": "otomatik yenile ({secs}s)",
 	"processes_action_refresh": "yenile",
 	"processes_signin_required": "süreçleri sorgulamak için ayarlar sekmesinden giriş yapın.",
-	"processes_filter_placeholder": "ada, kullanıcıya veya pid'e göre filtrele…",
+	"processes_filter_placeholder": "İsim, PID, kullanıcı veya komut ara…",
 	"processes_action_expand_all": "tümünü genişlet",
 	"processes_action_collapse_all": "tümünü daralt",
 	"processes_table_name": "ad",
@@ -1347,5 +1347,12 @@
 	"incident_frame_relapse": "eşik yeniden aşıldı",
 	"incident_excursions": "{violations} aşım · {confirmations} doğrulama",
 	"incident_span": "olay aralığı: {duration}",
-	"incident_recovery_timing": "sağlıklı değer: {start} · doğrulama: {end}"
+	"incident_recovery_timing": "sağlıklı değer: {start} · doğrulama: {end}",
+	"processes_incomplete": "Sunucu eksik process listesi döndürdü. Sunucuyu güncelleyip yenileyin.",
+	"processes_parent": "Üst process PID",
+	"processes_started": "Başlangıç",
+	"processes_command": "Komut",
+	"processes_executable": "Çalıştırılabilir dosya",
+	"processes_directory": "Çalışma dizini",
+	"processes_close": "Kapat"
 }

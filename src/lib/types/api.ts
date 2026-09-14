@@ -900,6 +900,7 @@ export interface ProcessInfo {
 }
 
 export interface ProcessQuery {
+	snapshot?: boolean;
 	search?: string;
 	sort?: 'cpu' | 'memory' | 'pid' | 'name';
 	limit?: number;
@@ -907,6 +908,8 @@ export interface ProcessQuery {
 }
 
 export interface GetProcessesResponse {
+	/** Collection time in Unix seconds. */
+	timestamp: number;
 	processes: ProcessInfo[];
 	/** Total processes on the system before any filtering. */
 	total: number;
