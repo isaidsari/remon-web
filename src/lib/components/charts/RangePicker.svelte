@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { cn } from '$lib/utils/cn';
-	import AutoRefreshSelect, {
-		type AutoRefreshOption
-	} from '$lib/components/ui/AutoRefreshSelect.svelte';
+	import Select from '$lib/components/ui/Select.svelte';
 	import RefreshButton from '$lib/components/ui/RefreshButton.svelte';
 	import SegmentedControl from '$lib/components/ui/SegmentedControl.svelte';
 	import type { RangeKey } from './range';
@@ -51,12 +49,7 @@
 		{ key: '30d', label: '30d' }
 	];
 
-	let refreshOpts = $derived<AutoRefreshOption[]>([
-		{ value: 'off', label: m.chart_autorefresh_off() },
-		{ value: '15s', label: '15s' },
-		{ value: '30s', label: '30s' },
-		{ value: '60s', label: '60s' }
-	]);
+	const REFRESH_INTERVALS: RefreshInterval[] = ['off', '15s', '30s', '60s'];
 
 	import { RANGE_SECONDS } from './range';
 	let span = $derived(RANGE_SECONDS[value]);
@@ -128,12 +121,15 @@
 		{/if}
 
 		{#if onAutoRefreshChange}
-			<AutoRefreshSelect
+			<Select
 				value={autoRefresh}
-				options={refreshOpts}
-				onChange={(next) => onAutoRefreshChange?.(next as RefreshInterval)}
-				class="flex-[1_1_8.5rem] sm:flex-none"
-			/>
+				onchange={(e) => onAutoRefreshChange?.(e.currentTarget.value as RefreshInterval)}
+				class="flex-[1_1_7rem] sm:w-28 sm:flex-none"
+			>
+				{#each REFRESH_INTERVALS as i (i)}
+					<option value={i}>{i === 'off' ? m.chart_autorefresh_off() : i}</option>
+				{/each}
+			</Select>
 		{/if}
 
 		{#if onRefresh}

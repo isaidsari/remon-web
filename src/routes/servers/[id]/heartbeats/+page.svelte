@@ -8,7 +8,7 @@
 	import Banner from '$lib/components/ui/Banner.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import SegmentedControl from '$lib/components/ui/SegmentedControl.svelte';
-	import AutoRefreshSelect from '$lib/components/ui/AutoRefreshSelect.svelte';
+	import Select from '$lib/components/ui/Select.svelte';
 	import RefreshButton from '$lib/components/ui/RefreshButton.svelte';
 	import HeartbeatStateBadge from '$lib/components/heartbeats/HeartbeatStateBadge.svelte';
 	import { profiles } from '$lib/stores/profiles.svelte';
@@ -343,15 +343,14 @@
 				</p>
 			</div>
 			<div class="flex flex-wrap items-center gap-2">
-				<AutoRefreshSelect
+				<Select
 					value={autoRefresh ? '10s' : 'off'}
-					options={[
-						{ value: 'off', label: m.chart_autorefresh_off() },
-						{ value: '10s', label: '10s' }
-					]}
-					onChange={(next) => (autoRefresh = next !== 'off')}
-					class="w-[8.5rem]"
-				/>
+					onchange={(e) => (autoRefresh = e.currentTarget.value !== 'off')}
+					class="w-28"
+				>
+					<option value="off">{m.chart_autorefresh_off()}</option>
+					<option value="10s">10s</option>
+				</Select>
 				<RefreshButton onclick={() => fetchList(true)} {loading} label={m.heartbeats_refresh()} />
 				<Button variant="primary" size="sm" onclick={openCreate}>
 					<IconPlus class="size-[14px]" stroke-width="2.25" />

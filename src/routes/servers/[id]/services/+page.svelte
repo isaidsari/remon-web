@@ -2,20 +2,30 @@
 	import { untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import Card from '$lib/components/ui/Card.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import Input from '$lib/components/ui/Input.svelte';
-	import Tabs from '$lib/components/layout/Tabs.svelte';
 	import Banner from '$lib/components/ui/Banner.svelte';
+	import DataTable from '$lib/components/ui/DataTable.svelte';
+	import EmptyState from '$lib/components/ui/EmptyState.svelte';
+	import ErrorState from '$lib/components/ui/ErrorState.svelte';
+	import IconButton from '$lib/components/ui/IconButton.svelte';
+	import Input from '$lib/components/ui/Input.svelte';
+	import PageHeader from '$lib/components/ui/PageHeader.svelte';
+	import RefreshButton from '$lib/components/ui/RefreshButton.svelte';
+	import Select from '$lib/components/ui/Select.svelte';
+	import Switch from '$lib/components/ui/Switch.svelte';
+	import Tabs from '$lib/components/layout/Tabs.svelte';
 	import LogStream from '$lib/components/common/LogStream.svelte';
 	import ServiceStateBadge from '$lib/components/services/ServiceStateBadge.svelte';
-	import IconChevronDown from '~icons/lucide/chevron-down';
+	import IconPlay from '~icons/lucide/play';
+	import IconSquare from '~icons/lucide/square';
+	import IconRotateCcw from '~icons/lucide/rotate-ccw';
+	import IconRefreshCw from '~icons/lucide/refresh-cw';
+	import IconPlus from '~icons/lucide/plus';
+	import IconMinus from '~icons/lucide/minus';
 	import { profiles } from '$lib/stores/profiles.svelte';
 	import { connections } from '$lib/stores/connections.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { confirm } from '$lib/stores/confirm.svelte';
 	import { ApiError } from '$lib/api/error';
-	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import { fmtRelative } from '$lib/utils/format';
 	import { cn } from '$lib/utils/cn';
 	import { m } from '$lib/paraglide/messages';
@@ -42,12 +52,9 @@
 	});
 
 	type TabKey = 'services' | 'timers' | 'cron';
+	const TABS: TabKey[] = ['services', 'timers', 'cron'];
 	let tab = $derived<TabKey>(
-		(['services', 'timers', 'cron'] as const).includes(
-			(page.url.searchParams.get('tab') ?? 'services') as TabKey
-		)
-			? ((page.url.searchParams.get('tab') ?? 'services') as TabKey)
-			: 'services'
+		TABS.find((k) => k === page.url.searchParams.get('tab')) ?? 'services'
 	);
 
 	function setTab(t: TabKey) {
@@ -118,12 +125,16 @@
 		}
 	}
 
+	function fetchCurrent() {
+		if (tab === 'services') void fetchServices();
+		else if (tab === 'timers') void fetchTimers();
+		else void fetchCron();
+	}
+
 	$effect(() => {
 		if (!conn?.isAuthenticated) return;
 		void stateFilter;
-		if (tab === 'services') void fetchServices();
-		else if (tab === 'timers') void fetchTimers();
-		else if (tab === 'cron') void fetchCron();
+		fetchCurrent();
 	});
 
 	// Pre-fetch inactive tabs once so badge counts show without the user clicking into each.
@@ -135,8 +146,9 @@
 		if (tab !== 'cron') void fetchCron();
 	});
 
+	let needle = $derived(q.trim().toLowerCase());
+
 	let filteredServices = $derived.by(() => {
-		const needle = q.trim().toLowerCase();
 		const list = needle
 			? services.filter(
 					(s) =>
@@ -144,16 +156,11 @@
 						(s.description ?? '').toLowerCase().includes(needle)
 				)
 			: services;
-		return [...list].sort((a, b) => {
-			const aPriority = a.state === 'failed' ? 0 : a.state === 'running' ? 1 : 2;
-			const bPriority = b.state === 'failed' ? 0 : b.state === 'running' ? 1 : 2;
-			if (aPriority !== bPriority) return aPriority - bPriority;
-			return a.name.localeCompare(b.name);
-		});
+		const priority = (s: ServiceDto) => (s.state === 'failed' ? 0 : s.state === 'running' ? 1 : 2);
+		return [...list].sort((a, b) => priority(a) - priority(b) || a.name.localeCompare(b.name));
 	});
 
 	let filteredTimers = $derived.by(() => {
-		const needle = q.trim().toLowerCase();
 		const list = needle
 			? timers.filter(
 					(t) =>
@@ -168,6 +175,17 @@
 			return a.next_run - b.next_run;
 		});
 	});
+
+	let filteredCron = $derived(
+		needle
+			? cronJobs.filter(
+					(j) =>
+						j.command.toLowerCase().includes(needle) ||
+						j.schedule.toLowerCase().includes(needle) ||
+						(j.user ?? '').toLowerCase().includes(needle)
+				)
+			: cronJobs
+	);
 
 	async function withAction<T>(
 		key: string,
@@ -213,7 +231,7 @@
 			conn!.client.reloadService(s.name)
 		);
 	}
-	async function doEnable(s: ServiceDto) {
+	function doEnable(s: ServiceDto) {
 		void withAction(`enable:${s.name}`, m.services_toast_enabled_at_boot({ name: s.name }), () =>
 			conn!.client.enableService(s.name)
 		);
@@ -308,136 +326,116 @@
 	}
 </script>
 
-<!-- Shared by the desktop table's trailing column and the mobile card's action
-     row, so the two never drift on which lifecycle verbs a service offers. -->
-{#snippet serviceActions(s: ServiceDto, running: boolean, enabled: boolean, large: boolean)}
+{#snippet serviceActions(s: ServiceDto)}
+	{@const running = s.state === 'running' || s.state === 'reloading'}
+	{@const busy = acting !== null}
 	{#if running}
-		{@render iconBtn(
-			m.services_action_stop(),
-			() => doStop(s),
-			acting !== null,
-			acting === `stop:${s.name}`,
-			'M6 6h12v12H6z',
-			false,
-			large
-		)}
-		{@render iconBtn(
-			m.services_action_restart(),
-			() => doRestart(s),
-			acting !== null,
-			acting === `restart:${s.name}`,
-			'M3 12a9 9 0 0 1 15-6.7M21 12a9 9 0 0 1-15 6.7M21 3v6h-6M3 21v-6h6',
-			false,
-			large
-		)}
-		{@render iconBtn(
-			m.services_action_reload(),
-			() => doReload(s),
-			acting !== null,
-			acting === `reload:${s.name}`,
-			'M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8',
-			false,
-			large
-		)}
+		<IconButton
+			size="sm"
+			label={m.services_action_stop()}
+			onclick={() => doStop(s)}
+			disabled={busy}
+			loading={acting === `stop:${s.name}`}
+		>
+			<IconSquare class="size-[13px]" stroke-width="2" />
+		</IconButton>
+		<IconButton
+			size="sm"
+			label={m.services_action_restart()}
+			onclick={() => doRestart(s)}
+			disabled={busy}
+			loading={acting === `restart:${s.name}`}
+		>
+			<IconRotateCcw class="size-[13px]" stroke-width="2" />
+		</IconButton>
+		<IconButton
+			size="sm"
+			label={m.services_action_reload()}
+			onclick={() => doReload(s)}
+			disabled={busy}
+			loading={acting === `reload:${s.name}`}
+		>
+			<IconRefreshCw class="size-[13px]" stroke-width="2" />
+		</IconButton>
 	{:else}
-		{@render iconBtn(
-			m.services_action_start(),
-			() => doStart(s),
-			acting !== null,
-			acting === `start:${s.name}`,
-			'M7 4v16l13-8L7 4z',
-			false,
-			large
-		)}
+		<IconButton
+			size="sm"
+			label={m.services_action_start()}
+			onclick={() => doStart(s)}
+			disabled={busy}
+			loading={acting === `start:${s.name}`}
+		>
+			<IconPlay class="size-[13px]" stroke-width="2" />
+		</IconButton>
 	{/if}
-	{#if s.enabled_at_boot !== null}
-		{#if enabled}
-			{@render iconBtn(
-				m.services_action_disable_at_boot(),
-				() => doDisable(s),
-				acting !== null,
-				acting === `disable:${s.name}`,
-				'M5 12h14',
-				false,
-				large
-			)}
-		{:else}
-			{@render iconBtn(
-				m.services_action_enable_at_boot(),
-				() => doEnable(s),
-				acting !== null,
-				acting === `enable:${s.name}`,
-				'M12 5v14M5 12h14',
-				false,
-				large
-			)}
-		{/if}
+	{#if s.enabled_at_boot === true}
+		<IconButton
+			size="sm"
+			label={m.services_action_disable_at_boot()}
+			onclick={() => doDisable(s)}
+			disabled={busy}
+			loading={acting === `disable:${s.name}`}
+		>
+			<IconMinus class="size-[13px]" stroke-width="2" />
+		</IconButton>
+	{:else if s.enabled_at_boot === false}
+		<IconButton
+			size="sm"
+			label={m.services_action_enable_at_boot()}
+			onclick={() => doEnable(s)}
+			disabled={busy}
+			loading={acting === `enable:${s.name}`}
+		>
+			<IconPlus class="size-[13px]" stroke-width="2" />
+		</IconButton>
 	{/if}
 {/snippet}
 
-{#snippet iconBtn(
-	label: string,
-	onclick: () => void,
-	disabled: boolean,
-	busy: boolean,
-	path: string,
-	danger?: boolean,
-	/** Touch-sized variant for the mobile card list, where these are the
-	 *  primary controls rather than a dense trailing column. */
-	large?: boolean
-)}
-	<button
-		type="button"
-		{onclick}
-		{disabled}
-		title={label}
-		aria-label={label}
-		class={cn(
-			'grid shrink-0 place-items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] transition disabled:cursor-not-allowed disabled:opacity-30',
-			large ? 'h-9 w-9' : 'h-7 w-7',
-			'hover:border-[var(--color-border-strong)]',
-			danger && 'hover:border-[var(--color-danger)]/50 hover:text-[var(--color-danger)]',
-			!danger && 'hover:text-[var(--color-fg)]',
-			'text-[var(--color-fg-muted)]'
-		)}
-	>
-		{#if busy}
-			<span
-				class="h-3 w-3 animate-spin rounded-full border-2 border-current border-r-transparent"
-				aria-hidden="true"
-			></span>
-		{:else}
-			<svg
-				width="13"
-				height="13"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="1.9"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-			>
-				<path d={path} />
-			</svg>
-		{/if}
-	</button>
+{#snippet bootCell(enabled: boolean | null)}
+	{#if enabled === null}
+		—
+	{:else if enabled}
+		<span class="text-[var(--color-success)]">{m.services_boot_enabled()}</span>
+	{:else}
+		<span class="text-[var(--color-fg-subtle)]">{m.services_boot_disabled()}</span>
+	{/if}
+{/snippet}
+
+{#snippet logsPanel(s: ServiceDto)}
+	<div class="mb-3 flex items-baseline justify-between gap-3 text-xs">
+		<div class="font-mono text-[var(--color-fg-subtle)]">
+			{m.services_raw_state_label()}
+			<span class="text-[var(--color-fg-muted)]">{s.raw_state}</span>
+		</div>
+		<button
+			type="button"
+			onclick={() => toggleExpand(s.name)}
+			class="text-2xs tracking-wide text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)]"
+		>
+			{m.services_action_collapse()}
+		</button>
+	</div>
+	{#if canStreamLogs && conn}
+		<LogStream {conn} path={`/services/${s.name}/logs`} initialTail={100} />
+	{:else}
+		<p class="text-xs text-[var(--color-fg-muted)]">
+			{m.services_logs_journalctl_only_prefix()}
+			<span class="font-mono text-[var(--color-fg)]">{s.backend}</span>.
+		</p>
+	{/if}
 {/snippet}
 
 {#if profile}
 	<div class="px-4 py-6 md:px-8 md:py-8">
-		<header class="mb-6">
-			<h1 class="text-2xl font-semibold tracking-tight">{m.section_services()}</h1>
-			<p class="mt-1.5 max-w-md text-sm leading-relaxed text-[var(--color-fg-muted)]">
-				{m.services_page_subtitle({ backend: serviceBackend ?? 'systemd / OpenRC / Windows' })}
-			</p>
-		</header>
+		<PageHeader
+			title={m.section_services()}
+			subtitle={m.services_page_subtitle({
+				backend: serviceBackend ?? 'systemd / OpenRC / Windows'
+			})}
+		/>
 
 		{#if !conn?.isAuthenticated}
-			<Card padding="lg" class="border-[var(--color-warning)]/30">
-				<p class="text-sm text-[var(--color-fg-muted)]">
-					{m.services_sign_in_prompt()}
-				</p>
-			</Card>
+			<Banner variant="warning">{m.services_sign_in_prompt()}</Banner>
 		{:else}
 			<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<div class="overflow-x-auto">
@@ -445,50 +443,25 @@
 				</div>
 				<div class="flex items-center gap-2">
 					{#if tab === 'services'}
-						<select
-							bind:value={stateFilter}
-							class="h-9 rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-3 text-sm text-[var(--color-fg)] focus:ring-2 focus:ring-[var(--color-ring)] focus:outline-none"
-						>
+						<Select bind:value={stateFilter} class="shrink-0">
 							{#each stateOptions as opt (opt)}
 								<option value={opt}>{stateLabel(opt)}</option>
 							{/each}
-						</select>
+						</Select>
 					{/if}
 					<Input
 						placeholder={tab === 'cron'
 							? m.services_filter_cron_placeholder()
 							: m.services_filter_placeholder()}
 						bind:value={q}
-						class="w-full text-sm sm:w-48"
+						class="w-full sm:w-48"
 					/>
-					<button
-						type="button"
-						onclick={() => {
-							if (tab === 'services') fetchServices();
-							else if (tab === 'timers') fetchTimers();
-							else fetchCron();
-						}}
-						disabled={servicesLoading || timersLoading || cronLoading}
-						class="grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-bg-soft)] text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)] disabled:opacity-50"
-						title={m.services_action_refresh()}
-						aria-label={m.services_action_refresh()}
-					>
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							class="size-[15px]"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-						>
-							<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-							<path d="M21 3v5h-5" />
-							<path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-							<path d="M8 16H3v5" />
-						</svg>
-					</button>
+					<RefreshButton
+						onclick={fetchCurrent}
+						loading={servicesLoading || timersLoading || cronLoading}
+						label={m.services_action_refresh()}
+						class="size-9"
+					/>
 				</div>
 			</div>
 
@@ -505,530 +478,167 @@
 
 {#snippet servicesTab()}
 	{#if servicesError}
-		{@render errorBanner(servicesError, fetchServices)}
+		<ErrorState error={servicesError} onRetry={fetchServices} />
 	{:else if services.length === 0 && !servicesLoading}
-		{@render emptyState(m.services_empty_services())}
+		<EmptyState description={m.services_empty_services()} />
 	{:else}
-		<Card padding="none" class="hidden overflow-hidden md:block">
-			<div class="max-h-[max(18rem,calc(100dvh-22rem))] overflow-auto">
-				<table class="w-full text-sm">
-					<thead
-						class="sticky top-0 z-10 bg-[var(--color-surface-2)] text-xs tracking-wide text-[var(--color-fg-muted)]"
-					>
-						<tr>
-							<th class="px-3 py-2.5 text-left font-medium">{m.services_table_name()}</th>
-							<th class="px-3 py-2.5 text-left font-medium">{m.services_table_state()}</th>
-							<th class="px-3 py-2.5 text-left font-medium">{m.services_table_at_boot()}</th>
-							<th class="px-3 py-2.5 text-right font-medium">{m.services_table_actions()}</th>
-						</tr>
-					</thead>
-					<tbody>
-						{#if servicesLoading && services.length === 0}
-							{#each { length: 8 } as _, i (i)}
-								<tr class="border-t border-[var(--color-border)]">
-									<td class="px-3 py-2.5"><Skeleton class="h-3 w-40" /></td>
-									<td class="px-3 py-2.5"><Skeleton class="h-5 w-20" rounded="full" /></td>
-									<td class="px-3 py-2.5"><Skeleton class="h-3 w-16" /></td>
-									<td class="px-3 py-2.5"><Skeleton class="ml-auto h-7 w-20" /></td>
-								</tr>
-							{/each}
-						{:else}
-							{#each filteredServices as s (s.name)}
-								{@const running = s.state === 'running' || s.state === 'reloading'}
-								{@const failed = s.state === 'failed'}
-								{@const enabled = s.enabled_at_boot === true}
-								<tr
-									class={cn(
-										'border-t border-[var(--color-border)] transition hover:bg-[var(--color-surface-2)]/40',
-										failed && 'bg-[var(--color-danger)]/5'
-									)}
-								>
-									<td class="px-3 py-2.5">
-										<button
-											type="button"
-											onclick={() => toggleExpand(s.name)}
-											aria-expanded={expanded === s.name}
-											class="flex flex-col text-left"
-										>
-											<span class="font-mono text-xs font-medium text-[var(--color-fg)]"
-												>{s.name}</span
-											>
-											{#if s.description}
-												<span
-													class="text-2xs mt-0.5 text-[var(--color-fg-muted)]"
-													title={s.description}
-												>
-													{s.description.length > 60
-														? s.description.slice(0, 60) + '…'
-														: s.description}
-												</span>
-											{/if}
-										</button>
-									</td>
-									<td class="px-3 py-2.5">
-										<ServiceStateBadge state={s.state} />
-									</td>
-									<td class="text-2xs px-3 py-2.5 font-mono text-[var(--color-fg-muted)]">
-										{#if s.enabled_at_boot === null}
-											—
-										{:else if enabled}
-											<span class="text-[var(--color-success)]">{m.services_boot_enabled()}</span>
-										{:else}
-											<span class="text-[var(--color-fg-subtle)]">{m.services_boot_disabled()}</span
-											>
-										{/if}
-									</td>
-									<td class="px-3 py-2.5">
-										<div class="flex items-center justify-end gap-1.5">
-											{@render serviceActions(s, running, enabled, false)}
-										</div>
-									</td>
-								</tr>
-								{#if expanded === s.name}
-									<tr class="border-t border-[var(--color-border)] bg-[var(--color-bg-soft)]/40">
-										<td colspan="4" class="px-5 py-4">
-											<div class="mb-3 flex items-baseline justify-between gap-3 text-xs">
-												<div class="font-mono text-[var(--color-fg-subtle)]">
-													{m.services_raw_state_label()}
-													<span class="text-[var(--color-fg-muted)]">{s.raw_state}</span>
-												</div>
-												<button
-													type="button"
-													onclick={() => toggleExpand(s.name)}
-													class="text-2xs tracking-wide text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)]"
-												>
-													{m.services_action_collapse()}
-												</button>
-											</div>
-											{#if canStreamLogs && conn}
-												<LogStream {conn} path={`/services/${s.name}/logs`} initialTail={100} />
-											{:else}
-												<p class="text-xs text-[var(--color-fg-muted)]">
-													{m.services_logs_journalctl_only_prefix()}
-													<span class="font-mono text-[var(--color-fg)]">{s.backend}</span>.
-												</p>
-											{/if}
-										</td>
-									</tr>
-								{/if}
-							{/each}
-							{#if filteredServices.length === 0}
-								<tr>
-									<td
-										colspan="4"
-										class="px-3 py-8 text-center text-sm text-[var(--color-fg-subtle)]"
-									>
-										{m.services_no_services_match()}
-									</td>
-								</tr>
-							{/if}
-						{/if}
-					</tbody>
-				</table>
-			</div>
-		</Card>
-
-		<!-- Below md the same rows become cards: a table this wide can only
-		     horizontally scroll on a phone, which hides state and the lifecycle
-		     controls — the two things you open this page for. Actions sit in
-		     their own row because a <button> cannot nest inside the toggle. -->
-		<div class="flex flex-col gap-2 md:hidden">
-			{#if servicesLoading && services.length === 0}
-				{#each { length: 6 } as _, i (i)}
-					<Card padding="none">
-						<div class="flex flex-col gap-2 px-3.5 py-3">
-							<Skeleton class="h-3 w-40" />
-							<Skeleton class="h-5 w-20" rounded="full" />
-						</div>
-					</Card>
-				{/each}
-			{:else if filteredServices.length === 0}
-				<Card padding="lg" class="text-center text-sm text-[var(--color-fg-subtle)]">
-					{m.services_no_services_match()}
-				</Card>
-			{:else}
-				{#each filteredServices as s (s.name)}
-					{@const running = s.state === 'running' || s.state === 'reloading'}
-					{@const failed = s.state === 'failed'}
-					{@const enabled = s.enabled_at_boot === true}
-					{@const isOpen = expanded === s.name}
-					<Card
-						padding="none"
-						class={cn('overflow-hidden', failed && 'border-[var(--color-danger)]/40')}
-					>
+		<DataTable
+			loading={servicesLoading && services.length === 0}
+			empty={filteredServices.length === 0 ? m.services_no_services_match() : undefined}
+		>
+			{#snippet head()}
+				<th>{m.services_table_name()}</th>
+				<th>{m.services_table_state()}</th>
+				<th>{m.services_table_at_boot()}</th>
+				<th class="text-right">{m.services_table_actions()}</th>
+			{/snippet}
+			{#each filteredServices as s (s.name)}
+				<tr class={cn(s.state === 'failed' && 'danger')}>
+					<td>
 						<button
 							type="button"
 							onclick={() => toggleExpand(s.name)}
-							aria-expanded={isOpen}
-							class="flex w-full flex-col gap-2 px-3.5 py-3 text-left transition-colors hover:bg-[var(--color-surface-2)]/40"
+							aria-expanded={expanded === s.name}
+							class="flex flex-col text-left"
 						>
-							<div class="flex items-start justify-between gap-2">
-								<div class="flex min-w-0 flex-1 flex-col">
-									<span class="text-md font-mono font-medium break-all">{s.name}</span>
-									{#if s.description}
-										<span class="text-2xs mt-0.5 leading-snug text-[var(--color-fg-muted)]">
-											{s.description}
-										</span>
-									{/if}
-								</div>
-								<IconChevronDown
-									class={cn(
-										'mt-0.5 size-4 shrink-0 text-[var(--color-fg-subtle)] transition-transform duration-[var(--dur-fast)]',
-										isOpen && 'rotate-180'
-									)}
-									stroke-width="2"
-								/>
-							</div>
-							<dl class="text-2xs grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1.5">
-								<dt class="text-[var(--color-fg-subtle)]">{m.services_table_state()}</dt>
-								<dd><ServiceStateBadge state={s.state} /></dd>
-								<dt class="text-[var(--color-fg-subtle)]">{m.services_table_at_boot()}</dt>
-								<dd class="font-mono text-[var(--color-fg-muted)]">
-									{#if s.enabled_at_boot === null}
-										—
-									{:else if enabled}
-										<span class="text-[var(--color-success)]">{m.services_boot_enabled()}</span>
-									{:else}
-										<span class="text-[var(--color-fg-subtle)]">{m.services_boot_disabled()}</span>
-									{/if}
-								</dd>
-							</dl>
+							<span class="font-mono text-xs font-medium break-all text-[var(--color-fg)]">
+								{s.name}
+							</span>
+							{#if s.description}
+								<span class="text-2xs mt-0.5 text-[var(--color-fg-muted)]" title={s.description}>
+									{s.description.length > 60 ? s.description.slice(0, 60) + '…' : s.description}
+								</span>
+							{/if}
 						</button>
-
-						<div
-							class="flex items-center gap-2 border-t border-[var(--color-border)] px-3.5 py-2.5"
-						>
-							{@render serviceActions(s, running, enabled, true)}
+					</td>
+					<td data-label={m.services_table_state()}><ServiceStateBadge state={s.state} /></td>
+					<td
+						data-label={m.services_table_at_boot()}
+						class="text-2xs font-mono text-[var(--color-fg-muted)]"
+					>
+						{@render bootCell(s.enabled_at_boot)}
+					</td>
+					<td class="actions">
+						<div class="flex items-center gap-1.5 md:justify-end">
+							{@render serviceActions(s)}
 						</div>
-
-						{#if isOpen}
-							<div
-								class="border-t border-[var(--color-border)] bg-[var(--color-bg-soft)]/40 px-3.5 py-3"
-							>
-								<div class="text-2xs mb-2 font-mono text-[var(--color-fg-subtle)]">
-									{m.services_raw_state_label()}
-									<span class="text-[var(--color-fg-muted)]">{s.raw_state}</span>
-								</div>
-								{#if canStreamLogs && conn}
-									<LogStream {conn} path={`/services/${s.name}/logs`} initialTail={100} />
-								{:else}
-									<p class="text-xs text-[var(--color-fg-muted)]">
-										{m.services_logs_journalctl_only_prefix()}
-										<span class="font-mono text-[var(--color-fg)]">{s.backend}</span>.
-									</p>
-								{/if}
-							</div>
-						{/if}
-					</Card>
-				{/each}
-			{/if}
-		</div>
+					</td>
+				</tr>
+				{#if expanded === s.name}
+					<tr class="detail">
+						<td colspan="4" class="px-4 py-4 md:px-5">{@render logsPanel(s)}</td>
+					</tr>
+				{/if}
+			{/each}
+		</DataTable>
 	{/if}
-{/snippet}
-
-<!-- Shared by the timers table and its mobile cards. -->
-{#snippet bootToggle(t: TimerDto, enabled: boolean)}
-	<button
-		type="button"
-		onclick={() => toggleTimer(t)}
-		class={cn(
-			'text-3xs rounded-full border px-2.5 py-0.5 font-mono tracking-wide transition',
-			enabled
-				? 'border-[var(--color-success)]/40 bg-[var(--color-success)]/15 text-[var(--color-success)] hover:bg-[var(--color-success)]/25'
-				: 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-fg-subtle)] hover:border-[var(--color-border-strong)]'
-		)}
-	>
-		{enabled ? m.services_boot_enabled() : m.services_boot_disabled()}
-	</button>
 {/snippet}
 
 {#snippet timersTab()}
 	{#if timersError}
-		{@render errorBanner(timersError, fetchTimers)}
+		<ErrorState error={timersError} onRetry={fetchTimers} />
 	{:else if timers.length === 0 && !timersLoading}
-		{@render emptyState(m.services_empty_timers())}
+		<EmptyState description={m.services_empty_timers()} />
 	{:else}
-		<Card padding="none" class="hidden overflow-hidden md:block">
-			<div class="max-h-[max(18rem,calc(100dvh-22rem))] overflow-auto">
-				<table class="w-full text-sm">
-					<thead
-						class="sticky top-0 z-10 bg-[var(--color-surface-2)] text-xs tracking-wide text-[var(--color-fg-muted)]"
-					>
-						<tr>
-							<th class="px-3 py-2.5 text-left font-medium">{m.services_table_timer()}</th>
-							<th class="px-3 py-2.5 text-left font-medium">{m.services_table_service()}</th>
-							<th class="px-3 py-2.5 text-left font-medium">{m.services_table_state()}</th>
-							<th class="px-3 py-2.5 text-left font-medium">{m.services_table_next()}</th>
-							<th class="px-3 py-2.5 text-left font-medium">{m.services_table_last()}</th>
-							<th class="px-3 py-2.5 text-right font-medium">{m.services_table_boot()}</th>
-						</tr>
-					</thead>
-					<tbody>
-						{#if timersLoading && timers.length === 0}
-							{#each { length: 6 } as _, i (i)}
-								<tr class="border-t border-[var(--color-border)]">
-									<td class="px-3 py-2.5"><Skeleton class="h-3 w-36" /></td>
-									<td class="px-3 py-2.5"><Skeleton class="h-3 w-28" /></td>
-									<td class="px-3 py-2.5"><Skeleton class="h-5 w-16" rounded="full" /></td>
-									<td class="px-3 py-2.5"><Skeleton class="h-3 w-24" /></td>
-									<td class="px-3 py-2.5"><Skeleton class="h-3 w-20" /></td>
-									<td class="px-3 py-2.5"><Skeleton class="ml-auto h-5 w-16" rounded="full" /></td>
-								</tr>
-							{/each}
-						{:else}
-							{#each filteredTimers as t (t.name)}
-								{@const enabled = t.enabled_at_boot === true}
-								<tr
-									class="border-t border-[var(--color-border)] transition hover:bg-[var(--color-surface-2)]/40"
-								>
-									<td class="px-3 py-2.5">
-										<div class="flex flex-col">
-											<span class="font-mono text-xs text-[var(--color-fg)]">{t.name}</span>
-											{#if t.description}
-												<span class="text-2xs mt-0.5 text-[var(--color-fg-muted)]"
-													>{t.description}</span
-												>
-											{/if}
-										</div>
-									</td>
-									<td class="text-2xs px-3 py-2.5 font-mono text-[var(--color-fg-muted)]">
-										{t.service ?? '—'}
-									</td>
-									<td class="px-3 py-2.5">
-										<ServiceStateBadge state={t.state} />
-									</td>
-									<td class="text-2xs px-3 py-2.5 font-mono text-[var(--color-fg-muted)]">
-										{fmtNextRun(t.next_run)}
-									</td>
-									<td class="text-2xs px-3 py-2.5 font-mono text-[var(--color-fg-muted)]">
-										{t.last_run ? fmtRelative(t.last_run) : '—'}
-									</td>
-									<td class="px-3 py-2.5">
-										<div class="flex items-center justify-end">
-											{@render bootToggle(t, enabled)}
-										</div>
-									</td>
-								</tr>
-							{/each}
-							{#if filteredTimers.length === 0}
-								<tr>
-									<td
-										colspan="6"
-										class="px-3 py-8 text-center text-sm text-[var(--color-fg-subtle)]"
-									>
-										{m.services_no_timers_match()}
-									</td>
-								</tr>
+		<DataTable
+			loading={timersLoading && timers.length === 0}
+			empty={filteredTimers.length === 0 ? m.services_no_timers_match() : undefined}
+		>
+			{#snippet head()}
+				<th>{m.services_table_timer()}</th>
+				<th>{m.services_table_service()}</th>
+				<th>{m.services_table_state()}</th>
+				<th>{m.services_table_next()}</th>
+				<th>{m.services_table_last()}</th>
+				<th class="text-right">{m.services_table_boot()}</th>
+			{/snippet}
+			{#each filteredTimers as t (t.name)}
+				<tr>
+					<td>
+						<div class="flex flex-col">
+							<span class="font-mono text-xs break-all text-[var(--color-fg)]">{t.name}</span>
+							{#if t.description}
+								<span class="text-2xs mt-0.5 text-[var(--color-fg-muted)]">{t.description}</span>
 							{/if}
-						{/if}
-					</tbody>
-				</table>
-			</div>
-		</Card>
-
-		<div class="flex flex-col gap-2 md:hidden">
-			{#if timersLoading && timers.length === 0}
-				{#each { length: 5 } as _, i (i)}
-					<Card padding="none">
-						<div class="flex flex-col gap-2 px-3.5 py-3">
-							<Skeleton class="h-3 w-36" />
-							<Skeleton class="h-3 w-28" />
 						</div>
-					</Card>
-				{/each}
-			{:else if filteredTimers.length === 0}
-				<Card padding="lg" class="text-center text-sm text-[var(--color-fg-subtle)]">
-					{m.services_no_timers_match()}
-				</Card>
-			{:else}
-				{#each filteredTimers as t (t.name)}
-					{@const enabled = t.enabled_at_boot === true}
-					<Card padding="none" class="overflow-hidden">
-						<div class="flex flex-col gap-2 px-3.5 py-3">
-							<div class="flex items-start justify-between gap-2">
-								<div class="flex min-w-0 flex-1 flex-col">
-									<span class="font-mono text-xs break-all text-[var(--color-fg)]">
-										{t.name}
-									</span>
-									{#if t.description}
-										<span class="text-2xs mt-0.5 leading-snug text-[var(--color-fg-muted)]">
-											{t.description}
-										</span>
-									{/if}
-								</div>
-								<ServiceStateBadge state={t.state} />
-							</div>
-							<dl class="text-2xs grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-								<dt class="text-[var(--color-fg-subtle)]">{m.services_table_service()}</dt>
-								<dd class="font-mono break-all text-[var(--color-fg-muted)]">
-									{t.service ?? '—'}
-								</dd>
-								<dt class="text-[var(--color-fg-subtle)]">{m.services_table_next()}</dt>
-								<dd class="font-mono text-[var(--color-fg-muted)]">{fmtNextRun(t.next_run)}</dd>
-								<dt class="text-[var(--color-fg-subtle)]">{m.services_table_last()}</dt>
-								<dd class="font-mono text-[var(--color-fg-muted)]">
-									{t.last_run ? fmtRelative(t.last_run) : '—'}
-								</dd>
-							</dl>
-						</div>
-						<div
-							class="flex items-center gap-2 border-t border-[var(--color-border)] px-3.5 py-2.5"
-						>
-							<span class="text-2xs text-[var(--color-fg-subtle)]">
-								{m.services_table_boot()}
-							</span>
-							{@render bootToggle(t, enabled)}
-						</div>
-					</Card>
-				{/each}
-			{/if}
-		</div>
+					</td>
+					<td
+						data-label={m.services_table_service()}
+						class="text-2xs font-mono break-all text-[var(--color-fg-muted)]"
+					>
+						{t.service ?? '—'}
+					</td>
+					<td data-label={m.services_table_state()}><ServiceStateBadge state={t.state} /></td>
+					<td
+						data-label={m.services_table_next()}
+						class="text-2xs font-mono text-[var(--color-fg-muted)]"
+					>
+						{fmtNextRun(t.next_run)}
+					</td>
+					<td
+						data-label={m.services_table_last()}
+						class="text-2xs font-mono text-[var(--color-fg-muted)]"
+					>
+						{t.last_run ? fmtRelative(t.last_run) : '—'}
+					</td>
+					<td data-label={m.services_table_boot()} class="md:text-right">
+						<Switch
+							checked={t.enabled_at_boot === true}
+							onchange={() => toggleTimer(t)}
+							label={t.enabled_at_boot === true
+								? m.services_action_disable_at_boot()
+								: m.services_action_enable_at_boot()}
+						/>
+					</td>
+				</tr>
+			{/each}
+		</DataTable>
 	{/if}
 {/snippet}
 
 {#snippet cronTab()}
 	{#if cronError}
-		{@render errorBanner(cronError, fetchCron)}
+		<ErrorState error={cronError} onRetry={fetchCron} />
 	{:else if cronJobs.length === 0 && !cronLoading}
-		{@render emptyState(m.services_empty_cron())}
+		<EmptyState description={m.services_empty_cron()} />
 	{:else}
-		{@const filtered = q.trim()
-			? cronJobs.filter(
-					(j) =>
-						j.command.toLowerCase().includes(q.toLowerCase()) ||
-						j.schedule.toLowerCase().includes(q.toLowerCase()) ||
-						(j.user ?? '').toLowerCase().includes(q.toLowerCase())
-				)
-			: cronJobs}
-		<Card padding="none" class="hidden overflow-hidden md:block">
-			<div class="max-h-[max(18rem,calc(100dvh-22rem))] overflow-auto">
-				<table class="w-full text-sm">
-					<thead
-						class="sticky top-0 z-10 bg-[var(--color-surface-2)] text-xs tracking-wide text-[var(--color-fg-muted)]"
-					>
-						<tr>
-							<th class="px-3 py-2.5 text-left font-medium">{m.services_table_schedule()}</th>
-							<th class="px-3 py-2.5 text-left font-medium">{m.services_table_user()}</th>
-							<th class="px-3 py-2.5 text-left font-medium">{m.services_table_command()}</th>
-							<th class="px-3 py-2.5 text-left font-medium">{m.services_table_source()}</th>
-						</tr>
-					</thead>
-					<tbody>
-						{#if cronLoading && cronJobs.length === 0}
-							{#each { length: 6 } as _, i (i)}
-								<tr class="border-t border-[var(--color-border)]">
-									<td class="px-3 py-2.5"><Skeleton class="h-3 w-24" /></td>
-									<td class="px-3 py-2.5"><Skeleton class="h-3 w-16" /></td>
-									<td class="px-3 py-2.5"><Skeleton class="h-3 w-52" /></td>
-									<td class="px-3 py-2.5"><Skeleton class="h-3 w-20" /></td>
-								</tr>
-							{/each}
-						{:else}
-							{#each filtered as j, i (i)}
-								<tr
-									class="border-t border-[var(--color-border)] transition hover:bg-[var(--color-surface-2)]/40"
-								>
-									<td class="text-2xs px-3 py-2.5 font-mono text-[var(--color-fg)]">{j.schedule}</td
-									>
-									<td class="text-2xs px-3 py-2.5 font-mono text-[var(--color-fg-muted)]">
-										{j.user ?? '—'}
-									</td>
-									<!-- w-full + max-w-0, same reason as the process argv column: without
-									     it the cell's max-content sets the column width and the truncate
-									     below never gets a chance to bite. -->
-									<td class="w-full max-w-0 px-3 py-2.5">
-										<span
-											class="text-2xs block truncate font-mono text-[var(--color-fg)]"
-											title={j.command}
-										>
-											{j.command}
-										</span>
-									</td>
-									<td class="text-2xs px-3 py-2.5 font-mono text-[var(--color-fg-subtle)]">
-										{j.source}
-									</td>
-								</tr>
-							{/each}
-							{#if filtered.length === 0}
-								<tr>
-									<td
-										colspan="4"
-										class="px-3 py-8 text-center text-sm text-[var(--color-fg-subtle)]"
-									>
-										{m.services_no_cron_match()}
-									</td>
-								</tr>
-							{/if}
-						{/if}
-					</tbody>
-				</table>
-			</div>
-		</Card>
-
-		<div class="flex flex-col gap-2 md:hidden">
-			{#if cronLoading && cronJobs.length === 0}
-				{#each { length: 5 } as _, i (i)}
-					<Card padding="none">
-						<div class="flex flex-col gap-2 px-3.5 py-3">
-							<Skeleton class="h-3 w-24" />
-							<Skeleton class="h-3 w-full" />
-						</div>
-					</Card>
-				{/each}
-			{:else if filtered.length === 0}
-				<Card padding="lg" class="text-center text-sm text-[var(--color-fg-subtle)]">
-					{m.services_no_cron_match()}
-				</Card>
-			{:else}
-				{#each filtered as j, i (i)}
-					<Card padding="none">
-						<div class="flex flex-col gap-2 px-3.5 py-3">
-							<div class="flex items-center justify-between gap-2">
-								<span class="font-mono text-xs font-medium text-[var(--color-fg)]">
-									{j.schedule}
-								</span>
-								<span class="text-3xs font-mono text-[var(--color-fg-subtle)]">{j.source}</span>
-							</div>
-							<!-- Wrapped, not truncated: on a card there is room, and the
-							     command is the whole reason to look at a cron entry. -->
-							<code class="text-2xs font-mono break-all text-[var(--color-fg)]">
-								{j.command}
-							</code>
-							<dl class="text-2xs grid grid-cols-[auto_1fr] gap-x-3">
-								<dt class="text-[var(--color-fg-subtle)]">{m.services_table_user()}</dt>
-								<dd class="font-mono text-[var(--color-fg-muted)]">{j.user ?? '—'}</dd>
-							</dl>
-						</div>
-					</Card>
-				{/each}
-			{/if}
-		</div>
-	{/if}
-{/snippet}
-
-{#snippet errorBanner(err: ApiError, retry: () => void)}
-	{#if err.isNotSupported}
-		<Card padding="lg" class="border-[var(--color-info)]/30">
-			<p class="font-medium text-[var(--color-fg)]">{m.services_error_not_supported_title()}</p>
-			<p class="mt-1 text-sm text-[var(--color-fg-muted)]">{err.userMessage}</p>
-		</Card>
-	{:else if err.isForbidden}
-		<Banner variant="warning" title={m.services_error_forbidden_title()}>
-			{err.userMessage}
-			{m.services_error_forbidden_hint()}
-		</Banner>
-	{:else}
-		<Banner variant="danger" title={m.services_error_failed_to_fetch()}>
-			{err.userMessage}
-			{#snippet actions()}
-				<Button variant="secondary" size="sm" onclick={retry}>{m.common_retry()}</Button>
+		<DataTable
+			loading={cronLoading && cronJobs.length === 0}
+			empty={filteredCron.length === 0 ? m.services_no_cron_match() : undefined}
+		>
+			{#snippet head()}
+				<th>{m.services_table_schedule()}</th>
+				<th>{m.services_table_user()}</th>
+				<th>{m.services_table_command()}</th>
+				<th>{m.services_table_source()}</th>
 			{/snippet}
-		</Banner>
+			{#each filteredCron as j, i (i)}
+				<tr>
+					<td class="text-2xs font-mono text-[var(--color-fg)]">{j.schedule}</td>
+					<td
+						data-label={m.services_table_user()}
+						class="text-2xs font-mono text-[var(--color-fg-muted)]"
+					>
+						{j.user ?? '—'}
+					</td>
+					<!-- md:max-w-0 lets the column absorb the slack instead of sizing to
+					     its longest command; on a card the command wraps in full. -->
+					<td class="md:w-full md:max-w-0">
+						<code
+							class="text-2xs block font-mono break-all text-[var(--color-fg)] md:truncate"
+							title={j.command}
+						>
+							{j.command}
+						</code>
+					</td>
+					<td
+						data-label={m.services_table_source()}
+						class="text-2xs font-mono text-[var(--color-fg-subtle)]"
+					>
+						{j.source}
+					</td>
+				</tr>
+			{/each}
+		</DataTable>
 	{/if}
-{/snippet}
-
-{#snippet emptyState(message: string)}
-	<Card padding="lg">
-		<p class="text-sm text-[var(--color-fg-subtle)]">{message}</p>
-	</Card>
 {/snippet}

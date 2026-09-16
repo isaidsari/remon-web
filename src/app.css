@@ -304,3 +304,101 @@
 		z-index: 1;
 	}
 }
+
+/* DataTable: one row markup for both widths. Below md the rows stack into
+   cards; a cell keeps its heading through data-label, and `.actions` becomes
+   a full-width button row. */
+@layer components {
+	.data-table thead {
+		position: sticky;
+		top: 0;
+		z-index: 10;
+		background: var(--color-surface-2);
+		font-size: var(--text-xs);
+		letter-spacing: 0.02em;
+		color: var(--color-fg-muted);
+	}
+	.data-table th {
+		padding: 10px 12px;
+		text-align: left;
+		font-weight: 500;
+		white-space: nowrap;
+	}
+	.data-table td {
+		padding: 10px 12px;
+	}
+	.data-table tbody tr {
+		border-top: 1px solid var(--color-border);
+	}
+	.data-table tbody tr:not(.detail):hover {
+		background: color-mix(in oklab, var(--color-surface-2) 40%, transparent);
+	}
+	.data-table tr.danger {
+		background: color-mix(in oklab, var(--color-danger) 6%, transparent);
+	}
+	.data-table tr.detail {
+		background: color-mix(in oklab, var(--color-bg-soft) 50%, transparent);
+	}
+	.data-table tr.muted {
+		opacity: 0.55;
+	}
+	.data-table-empty {
+		padding: 2.5rem 12px;
+		text-align: center;
+		font-size: var(--text-sm);
+		color: var(--color-fg-subtle);
+	}
+
+	@media (max-width: 767.98px) {
+		.data-table,
+		.data-table tbody,
+		.data-table tr,
+		.data-table td {
+			display: block;
+		}
+		.data-table thead {
+			display: none;
+		}
+		.data-table tbody tr {
+			padding: 12px 14px;
+		}
+		.data-table tbody tr:first-child {
+			border-top: 0;
+		}
+		.data-table td {
+			padding: 0;
+			text-align: left;
+		}
+		.data-table td + td {
+			margin-top: 6px;
+		}
+		.data-table td[data-label] {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 12px;
+			font-size: var(--text-2xs);
+		}
+		.data-table td[data-label]::before {
+			content: attr(data-label);
+			flex-shrink: 0;
+			color: var(--color-fg-subtle);
+		}
+		.data-table td.actions {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			margin: 10px -14px -12px;
+			padding: 10px 14px;
+			border-top: 1px solid var(--color-border);
+		}
+		/* These are the primary controls on a phone, so they get touch size. */
+		.data-table td.actions button {
+			min-width: 2.25rem;
+			min-height: 2.25rem;
+		}
+		.data-table-empty {
+			padding: 2rem 0;
+		}
+	}
+}

@@ -7,7 +7,7 @@
 	import Field from '$lib/components/ui/Field.svelte';
 	import Banner from '$lib/components/ui/Banner.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
-	import AutoRefreshSelect from '$lib/components/ui/AutoRefreshSelect.svelte';
+	import Select from '$lib/components/ui/Select.svelte';
 	import RefreshButton from '$lib/components/ui/RefreshButton.svelte';
 	import ActionRunStatusBadge from '$lib/components/actions/ActionRunStatusBadge.svelte';
 	import ActionModeBadge from '$lib/components/actions/ActionModeBadge.svelte';
@@ -409,15 +409,14 @@
 				</p>
 			</div>
 			<div class="flex flex-wrap items-center gap-2">
-				<AutoRefreshSelect
+				<Select
 					value={autoRefresh ? '10s' : 'off'}
-					options={[
-						{ value: 'off', label: m.chart_autorefresh_off() },
-						{ value: '10s', label: '10s' }
-					]}
-					onChange={(next) => (autoRefresh = next !== 'off')}
-					class="w-[8.5rem]"
-				/>
+					onchange={(e) => (autoRefresh = e.currentTarget.value !== 'off')}
+					class="w-28"
+				>
+					<option value="off">{m.chart_autorefresh_off()}</option>
+					<option value="10s">10s</option>
+				</Select>
 				<RefreshButton onclick={() => fetchAll(true)} {loading} label={m.actions_refresh()} />
 				<Button variant="secondary" size="sm" onclick={reloadScripts} disabled={unsupported}>
 					<IconRotateCw class="size-[14px]" stroke-width="2.25" />

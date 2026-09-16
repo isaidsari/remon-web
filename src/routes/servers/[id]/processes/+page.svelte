@@ -6,7 +6,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
-	import AutoRefreshSelect from '$lib/components/ui/AutoRefreshSelect.svelte';
+	import Select from '$lib/components/ui/Select.svelte';
 	import RefreshButton from '$lib/components/ui/RefreshButton.svelte';
 	import SegmentedControl from '$lib/components/ui/SegmentedControl.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
@@ -195,15 +195,14 @@
 				>
 			</div>
 			<div class="flex items-center gap-2">
-				<AutoRefreshSelect
+				<Select
 					value={autoRefresh ? '5s' : 'off'}
-					options={[
-						{ value: 'off', label: m.chart_autorefresh_off() },
-						{ value: '5s', label: '5s' }
-					]}
-					onChange={(next) => (autoRefresh = next !== 'off')}
-					class="w-[8.5rem]"
-				/>
+					onchange={(e) => (autoRefresh = e.currentTarget.value !== 'off')}
+					class="w-28"
+				>
+					<option value="off">{m.chart_autorefresh_off()}</option>
+					<option value="5s">5s</option>
+				</Select>
 				<RefreshButton
 					onclick={() => fetchProcesses()}
 					{loading}

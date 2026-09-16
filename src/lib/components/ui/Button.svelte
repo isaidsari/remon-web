@@ -2,6 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import type { HTMLButtonAttributes } from 'svelte/elements';
 	import { cn } from '$lib/utils/cn';
+	import Spinner from './Spinner.svelte';
 
 	type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'subtle';
 	type Size = 'sm' | 'md' | 'lg' | 'icon';
@@ -57,10 +58,7 @@
 	{...rest}
 >
 	{#if loading}
-		<span
-			class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-r-transparent"
-			aria-hidden="true"
-		></span>
+		<Spinner />
 	{/if}
 	{@render children?.()}
 </button>

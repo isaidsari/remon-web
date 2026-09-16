@@ -7,7 +7,7 @@
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
-	import AutoRefreshSelect from '$lib/components/ui/AutoRefreshSelect.svelte';
+	import Select from '$lib/components/ui/Select.svelte';
 	import RefreshButton from '$lib/components/ui/RefreshButton.svelte';
 	import Tabs from '$lib/components/layout/Tabs.svelte';
 	import StateBadge from '$lib/components/docker/StateBadge.svelte';
@@ -417,15 +417,14 @@
 						{m.docker_updated_at({ time: new Date(lastFetched).toLocaleTimeString() })}
 					</span>
 				{/if}
-				<AutoRefreshSelect
+				<Select
 					value={autoRefresh ? '5s' : 'off'}
-					options={[
-						{ value: 'off', label: m.chart_autorefresh_off() },
-						{ value: '5s', label: '5s' }
-					]}
-					onChange={(next) => (autoRefresh = next !== 'off')}
-					class="w-[8.5rem]"
-				/>
+					onchange={(e) => (autoRefresh = e.currentTarget.value !== 'off')}
+					class="w-28"
+				>
+					<option value="off">{m.chart_autorefresh_off()}</option>
+					<option value="5s">5s</option>
+				</Select>
 				<!-- Wrapped, not passed by reference: the click event would land in
 				     `background` and silence the very feedback the button is for. -->
 				<RefreshButton

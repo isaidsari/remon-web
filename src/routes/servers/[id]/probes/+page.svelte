@@ -5,7 +5,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Banner from '$lib/components/ui/Banner.svelte';
-	import AutoRefreshSelect from '$lib/components/ui/AutoRefreshSelect.svelte';
+	import Select from '$lib/components/ui/Select.svelte';
 	import RefreshButton from '$lib/components/ui/RefreshButton.svelte';
 	import ProbeStatusBadge from '$lib/components/probes/ProbeStatusBadge.svelte';
 	import HistoryChart, { type Series } from '$lib/components/charts/HistoryChart.svelte';
@@ -323,15 +323,14 @@
 				</p>
 			</div>
 			<div class="flex flex-wrap items-center gap-2">
-				<AutoRefreshSelect
+				<Select
 					value={autoRefresh ? '10s' : 'off'}
-					options={[
-						{ value: 'off', label: m.chart_autorefresh_off() },
-						{ value: '10s', label: '10s' }
-					]}
-					onChange={(next) => (autoRefresh = next !== 'off')}
-					class="w-[8.5rem]"
-				/>
+					onchange={(e) => (autoRefresh = e.currentTarget.value !== 'off')}
+					class="w-28"
+				>
+					<option value="off">{m.chart_autorefresh_off()}</option>
+					<option value="10s">10s</option>
+				</Select>
 				<RefreshButton onclick={fetchList} {loading} label={m.probes_refresh()} />
 				<Button variant="primary" size="sm" onclick={reload} loading={reloading}>
 					{m.probes_reload_manifests()}
