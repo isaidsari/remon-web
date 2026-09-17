@@ -1,8 +1,11 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { page } from '$app/state';
-	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import DataTable from '$lib/components/ui/DataTable.svelte';
+	import EmptyState from '$lib/components/ui/EmptyState.svelte';
+	import ErrorState from '$lib/components/ui/ErrorState.svelte';
+	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Banner from '$lib/components/ui/Banner.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
@@ -301,268 +304,141 @@
 
 {#if profile}
 	<div class="px-4 py-6 md:px-8 md:py-8">
-		<header class="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
-			<div>
-				<h1
-					class="text-figure flex items-baseline gap-2.5 font-semibold tracking-tight sm:text-2xl"
-				>
-					{m.section_probes()}
-					<span
-						class="rounded-md bg-[var(--color-surface-2)] px-2 py-0.5 font-mono text-xs font-medium text-[var(--color-fg-muted)] shadow-[inset_0_0_0_1px_var(--color-border)]"
-					>
-						{probes.length}
+		<PageHeader title={m.section_probes()} count={probes.length}>
+			{#snippet meta()}
+				{m.probes_page_description()}
+				{#if lastFetched}
+					<span class="ml-2 text-xs text-[var(--color-fg-subtle)]">
+						{m.probes_updated_at({ time: new Date(lastFetched).toLocaleTimeString() })}
 					</span>
-				</h1>
-				<p class="text-md mt-1.5 max-w-md text-[var(--color-fg-muted)]">
-					{m.probes_page_description()}
-					{#if lastFetched}
-						<span class="ml-2 text-xs text-[var(--color-fg-subtle)]">
-							{m.probes_updated_at({ time: new Date(lastFetched).toLocaleTimeString() })}
-						</span>
-					{/if}
-				</p>
-			</div>
-			<div class="flex flex-wrap items-center gap-2">
-				<Select
-					value={autoRefresh ? '10s' : 'off'}
-					onchange={(e) => (autoRefresh = e.currentTarget.value !== 'off')}
-					class="w-28"
-				>
-					<option value="off">{m.chart_autorefresh_off()}</option>
-					<option value="10s">10s</option>
-				</Select>
-				<RefreshButton onclick={fetchList} {loading} label={m.probes_refresh()} />
-				<Button variant="primary" size="sm" onclick={reload} loading={reloading}>
-					{m.probes_reload_manifests()}
-				</Button>
-			</div>
-		</header>
+				{/if}
+			{/snippet}
+			<Select
+				value={autoRefresh ? '10s' : 'off'}
+				onchange={(e) => (autoRefresh = e.currentTarget.value !== 'off')}
+				class="w-28"
+			>
+				<option value="off">{m.chart_autorefresh_off()}</option>
+				<option value="10s">10s</option>
+			</Select>
+			<RefreshButton onclick={fetchList} {loading} label={m.probes_refresh()} />
+			<Button variant="primary" size="sm" onclick={reload} loading={reloading}>
+				{m.probes_reload_manifests()}
+			</Button>
+		</PageHeader>
 
 		{#if !conn?.isAuthenticated}
-			<Card padding="lg" class="border-[var(--color-warning)]/30">
-				<p class="text-sm text-[var(--color-fg-muted)]">{m.probes_signin_required()}</p>
-			</Card>
+			<Banner variant="warning">{m.probes_signin_required()}</Banner>
 		{:else if error}
-			<Banner variant="danger" title={m.probes_fetch_failed_title()}>
-				{error.userMessage}
-				{#snippet actions()}
-					<Button variant="secondary" size="sm" onclick={fetchList}>{m.probes_retry()}</Button>
-				{/snippet}
-			</Banner>
+			<ErrorState {error} onRetry={fetchList} />
 		{:else if probes.length === 0 && !loading}
-			<Card padding="lg">
-				<p class="text-sm text-[var(--color-fg-subtle)]">
-					{m.probes_empty_prefix()}
-					<span class="font-mono text-[var(--color-fg-muted)]">configs/probes/</span>
-					{m.probes_empty_suffix()}
-				</p>
-			</Card>
+			<EmptyState
+				description={`${m.probes_empty_prefix()} configs/probes/ ${m.probes_empty_suffix()}`}
+			/>
 		{:else}
-			{#if probes.length > 0}
-				<div class="mb-3 flex">
-					<Input
-						placeholder={m.probes_filter_placeholder()}
-						bind:value={q}
-						class="w-full text-sm sm:max-w-xs"
-					/>
-				</div>
-			{/if}
+			<div class="mb-3 flex">
+				<Input
+					placeholder={m.probes_filter_placeholder()}
+					bind:value={q}
+					class="w-full sm:max-w-xs"
+				/>
+			</div>
 
-			<Card padding="none" class="hidden overflow-hidden md:block">
-				<div class="max-h-[max(18rem,calc(100dvh-22rem))] overflow-auto">
-					<table class="w-full text-sm">
-						<thead
-							class="text-2xs sticky top-0 z-10 bg-[var(--color-surface-2)] font-medium tracking-[0.06em] text-[var(--color-fg-muted)]"
-						>
-							<tr>
-								<th class="px-3 py-2.5 text-left font-medium">{m.probes_table_status()}</th>
-								<th class="px-3 py-2.5 text-left font-medium">{m.probes_table_name()}</th>
-								<th class="px-3 py-2.5 text-left font-medium">{m.probes_table_schedule()}</th>
-								<th class="px-3 py-2.5 text-left font-medium">{m.probes_table_last_run()}</th>
-								<th class="px-3 py-2.5 text-left font-medium">{m.probes_table_message()}</th>
-								<th class="px-3 py-2.5 text-right font-medium">{m.probes_table_boot()}</th>
-								<th class="w-8 px-2 py-2.5" aria-hidden="true"></th>
-							</tr>
-						</thead>
-						<tbody>
-							{#each filteredProbes as p (p.name)}
-								{@const isOpen = expanded === p.name}
-								{@const detail = detailCache[p.name]}
-								<tr
-									class={cn(
-										'cursor-pointer border-t border-[var(--color-border)] transition-colors hover:bg-[var(--color-surface-2)]/50',
-										p.last_parse_ok === false && 'bg-[var(--color-danger-bg)]/40',
-										!p.enabled && 'opacity-60'
-									)}
-									onclick={() => toggleExpand(p.name)}
-								>
-									<td class="px-3 py-2.5"><ProbeStatusBadge parseOk={p.last_parse_ok} /></td>
-									<td class="px-3 py-2.5">
-										<div class="flex flex-col">
-											<span class="font-mono text-xs font-medium text-[var(--color-fg)]"
-												>{p.name}</span
-											>
-											{#if p.description}
-												<span class="text-2xs mt-0.5 truncate text-[var(--color-fg-muted)]"
-													>{p.description}</span
-												>
-											{/if}
-										</div>
-									</td>
-									<td class="text-2xs px-3 py-2.5 font-mono text-[var(--color-fg-muted)]"
-										>{p.schedule}</td
-									>
-									<td class="text-2xs px-3 py-2.5 font-mono text-[var(--color-fg-muted)]">
-										{p.last_run_at ? fmtRelative(p.last_run_at) : '—'}
-									</td>
-									<td class="px-3 py-2.5">
-										{#if p.last_message}
-											<span
-												class="block max-w-[40ch] truncate text-xs text-[var(--color-fg-muted)]"
-												title={p.last_message}
-											>
-												{p.last_message}
-											</span>
-										{:else}
-											<span class="text-[var(--color-fg-faint)]">—</span>
-										{/if}
-									</td>
-									<td class="px-3 py-2.5 text-right">
-										{#if p.enabled}
-											<span class="text-2xs tracking-wide text-[var(--color-success)]"
-												>{m.probes_enabled()}</span
-											>
-										{:else}
-											<span class="text-2xs tracking-wide text-[var(--color-fg-subtle)]"
-												>{m.probes_disabled()}</span
-											>
-										{/if}
-									</td>
-									<td class="px-2 py-2.5 text-right">
-										<IconChevronDown
-											class={cn(
-												'inline size-3.5 text-[var(--color-fg-subtle)] transition-transform duration-[var(--dur-fast)]',
-												isOpen && 'rotate-180'
-											)}
-											stroke-width="2"
-										/>
-									</td>
-								</tr>
-								{#if isOpen}
-									<tr class="border-t border-[var(--color-border)] bg-[var(--color-bg-soft)]/50">
-										<td colspan="7" class="px-5 py-4">
-											{#if detailLoading[p.name]}
-												<p class="text-xs text-[var(--color-fg-subtle)]">
-													{m.probes_loading_detail()}
-												</p>
-											{:else if detail && isError(detail)}
-												<p class="text-xs text-[var(--color-danger)]">{detail.error}</p>
-											{:else if detail}
-												{@render detailPanel(detail, p.name)}
-											{/if}
-										</td>
-									</tr>
-								{/if}
-							{/each}
-							{#if filteredProbes.length === 0 && probes.length > 0}
-								<tr>
-									<td
-										colspan="7"
-										class="text-md px-3 py-10 text-center text-[var(--color-fg-subtle)]"
-									>
-										{m.probes_empty_filter()}
-									</td>
-								</tr>
-							{/if}
-						</tbody>
-					</table>
-				</div>
-			</Card>
-
-			<div class="flex flex-col gap-2 md:hidden">
+			<DataTable
+				loading={loading && probes.length === 0}
+				empty={filteredProbes.length === 0 ? m.probes_empty_filter() : undefined}
+			>
+				{#snippet head()}
+					<th>{m.probes_table_name()}</th>
+					<th>{m.probes_table_status()}</th>
+					<th>{m.probes_table_schedule()}</th>
+					<th>{m.probes_table_last_run()}</th>
+					<th>{m.probes_table_message()}</th>
+					<th class="text-right">{m.probes_table_boot()}</th>
+					<th class="w-8" aria-hidden="true"></th>
+				{/snippet}
 				{#each filteredProbes as p (p.name)}
 					{@const isOpen = expanded === p.name}
 					{@const detail = detailCache[p.name]}
-					<Card
-						padding="none"
+					<tr
 						class={cn(
-							'overflow-hidden transition-colors',
-							p.last_parse_ok === false && 'border-[var(--color-danger)]/40',
-							!p.enabled && 'opacity-70'
+							'cursor-pointer',
+							p.last_parse_ok === false && 'danger',
+							!p.enabled && 'muted'
 						)}
+						onclick={() => toggleExpand(p.name)}
 					>
-						<button
-							type="button"
-							onclick={() => toggleExpand(p.name)}
-							aria-expanded={isOpen}
-							aria-label={isOpen ? m.probes_card_collapse() : m.probes_card_expand()}
-							class="flex w-full flex-col gap-2 px-3.5 py-3 text-left transition-colors hover:bg-[var(--color-surface-2)]/40"
-						>
-							<div class="flex items-start justify-between gap-2">
-								<div class="flex min-w-0 flex-1 flex-col">
-									<div class="flex flex-wrap items-center gap-2">
-										<span class="text-md font-mono font-medium break-all text-[var(--color-fg)]">
-											{p.name}
-										</span>
-										<ProbeStatusBadge parseOk={p.last_parse_ok} />
-										{#if !p.enabled}
-											<span
-												class="text-3xs rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono tracking-wide text-[var(--color-fg-subtle)]"
-											>
-												{m.probes_disabled()}
-											</span>
-										{/if}
-									</div>
-									{#if p.description}
-										<span class="mt-1 text-xs leading-snug text-[var(--color-fg-muted)]"
-											>{p.description}</span
-										>
-									{/if}
-								</div>
-								<IconChevronDown
-									class={cn(
-										'mt-0.5 size-4 shrink-0 text-[var(--color-fg-subtle)] transition-transform duration-[var(--dur-fast)]',
-										isOpen && 'rotate-180'
-									)}
-									stroke-width="2"
-								/>
-							</div>
-							<dl class="text-2xs grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-								<dt class="text-[var(--color-fg-subtle)]">{m.probes_card_schedule_label()}</dt>
-								<dd class="font-mono break-all text-[var(--color-fg-muted)]">{p.schedule}</dd>
-								<dt class="text-[var(--color-fg-subtle)]">{m.probes_card_last_run_label()}</dt>
-								<dd class="font-mono text-[var(--color-fg-muted)]">
-									{p.last_run_at ? fmtRelative(p.last_run_at) : '—'}
-								</dd>
-								{#if p.last_message}
-									<dt class="text-[var(--color-fg-subtle)]">{m.probes_table_message()}</dt>
-									<dd class="break-words text-[var(--color-fg-muted)]">{p.last_message}</dd>
+						<td>
+							<div class="flex flex-col">
+								<span class="font-mono text-xs font-medium break-all text-[var(--color-fg)]">
+									{p.name}
+								</span>
+								{#if p.description}
+									<span class="text-2xs mt-0.5 text-[var(--color-fg-muted)] md:truncate">
+										{p.description}
+									</span>
 								{/if}
-							</dl>
-						</button>
-						{#if isOpen}
-							<div
-								class="border-t border-[var(--color-border)] bg-[var(--color-bg-soft)]/40 px-3.5 py-3"
-							>
+							</div>
+						</td>
+						<td data-label={m.probes_table_status()}>
+							<ProbeStatusBadge parseOk={p.last_parse_ok} />
+						</td>
+						<td
+							data-label={m.probes_table_schedule()}
+							class="text-2xs font-mono break-all text-[var(--color-fg-muted)]"
+						>
+							{p.schedule}
+						</td>
+						<td
+							data-label={m.probes_table_last_run()}
+							class="text-2xs font-mono text-[var(--color-fg-muted)]"
+						>
+							{p.last_run_at ? fmtRelative(p.last_run_at) : '—'}
+						</td>
+						<td data-label={m.probes_table_message()}>
+							{#if p.last_message}
+								<span
+									class="block text-xs break-words text-[var(--color-fg-muted)] md:max-w-[40ch] md:truncate"
+									title={p.last_message}
+								>
+									{p.last_message}
+								</span>
+							{:else}
+								<span class="text-[var(--color-fg-faint)]">—</span>
+							{/if}
+						</td>
+						<td data-label={m.probes_table_boot()} class="text-2xs tracking-wide md:text-right">
+							{#if p.enabled}
+								<span class="text-[var(--color-success)]">{m.probes_enabled()}</span>
+							{:else}
+								<span class="text-[var(--color-fg-subtle)]">{m.probes_disabled()}</span>
+							{/if}
+						</td>
+						<td class="hidden text-right md:table-cell">
+							<IconChevronDown
+								class={cn(
+									'inline size-3.5 text-[var(--color-fg-subtle)] transition-transform duration-[var(--dur-fast)]',
+									isOpen && 'rotate-180'
+								)}
+								stroke-width="2"
+							/>
+						</td>
+					</tr>
+					{#if isOpen}
+						<tr class="detail">
+							<td colspan="7" class="px-4 py-4 md:px-5">
 								{#if detailLoading[p.name]}
-									<p class="text-xs text-[var(--color-fg-subtle)]">
-										{m.probes_loading_detail()}
-									</p>
+									<p class="text-xs text-[var(--color-fg-subtle)]">{m.probes_loading_detail()}</p>
 								{:else if detail && isError(detail)}
 									<p class="text-xs text-[var(--color-danger)]">{detail.error}</p>
 								{:else if detail}
 									{@render detailPanel(detail, p.name)}
 								{/if}
-							</div>
-						{/if}
-					</Card>
+							</td>
+						</tr>
+					{/if}
 				{/each}
-				{#if filteredProbes.length === 0 && probes.length > 0}
-					<Card padding="lg" class="text-center">
-						<p class="text-md text-[var(--color-fg-subtle)]">{m.probes_empty_filter()}</p>
-					</Card>
-				{/if}
-			</div>
+			</DataTable>
 		{/if}
 	</div>
 {/if}
