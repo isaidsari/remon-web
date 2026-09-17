@@ -3,9 +3,12 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { m } from '$lib/paraglide/messages';
-	import Card from '$lib/components/ui/Card.svelte';
-	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import Banner from '$lib/components/ui/Banner.svelte';
+	import DataTable from '$lib/components/ui/DataTable.svelte';
+	import EmptyState from '$lib/components/ui/EmptyState.svelte';
+	import IconButton from '$lib/components/ui/IconButton.svelte';
+	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
 	import RefreshButton from '$lib/components/ui/RefreshButton.svelte';
@@ -17,8 +20,6 @@
 	import { confirm } from '$lib/stores/confirm.svelte';
 	import { ApiError } from '$lib/api/error';
 	import { fmtBytes, fmtRelative, shortId } from '$lib/utils/format';
-	import { cn } from '$lib/utils/cn';
-	import type { Component } from 'svelte';
 	import type { ContainerInfo, DockerStatusResponse, ImageInfo } from '$lib/types/api';
 	import IconPlay from '~icons/lucide/play';
 	import IconPause from '~icons/lucide/pause';
@@ -284,174 +285,112 @@
 	]);
 </script>
 
-<!-- Shared by the desktop table's trailing column and the mobile card's action
-     row, so which verbs a container offers is decided in exactly one place. -->
-{#snippet containerActions(
-	c: ContainerInfo,
-	running: boolean,
-	paused: boolean,
-	stopped: boolean,
-	large: boolean
-)}
-	{#if stopped}
-		{@render iconBtn(
-			m.docker_action_start(),
-			() => start(c),
-			acting !== null,
-			acting === `start:${c.id}`,
-			IconPlay,
-			undefined,
-			large
-		)}
+{#snippet containerActions(c: ContainerInfo)}
+	{@const running = c.state === 'running'}
+	{@const paused = c.state === 'paused'}
+	{@const busy = acting !== null}
+	{#if !running && !paused}
+		<IconButton
+			label={m.docker_action_start()}
+			onclick={() => start(c)}
+			disabled={busy}
+			loading={acting === `start:${c.id}`}
+		>
+			<IconPlay class="size-[14px]" stroke-width="2" />
+		</IconButton>
 	{/if}
 	{#if running}
-		{@render iconBtn(
-			m.docker_action_pause(),
-			() => pause(c),
-			acting !== null,
-			acting === `pause:${c.id}`,
-			IconPause,
-			undefined,
-			large
-		)}
-		{@render iconBtn(
-			m.docker_action_stop(),
-			() => stop(c),
-			acting !== null,
-			acting === `stop:${c.id}`,
-			IconSquare,
-			undefined,
-			large
-		)}
+		<IconButton
+			label={m.docker_action_pause()}
+			onclick={() => pause(c)}
+			disabled={busy}
+			loading={acting === `pause:${c.id}`}
+		>
+			<IconPause class="size-[14px]" stroke-width="2" />
+		</IconButton>
+		<IconButton
+			label={m.docker_action_stop()}
+			onclick={() => stop(c)}
+			disabled={busy}
+			loading={acting === `stop:${c.id}`}
+		>
+			<IconSquare class="size-[14px]" stroke-width="2" />
+		</IconButton>
 	{/if}
 	{#if paused}
-		{@render iconBtn(
-			m.docker_action_resume(),
-			() => unpause(c),
-			acting !== null,
-			acting === `unpause:${c.id}`,
-			IconPlay,
-			undefined,
-			large
-		)}
+		<IconButton
+			label={m.docker_action_resume()}
+			onclick={() => unpause(c)}
+			disabled={busy}
+			loading={acting === `unpause:${c.id}`}
+		>
+			<IconPlay class="size-[14px]" stroke-width="2" />
+		</IconButton>
 	{/if}
 	{#if running || paused}
-		{@render iconBtn(
-			m.docker_action_restart(),
-			() => restart(c),
-			acting !== null,
-			acting === `restart:${c.id}`,
-			IconRefresh,
-			undefined,
-			large
-		)}
+		<IconButton
+			label={m.docker_action_restart()}
+			onclick={() => restart(c)}
+			disabled={busy}
+			loading={acting === `restart:${c.id}`}
+		>
+			<IconRefresh class="size-[14px]" stroke-width="2" />
+		</IconButton>
 	{/if}
-	{@render iconBtn(
-		m.docker_action_delete(),
-		() => remove(c),
-		acting !== null,
-		acting === `delete:${c.id}`,
-		IconTrash,
-		'danger',
-		large
-	)}
-{/snippet}
-
-{#snippet iconBtn(
-	label: string,
-	onclick: () => void,
-	disabled: boolean,
-	busy: boolean,
-	Icon: Component,
-	color?: string,
-	/** Touch-sized variant for the mobile card list. */
-	large?: boolean
-)}
-	<button
-		type="button"
-		{onclick}
-		{disabled}
-		title={label}
-		aria-label={label}
-		class={cn(
-			'grid place-items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] transition disabled:cursor-not-allowed disabled:opacity-30',
-			large ? 'h-9 w-9' : 'h-8 w-8',
-			'hover:border-[var(--color-border-strong)]',
-			color === 'danger' &&
-				'hover:border-[var(--color-danger)]/50 hover:text-[var(--color-danger)]',
-			color !== 'danger' && 'hover:text-[var(--color-fg)]',
-			'text-[var(--color-fg-muted)]'
-		)}
+	<IconButton
+		tone="danger"
+		label={m.docker_action_delete()}
+		onclick={() => remove(c)}
+		disabled={busy}
+		loading={acting === `delete:${c.id}`}
 	>
-		{#if busy}
-			<span
-				class="h-3 w-3 animate-spin rounded-full border-2 border-current border-r-transparent"
-				aria-hidden="true"
-			></span>
-		{:else}
-			<Icon class="size-[14px]" stroke-width="2" />
-		{/if}
-	</button>
+		<IconTrash class="size-[14px]" stroke-width="2" />
+	</IconButton>
 {/snippet}
 
 {#if profile}
 	<div class="px-4 py-6 md:px-8 md:py-8">
-		<header class="mb-6 flex items-end justify-between gap-4">
-			<div>
-				<h1 class="text-2xl font-semibold tracking-tight">{m.section_containers()}</h1>
-				<p class="mt-1.5 text-xs text-[var(--color-fg-muted)]">
-					{#if status?.available}
-						<!-- The daemon may be podman; say which one rather than assuming docker. -->
-						{#if engineLabel}<span class="text-[var(--color-fg)]">{engineLabel}</span>{/if}
-						{#if status.os}<span class="text-[var(--color-fg-subtle)]">
-								· {status.os}/{status.arch}</span
-							>{/if}
-					{:else}
-						<span class="text-[var(--color-warning)]">{m.docker_daemon_unavailable()}</span>
-					{/if}
-				</p>
-			</div>
-			<div class="flex items-center gap-2">
-				{#if lastFetched}
-					<span class="text-2xs mr-1 text-[var(--color-fg-subtle)] tabular-nums">
-						{m.docker_updated_at({ time: new Date(lastFetched).toLocaleTimeString() })}
-					</span>
+		<PageHeader title={m.section_containers()}>
+			{#snippet meta()}
+				{#if status?.available}
+					<!-- The daemon may be podman; say which one rather than assuming docker. -->
+					{#if engineLabel}<span class="text-[var(--color-fg)]">{engineLabel}</span>{/if}
+					{#if status.os}<span class="text-[var(--color-fg-subtle)]">
+							· {status.os}/{status.arch}</span
+						>{/if}
+				{:else}
+					<span class="text-[var(--color-warning)]">{m.docker_daemon_unavailable()}</span>
 				{/if}
-				<Select
-					value={autoRefresh ? '5s' : 'off'}
-					onchange={(e) => (autoRefresh = e.currentTarget.value !== 'off')}
-					class="w-28"
-				>
-					<option value="off">{m.chart_autorefresh_off()}</option>
-					<option value="5s">5s</option>
-				</Select>
-				<!-- Wrapped, not passed by reference: the click event would land in
-				     `background` and silence the very feedback the button is for. -->
-				<RefreshButton
-					onclick={() => fetchAll()}
-					loading={busy}
-					label={m.docker_action_refresh()}
-				/>
-			</div>
-		</header>
+			{/snippet}
+			{#if lastFetched}
+				<span class="text-2xs mr-1 text-[var(--color-fg-subtle)] tabular-nums">
+					{m.docker_updated_at({ time: new Date(lastFetched).toLocaleTimeString() })}
+				</span>
+			{/if}
+			<Select
+				value={autoRefresh ? '5s' : 'off'}
+				onchange={(e) => (autoRefresh = e.currentTarget.value !== 'off')}
+				class="w-28"
+			>
+				<option value="off">{m.chart_autorefresh_off()}</option>
+				<option value="5s">5s</option>
+			</Select>
+			<!-- Wrapped, not passed by reference: the click event would land in
+			     `background` and silence the very feedback the button is for. -->
+			<RefreshButton onclick={() => fetchAll()} loading={busy} label={m.docker_action_refresh()} />
+		</PageHeader>
 
 		{#if !conn?.isAuthenticated}
-			<Card padding="lg" class="border-[var(--color-warning)]/30">
-				<p class="text-sm text-[var(--color-fg-muted)]">
-					{m.docker_signin_required()}
-				</p>
-			</Card>
+			<Banner variant="warning">{m.docker_signin_required()}</Banner>
 		{:else if status && !status.available}
-			<Card padding="lg">
-				<p class="font-medium">{m.docker_unavailable_title()}</p>
-				<p class="mt-1 text-sm text-[var(--color-fg-muted)]">
-					{dockerUnsupported
-						? m.docker_unsupported_description()
-						: m.docker_unavailable_description()}
-				</p>
-			</Card>
+			<EmptyState
+				title={m.docker_unavailable_title()}
+				description={dockerUnsupported
+					? m.docker_unsupported_description()
+					: m.docker_unavailable_description()}
+			/>
 		{:else}
-			<div class="mb-4 flex items-center justify-between gap-4">
+			<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<Tabs tabs={tabsConfig} value={tab} onSelect={setTab} />
 				<div class="flex items-center gap-2">
 					<Input
@@ -459,312 +398,144 @@
 							? m.docker_filter_containers_placeholder()
 							: m.docker_filter_images_placeholder()}
 						bind:value={q}
-						class="w-72 text-sm"
+						class="w-full sm:w-64"
 					/>
 					{#if tab === 'containers'}
-						<Button variant="ghost" size="sm" onclick={pruneContainers}
-							>{m.docker_action_prune_stopped()}</Button
-						>
+						<Button variant="ghost" size="sm" onclick={pruneContainers} class="shrink-0">
+							{m.docker_action_prune_stopped()}
+						</Button>
 					{:else}
-						<Button variant="ghost" size="sm" onclick={pruneImages}
-							>{m.docker_action_prune_dangling()}</Button
-						>
+						<Button variant="ghost" size="sm" onclick={pruneImages} class="shrink-0">
+							{m.docker_action_prune_dangling()}
+						</Button>
 					{/if}
 				</div>
 			</div>
 
 			{#if tab === 'containers'}
-				<Card padding="none" class="hidden overflow-hidden md:block">
-					<div class="max-h-[max(18rem,calc(100dvh-22rem))] overflow-auto">
-						<table class="w-full text-sm">
-							<thead
-								class="sticky top-0 z-10 bg-[var(--color-surface-2)] text-xs tracking-wide text-[var(--color-fg-muted)]"
-							>
-								<tr>
-									<th class="px-3 py-2 text-left font-medium">{m.docker_th_name()}</th>
-									<th class="px-3 py-2 text-left font-medium">{m.docker_th_image()}</th>
-									<th class="px-3 py-2 text-left font-medium">{m.docker_th_state()}</th>
-									<th class="px-3 py-2 text-left font-medium">{m.docker_th_status()}</th>
-									<th class="px-3 py-2 text-right font-medium">{m.docker_th_actions()}</th>
-								</tr>
-							</thead>
-							<tbody>
-								{#if busy && containers.length === 0}
-									{#each { length: 6 } as _, i (i)}
-										<tr class="border-t border-[var(--color-border)]">
-											<td class="px-3 py-2"><Skeleton class="h-3 w-32" /></td>
-											<td class="px-3 py-2"><Skeleton class="h-3 w-44" /></td>
-											<td class="px-3 py-2"><Skeleton class="h-5 w-16" rounded="full" /></td>
-											<td class="px-3 py-2"><Skeleton class="h-3 w-24" /></td>
-											<td class="px-3 py-2"><Skeleton class="ml-auto h-6 w-16" /></td>
-										</tr>
-									{/each}
-								{:else}
-									{#each filteredContainers as c (c.id)}
-										{@const running = c.state === 'running'}
-										{@const paused = c.state === 'paused'}
-										{@const stopped = !running && !paused}
-										<tr
-											class="cursor-pointer border-t border-[var(--color-border)] transition hover:bg-[var(--color-surface-2)]/40"
-											onclick={() => openContainer(c)}
-										>
-											<td class="px-3 py-2 whitespace-nowrap">
-												<span class="font-medium text-[var(--color-fg)]">{name(c)}</span>
-												<span class="text-3xs ml-2 font-mono text-[var(--color-fg-subtle)]"
-													>{shortId(c.id)}</span
-												>
-											</td>
-											<!-- w-full + max-w-0: registry refs run long (host/org/proj:sha-…) and
-											     in auto table layout the cell's max-content sets the column
-											     width, pushing state/status/actions off-screen. -->
-											<td
-												class="w-full max-w-0 truncate px-3 py-2 font-mono text-xs text-[var(--color-fg-muted)]"
-												title={c.image}>{c.image}</td
-											>
-											<td class="px-3 py-2"><StateBadge state={c.state} /></td>
-											<!-- nowrap so this column claims the width it needs; the image cell
-											     above absorbs whatever slack is left. -->
-											<td class="px-3 py-2 text-xs whitespace-nowrap text-[var(--color-fg-muted)]">
-												{c.status}
-												<span class="text-3xs ml-1.5 text-[var(--color-fg-subtle)]"
-													>{m.docker_created_at({ time: fmtRelative(c.created) })}</span
-												>
-											</td>
-											<td class="px-3 py-2">
-												<div
-													class="flex items-center justify-end gap-1.5"
-													onclickcapture={(e) => e.stopPropagation()}
-													role="presentation"
-												>
-													{@render containerActions(c, running, paused, stopped, false)}
-												</div>
-											</td>
-										</tr>
-									{/each}
-									{#if filteredContainers.length === 0}
-										<tr>
-											<td
-												colspan="5"
-												class="px-3 py-8 text-center text-sm text-[var(--color-fg-subtle)]"
-												>{m.docker_empty_containers()}</td
-											>
-										</tr>
-									{/if}
-								{/if}
-							</tbody>
-						</table>
-					</div>
-				</Card>
-
-				<!-- Below md the rows become cards. The body is an <a>, not a click
-				     handler on the row: it navigates, so it should be keyboard- and
-				     middle-click-reachable. Actions live outside it — an <a> cannot
-				     contain buttons. -->
-				<div class="flex flex-col gap-2 md:hidden">
-					{#if busy && containers.length === 0}
-						{#each { length: 4 } as _, i (i)}
-							<Card padding="none">
-								<div class="flex flex-col gap-2 px-3.5 py-3">
-									<Skeleton class="h-3 w-32" />
-									<Skeleton class="h-3 w-44" />
-								</div>
-							</Card>
-						{/each}
-					{:else if filteredContainers.length === 0}
-						<Card padding="lg" class="text-center text-sm text-[var(--color-fg-subtle)]">
-							{m.docker_empty_containers()}
-						</Card>
-					{:else}
-						{#each filteredContainers as c (c.id)}
-							{@const running = c.state === 'running'}
-							{@const paused = c.state === 'paused'}
-							{@const stopped = !running && !paused}
-							<Card padding="none" class="overflow-hidden">
+				<DataTable
+					loading={busy && containers.length === 0}
+					empty={filteredContainers.length === 0 ? m.docker_empty_containers() : undefined}
+				>
+					{#snippet head()}
+						<th>{m.docker_th_name()}</th>
+						<th>{m.docker_th_image()}</th>
+						<th>{m.docker_th_state()}</th>
+						<th>{m.docker_th_status()}</th>
+						<th class="text-right">{m.docker_th_actions()}</th>
+					{/snippet}
+					{#each filteredContainers as c (c.id)}
+						<!-- The row is the click target; the link inside keeps the same
+						     destination reachable by keyboard and middle-click. -->
+						<tr class="cursor-pointer" onclick={() => openContainer(c)}>
+							<td class="md:whitespace-nowrap">
 								<a
 									href={`/servers/${id}/docker/containers/${c.id}`}
-									class="flex flex-col gap-2 px-3.5 py-3 transition-colors hover:bg-[var(--color-surface-2)]/40"
+									onclick={(e) => e.stopPropagation()}
+									class="font-medium break-all text-[var(--color-fg)]"
 								>
-									<div class="flex items-start justify-between gap-2">
-										<div class="flex min-w-0 flex-1 flex-col">
-											<span class="font-medium break-all text-[var(--color-fg)]">{name(c)}</span>
-											<span class="text-3xs font-mono text-[var(--color-fg-subtle)]">
-												{shortId(c.id)}
-											</span>
-										</div>
-										<StateBadge state={c.state} />
-									</div>
-									<dl class="text-2xs grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-										<dt class="text-[var(--color-fg-subtle)]">{m.docker_th_image()}</dt>
-										<dd class="font-mono break-all text-[var(--color-fg-muted)]">{c.image}</dd>
-										<dt class="text-[var(--color-fg-subtle)]">{m.docker_th_status()}</dt>
-										<dd class="text-[var(--color-fg-muted)]">
-											{c.status}
-											<span class="text-3xs block text-[var(--color-fg-subtle)]">
-												{m.docker_created_at({ time: fmtRelative(c.created) })}
-											</span>
-										</dd>
-									</dl>
+									{name(c)}
 								</a>
-								<div
-									class="flex items-center gap-2 border-t border-[var(--color-border)] px-3.5 py-2.5"
-								>
-									{@render containerActions(c, running, paused, stopped, true)}
-								</div>
-							</Card>
-						{/each}
-					{/if}
-				</div>
-			{:else}
-				<Card padding="none" class="hidden overflow-hidden md:block">
-					<div class="max-h-[max(18rem,calc(100dvh-22rem))] overflow-auto">
-						<table class="w-full text-sm">
-							<thead
-								class="sticky top-0 z-10 bg-[var(--color-surface-2)] text-xs tracking-wide text-[var(--color-fg-muted)]"
+								<span class="text-3xs ml-2 font-mono text-[var(--color-fg-subtle)]">
+									{shortId(c.id)}
+								</span>
+							</td>
+							<!-- md:max-w-0: registry refs run long, and in auto table layout the
+							     cell's max-content would set the column width. -->
+							<td
+								data-label={m.docker_th_image()}
+								class="font-mono text-xs break-all text-[var(--color-fg-muted)] md:w-full md:max-w-0 md:truncate"
+								title={c.image}
 							>
-								<tr>
-									<th class="px-3 py-2 text-left font-medium">{m.docker_th_tag()}</th>
-									<th class="px-3 py-2 text-right font-medium">{m.docker_th_size()}</th>
-									<th class="px-3 py-2 text-left font-medium">{m.docker_th_created()}</th>
-									<th class="px-3 py-2 text-right font-medium">{m.docker_th_actions()}</th>
-								</tr>
-							</thead>
-							<tbody>
-								{#if busy && images.length === 0}
-									{#each { length: 5 } as _, i (i)}
-										<tr class="border-t border-[var(--color-border)]">
-											<td class="px-3 py-2"><Skeleton class="h-3 w-40" /></td>
-											<td class="px-3 py-2"><Skeleton class="ml-auto h-3 w-16" /></td>
-											<td class="px-3 py-2"><Skeleton class="h-3 w-24" /></td>
-											<td class="px-3 py-2"><Skeleton class="ml-auto h-6 w-8" /></td>
-										</tr>
-									{/each}
-								{:else}
-									{#each filteredImages as img (img.id)}
-										<tr
-											class="border-t border-[var(--color-border)] transition hover:bg-[var(--color-surface-2)]/40"
-										>
-											<!-- Tag carries the id beside it, like a container carries its own;
-											     only the tag truncates, so the id never disappears. -->
-											<td class="w-full max-w-0 px-3 py-2">
-												<div class="flex items-baseline gap-2">
-													{#if img.tags.length === 0}
-														<span class="truncate text-xs text-[var(--color-fg-subtle)]">
-															{m.docker_image_no_tag()}
-														</span>
-													{:else}
-														<span
-															class="truncate font-mono text-xs text-[var(--color-fg)]"
-															title={img.tags.join('\n')}
-														>
-															{img.tags[0]}
-														</span>
-													{/if}
-													<span class="text-3xs shrink-0 font-mono text-[var(--color-fg-subtle)]">
-														{shortId(img.id)}
-													</span>
-													{#if img.tags.length > 1}
-														<span
-															class="text-3xs shrink-0 font-mono text-[var(--color-fg-subtle)]"
-															title={img.tags.slice(1).join('\n')}
-														>
-															+{img.tags.length - 1}
-														</span>
-													{/if}
-												</div>
-											</td>
-											<td class="px-3 py-2 text-right font-mono text-xs whitespace-nowrap">
-												{fmtBytes(img.size)}
-											</td>
-											<td class="px-3 py-2 text-xs whitespace-nowrap text-[var(--color-fg-muted)]">
-												{fmtRelative(img.created)}
-											</td>
-											<td class="px-3 py-2">
-												<div class="flex items-center justify-end gap-1.5">
-													{@render iconBtn(
-														m.docker_action_delete(),
-														() => deleteImage(img),
-														acting !== null,
-														acting === `image-delete:${img.id}`,
-														IconTrash,
-														'danger'
-													)}
-												</div>
-											</td>
-										</tr>
-									{/each}
-									{#if filteredImages.length === 0}
-										<tr>
-											<td
-												colspan="4"
-												class="px-3 py-8 text-center text-sm text-[var(--color-fg-subtle)]"
-												>{m.docker_empty_images()}</td
-											>
-										</tr>
-									{/if}
-								{/if}
-							</tbody>
-						</table>
-					</div>
-				</Card>
-
-				<div class="flex flex-col gap-2 md:hidden">
-					{#if busy && images.length === 0}
-						{#each { length: 4 } as _, i (i)}
-							<Card padding="none">
-								<div class="flex flex-col gap-2 px-3.5 py-3">
-									<Skeleton class="h-3 w-40" />
-									<Skeleton class="h-3 w-24" />
-								</div>
-							</Card>
-						{/each}
-					{:else if filteredImages.length === 0}
-						<Card padding="lg" class="text-center text-sm text-[var(--color-fg-subtle)]">
-							{m.docker_empty_images()}
-						</Card>
-					{:else}
-						{#each filteredImages as img (img.id)}
-							<Card padding="none" class="overflow-hidden">
-								<div class="flex flex-col gap-2 px-3.5 py-3">
-									<div class="flex flex-col gap-0.5">
-										{#if img.tags.length === 0}
-											<span class="text-xs text-[var(--color-fg-subtle)]">
-												{m.docker_image_no_tag()}
-											</span>
-										{:else}
-											{#each img.tags as t (t)}
-												<span class="font-mono text-xs break-all text-[var(--color-fg)]">
-													{t}
-												</span>
-											{/each}
-										{/if}
-										<span class="text-3xs font-mono text-[var(--color-fg-subtle)]">
-											{shortId(img.id)}
-										</span>
-									</div>
-									<dl class="text-2xs grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-										<dt class="text-[var(--color-fg-subtle)]">{m.docker_th_size()}</dt>
-										<dd class="font-mono text-[var(--color-fg-muted)]">{fmtBytes(img.size)}</dd>
-										<dt class="text-[var(--color-fg-subtle)]">{m.docker_th_created()}</dt>
-										<dd class="text-[var(--color-fg-muted)]">{fmtRelative(img.created)}</dd>
-									</dl>
-								</div>
+								{c.image}
+							</td>
+							<td data-label={m.docker_th_state()}><StateBadge state={c.state} /></td>
+							<td
+								data-label={m.docker_th_status()}
+								class="text-xs text-[var(--color-fg-muted)] md:whitespace-nowrap"
+							>
+								<span>
+									{c.status}
+									<span class="text-3xs ml-1.5 text-[var(--color-fg-subtle)]">
+										{m.docker_created_at({ time: fmtRelative(c.created) })}
+									</span>
+								</span>
+							</td>
+							<td class="actions">
 								<div
-									class="flex items-center gap-2 border-t border-[var(--color-border)] px-3.5 py-2.5"
+									class="flex items-center gap-1.5 md:justify-end"
+									onclickcapture={(e) => e.stopPropagation()}
+									role="presentation"
 								>
-									{@render iconBtn(
-										m.docker_action_delete(),
-										() => deleteImage(img),
-										acting !== null,
-										acting === `image-delete:${img.id}`,
-										IconTrash,
-										'danger',
-										true
-									)}
+									{@render containerActions(c)}
 								</div>
-							</Card>
-						{/each}
-					{/if}
-				</div>
+							</td>
+						</tr>
+					{/each}
+				</DataTable>
+			{:else}
+				<DataTable
+					loading={busy && images.length === 0}
+					empty={filteredImages.length === 0 ? m.docker_empty_images() : undefined}
+				>
+					{#snippet head()}
+						<th>{m.docker_th_tag()}</th>
+						<th class="text-right">{m.docker_th_size()}</th>
+						<th>{m.docker_th_created()}</th>
+						<th class="text-right">{m.docker_th_actions()}</th>
+					{/snippet}
+					{#each filteredImages as img (img.id)}
+						<tr>
+							<!-- Only the tag truncates, so the id beside it never disappears. -->
+							<td class="md:w-full md:max-w-0">
+								<div class="flex items-baseline gap-2">
+									{#if img.tags.length === 0}
+										<span class="text-xs text-[var(--color-fg-subtle)] md:truncate">
+											{m.docker_image_no_tag()}
+										</span>
+									{:else}
+										<span
+											class="font-mono text-xs break-all text-[var(--color-fg)] md:truncate"
+											title={img.tags.join('\n')}
+										>
+											{img.tags[0]}
+										</span>
+									{/if}
+									<span class="text-3xs shrink-0 font-mono text-[var(--color-fg-subtle)]">
+										{shortId(img.id)}
+									</span>
+									{#if img.tags.length > 1}
+										<span
+											class="text-3xs shrink-0 font-mono text-[var(--color-fg-subtle)]"
+											title={img.tags.slice(1).join('\n')}
+										>
+											+{img.tags.length - 1}
+										</span>
+									{/if}
+								</div>
+							</td>
+							<td data-label={m.docker_th_size()} class="font-mono text-xs md:text-right">
+								{fmtBytes(img.size)}
+							</td>
+							<td data-label={m.docker_th_created()} class="text-xs text-[var(--color-fg-muted)]">
+								{fmtRelative(img.created)}
+							</td>
+							<td class="actions">
+								<div class="flex items-center gap-1.5 md:justify-end">
+									<IconButton
+										tone="danger"
+										label={m.docker_action_delete()}
+										onclick={() => deleteImage(img)}
+										disabled={acting !== null}
+										loading={acting === `image-delete:${img.id}`}
+									>
+										<IconTrash class="size-[14px]" stroke-width="2" />
+									</IconButton>
+								</div>
+							</td>
+						</tr>
+					{/each}
+				</DataTable>
 			{/if}
 		{/if}
 	</div>
