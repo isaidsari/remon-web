@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
-	import { page } from '$app/state';
+	import { useServer } from '$lib/server-scope';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import DataTable from '$lib/components/ui/DataTable.svelte';
@@ -17,8 +16,6 @@
 	import RefreshButton from '$lib/components/ui/RefreshButton.svelte';
 	import ActionRunStatusBadge from '$lib/components/actions/ActionRunStatusBadge.svelte';
 	import ActionModeBadge from '$lib/components/actions/ActionModeBadge.svelte';
-	import { profiles } from '$lib/stores/profiles.svelte';
-	import { connections } from '$lib/stores/connections.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { confirm } from '$lib/stores/confirm.svelte';
 	import { ApiError } from '$lib/api/error';
@@ -42,19 +39,7 @@
 		CreateActionBindingRequest
 	} from '$lib/types/api';
 
-	let id = $derived(page.params.id ?? '');
-	let profile = $derived(id ? profiles.byId(id) : undefined);
-	let conn = $derived(profile ? connections.connect(profile) : null);
-
-	$effect(() => {
-		if (!conn) return;
-		untrack(() => {
-			conn.ensureSignedIn().catch((e) => {
-				if (e instanceof ApiError)
-					toast.error(m.actions_toast_signin_failed(), { description: e.userMessage });
-			});
-		});
-	});
+	let { conn } = $derived(useServer());
 
 	const RUNS_PAGE = 100;
 
@@ -94,7 +79,7 @@
 	);
 
 	async function fetchAll(bust = false) {
-		if (!conn?.isAuthenticated) return;
+		if (!conn.isAuthenticated) return;
 		loading = true;
 		error = null;
 		try {
@@ -127,11 +112,11 @@
 	}
 
 	$effect(() => {
-		if (conn?.isAuthenticated) fetchAll();
+		if (conn.isAuthenticated) fetchAll();
 	});
 
 	$effect(() => {
-		if (!autoRefresh || !conn?.isAuthenticated) return;
+		if (!autoRefresh || !conn.isAuthenticated) return;
 		const t = setInterval(() => fetchAll(true), 10_000);
 		return () => clearInterval(t);
 	});
@@ -147,7 +132,7 @@
 			confirmLabel: m.actions_confirm_run(),
 			variant: 'warning'
 		});
-		if (!ok || !conn?.isAuthenticated) return;
+		if (!ok || !conn.isAuthenticated) return;
 		busyRun = run.id;
 		try {
 			const done = await conn.client.confirmActionRun(run.id);
@@ -166,7 +151,7 @@
 	}
 
 	async function dismissRun(run: ActionRunDto) {
-		if (!conn?.isAuthenticated) return;
+		if (!conn.isAuthenticated) return;
 		busyRun = run.id;
 		try {
 			await conn.client.dismissActionRun(run.id);
@@ -200,7 +185,7 @@
 			confirmLabel: m.actions_run_now(),
 			variant: 'warning'
 		});
-		if (!ok || !conn?.isAuthenticated) return;
+		if (!ok || !conn.isAuthenticated) return;
 		busyBinding = b.id;
 		try {
 			const run = await conn.client.runActionBinding(b.id);
@@ -220,7 +205,7 @@
 
 	/** Toggling `enabled` is a full replace, so send the whole binding back. */
 	async function setEnabled(b: ActionBindingDto, enabled: boolean) {
-		if (!conn?.isAuthenticated) return;
+		if (!conn.isAuthenticated) return;
 		busyBinding = b.id;
 		try {
 			await conn.client.updateActionBinding(b.id, { ...toRequest(b), enabled });
@@ -240,7 +225,7 @@
 			confirmLabel: m.actions_delete(),
 			variant: 'danger'
 		});
-		if (!ok || !conn?.isAuthenticated) return;
+		if (!ok || !conn.isAuthenticated) return;
 		try {
 			await conn.client.deleteActionBinding(b.id);
 			toast.success(m.actions_toast_deleted());
@@ -252,7 +237,7 @@
 	}
 
 	async function reloadScripts() {
-		if (!conn?.isAuthenticated) return;
+		if (!conn.isAuthenticated) return;
 		try {
 			const res = await conn.client.reloadActions();
 			if (res.failed.length > 0)
@@ -360,7 +345,7 @@
 	);
 
 	async function saveEditor() {
-		if (!conn?.isAuthenticated || !editorValid) return;
+		if (!conn.isAuthenticated || !editorValid) return;
 		saving = true;
 		const req: CreateActionBindingRequest = {
 			kind: fKind,
@@ -388,382 +373,372 @@
 	}
 </script>
 
-{#if profile}
-	<div class="px-4 py-6 md:px-8 md:py-8">
-		<PageHeader title={m.section_actions()} count={bindings.length}>
-			{#snippet meta()}
-				{m.actions_page_description()}
-				{#if lastFetched}
-					<span class="ml-2 text-xs text-[var(--color-fg-subtle)]">
-						{m.actions_updated_at({ time: new Date(lastFetched).toLocaleTimeString() })}
-					</span>
-				{/if}
-			{/snippet}
-			<Select
-				value={autoRefresh ? '10s' : 'off'}
-				onchange={(e) => (autoRefresh = e.currentTarget.value !== 'off')}
-				class="w-28"
-			>
-				<option value="off">{m.chart_autorefresh_off()}</option>
-				<option value="10s">10s</option>
-			</Select>
-			<RefreshButton onclick={() => fetchAll(true)} {loading} label={m.actions_refresh()} />
-			<Button variant="secondary" size="sm" onclick={reloadScripts} disabled={unsupported}>
-				<IconRotateCw class="size-[14px]" stroke-width="2.25" />
-				{m.actions_reload_scripts()}
-			</Button>
-			<Button
-				variant="primary"
-				size="sm"
-				onclick={openCreate}
-				disabled={unsupported || rules.length === 0}
-			>
-				<IconPlus class="size-[14px]" stroke-width="2.25" />
-				{m.actions_new_binding()}
-			</Button>
-		</PageHeader>
+<div class="px-4 py-6 md:px-8 md:py-8">
+	<PageHeader title={m.section_actions()} count={bindings.length}>
+		{#snippet meta()}
+			{m.actions_page_description()}
+			{#if lastFetched}
+				<span class="ml-2 text-xs text-[var(--color-fg-subtle)]">
+					{m.actions_updated_at({ time: new Date(lastFetched).toLocaleTimeString() })}
+				</span>
+			{/if}
+		{/snippet}
+		<Select
+			value={autoRefresh ? '10s' : 'off'}
+			onchange={(e) => (autoRefresh = e.currentTarget.value !== 'off')}
+			class="w-28"
+		>
+			<option value="off">{m.chart_autorefresh_off()}</option>
+			<option value="10s">10s</option>
+		</Select>
+		<RefreshButton onclick={() => fetchAll(true)} {loading} label={m.actions_refresh()} />
+		<Button variant="secondary" size="sm" onclick={reloadScripts} disabled={unsupported}>
+			<IconRotateCw class="size-[14px]" stroke-width="2.25" />
+			{m.actions_reload_scripts()}
+		</Button>
+		<Button
+			variant="primary"
+			size="sm"
+			onclick={openCreate}
+			disabled={unsupported || rules.length === 0}
+		>
+			<IconPlus class="size-[14px]" stroke-width="2.25" />
+			{m.actions_new_binding()}
+		</Button>
+	</PageHeader>
 
-		{#if !conn?.isAuthenticated}
-			<Banner variant="warning">{m.actions_signin_required()}</Banner>
-		{:else if unsupported}
-			<Banner variant="info" title={m.actions_unsupported_title()}>
-				{m.actions_unsupported_body()}
+	{#if unsupported}
+		<Banner variant="info" title={m.actions_unsupported_title()}>
+			{m.actions_unsupported_body()}
+		</Banner>
+	{:else if error}
+		<ErrorState {error} onRetry={() => fetchAll(true)} />
+	{:else}
+		{#if catalog && !catalog.enabled}
+			<Banner variant="warning" title={m.actions_engine_off_title()} class="mb-4">
+				{m.actions_engine_off_body()}
 			</Banner>
-		{:else if error}
-			<ErrorState {error} onRetry={() => fetchAll(true)} />
-		{:else}
-			{#if catalog && !catalog.enabled}
-				<Banner variant="warning" title={m.actions_engine_off_title()} class="mb-4">
-					{m.actions_engine_off_body()}
-				</Banner>
-			{/if}
+		{/if}
 
-			<!-- Proposals first: they are the only thing on this page waiting on
+		<!-- Proposals first: they are the only thing on this page waiting on
 			     a person, and they expire. -->
-			{#if pending.length > 0}
-				<section class="mb-6">
-					<h2 class="text-md mb-2 font-semibold tracking-tight">
-						{m.actions_pending_heading({ n: pending.length })}
-					</h2>
-					<div class="flex flex-col gap-2">
-						{#each pending as run (run.id)}
-							<Card
-								padding="sm"
-								class="shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-warning)_35%,transparent)]"
-							>
-								<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-									<div class="min-w-0">
-										<div class="flex flex-wrap items-center gap-2">
-											<ActionRunStatusBadge status={run.status} />
-											<span class="text-md font-mono font-medium">{describeRun(run)}</span>
-										</div>
-										<p class="mt-1 text-xs text-[var(--color-fg-muted)]">
-											{m.actions_pending_because({ rule: run.rule_name })}
-											{#if labelSetText(run.label_set)}
-												<span class="font-mono text-[var(--color-fg-subtle)]">
-													{labelSetText(run.label_set)}
-												</span>
-											{/if}
-										</p>
-										{#if run.expires_at}
-											<p class="text-2xs mt-0.5 text-[var(--color-fg-subtle)]">
-												{run.expires_at > now
-													? m.actions_expires_in({ d: fmtDuration(run.expires_at - now) })
-													: m.actions_expired_hint()}
-											</p>
-										{/if}
-									</div>
-									<div class="flex shrink-0 gap-2">
-										<Button
-											variant="secondary"
-											size="sm"
-											onclick={() => dismissRun(run)}
-											disabled={busyRun === run.id}
-										>
-											{m.actions_dismiss()}
-										</Button>
-										<Button
-											variant="primary"
-											size="sm"
-											onclick={() => confirmRun(run)}
-											loading={busyRun === run.id}
-										>
-											{m.actions_confirm_run()}
-										</Button>
-									</div>
-								</div>
-							</Card>
-						{/each}
-					</div>
-				</section>
-			{/if}
-
+		{#if pending.length > 0}
 			<section class="mb-6">
 				<h2 class="text-md mb-2 font-semibold tracking-tight">
-					{m.actions_bindings_heading()}
+					{m.actions_pending_heading({ n: pending.length })}
 				</h2>
-				{#if bindings.length === 0}
-					<EmptyState
-						description={rules.length === 0 ? m.actions_empty_no_rules() : m.actions_empty()}
-					/>
-				{:else}
-					<DataTable scroll={false}>
-						{#snippet head()}
-							<th>{m.actions_table_action()}</th>
-							<th>{m.actions_table_rule()}</th>
-							<th>{m.actions_table_mode()}</th>
-							<th>{m.actions_table_guardrails()}</th>
-							<th class="w-px" aria-hidden="true"></th>
-						{/snippet}
-						{#each bindings as b (b.id)}
-							<tr class={cn(!b.enabled && 'muted', b.disabled_reason && 'danger')}>
-								<td>
-									<div class="flex flex-col gap-1">
-										<span class="font-mono text-xs font-medium break-all">{b.summary}</span>
-										<span class="text-2xs text-[var(--color-fg-subtle)]">
-											{b.on_event === 'both'
-												? m.actions_on_both()
-												: b.on_event === 'resolved'
-													? m.actions_on_resolved()
-													: m.actions_on_fired()}
-										</span>
-										{#if b.disabled_reason}
-											<span class="text-2xs text-[var(--color-danger)]">
-												{m.actions_disarmed({ reason: b.disabled_reason })}
-											</span>
-										{/if}
+				<div class="flex flex-col gap-2">
+					{#each pending as run (run.id)}
+						<Card
+							padding="sm"
+							class="shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-warning)_35%,transparent)]"
+						>
+							<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+								<div class="min-w-0">
+									<div class="flex flex-wrap items-center gap-2">
+										<ActionRunStatusBadge status={run.status} />
+										<span class="text-md font-mono font-medium">{describeRun(run)}</span>
 									</div>
-								</td>
-								<td
-									data-label={m.actions_table_rule()}
-									class="text-xs text-[var(--color-fg-muted)]"
-								>
-									{ruleName.get(b.rule_id) ?? `#${b.rule_id}`}
-								</td>
-								<td data-label={m.actions_table_mode()}>
-									<ActionModeBadge mode={b.mode} autoAllowed={catalog?.auto ?? true} />
-								</td>
-								<td
-									data-label={m.actions_table_guardrails()}
-									class="text-2xs font-mono text-[var(--color-fg-muted)]"
-								>
-									{m.actions_guardrails_summary({
-										cooldown: fmtDuration(b.cooldown_secs),
-										rate: b.max_runs_per_hour,
-										failures: b.failure_limit
-									})}
-								</td>
-								<td class="actions">
-									<div class="flex items-center gap-1.5 md:justify-end">
-										<Switch
-											checked={b.enabled}
-											disabled={busyBinding === b.id}
-											onchange={(v) => setEnabled(b, v)}
-											label={m.actions_enabled_toggle()}
-											class="mr-1"
-										/>
-										<IconButton
-											label={m.actions_run_now()}
-											onclick={() => runNow(b)}
-											disabled={busyBinding === b.id}
-										>
-											<IconPlay class="size-[14px]" />
-										</IconButton>
-										<IconButton label={m.actions_edit()} onclick={() => openEdit(b)}>
-											<IconPencil class="size-[14px]" />
-										</IconButton>
-										<IconButton
-											tone="danger"
-											label={m.actions_delete()}
-											onclick={() => removeBinding(b)}
-										>
-											<IconTrash class="size-[14px]" />
-										</IconButton>
-									</div>
-								</td>
-							</tr>
-						{/each}
-					</DataTable>
-				{/if}
-			</section>
-
-			<section>
-				<h2 class="text-md mb-2 font-semibold tracking-tight">{m.actions_runs_heading()}</h2>
-				{#if history.length === 0}
-					<EmptyState description={m.actions_runs_empty()} />
-				{:else}
-					<DataTable>
-						{#snippet head()}
-							<th>{m.actions_table_action()}</th>
-							<th>{m.actions_table_status()}</th>
-							<th>{m.actions_table_rule()}</th>
-							<th>{m.actions_table_when()}</th>
-						{/snippet}
-						{#each history as run (run.id)}
-							<tr class="align-top">
-								<td>
-									<div class="flex flex-col gap-0.5">
-										<span class="font-mono text-xs break-all">{describeRun(run)}</span>
-										{#if run.message}
-											<!-- On a `skipped` row this is the guardrail that stopped
-											     it, which is the whole reason the row exists. -->
-											<span class="text-2xs max-w-[60ch] text-[var(--color-fg-subtle)]">
-												{run.message}
-											</span>
-										{/if}
-									</div>
-								</td>
-								<td data-label={m.actions_table_status()}>
-									<ActionRunStatusBadge status={run.status} />
-								</td>
-								<td
-									data-label={m.actions_table_rule()}
-									class="text-xs text-[var(--color-fg-muted)]"
-								>
-									<span>
-										{run.rule_name}
+									<p class="mt-1 text-xs text-[var(--color-fg-muted)]">
+										{m.actions_pending_because({ rule: run.rule_name })}
 										{#if labelSetText(run.label_set)}
-											<span class="text-3xs block font-mono text-[var(--color-fg-subtle)]">
+											<span class="font-mono text-[var(--color-fg-subtle)]">
 												{labelSetText(run.label_set)}
 											</span>
 										{/if}
-									</span>
-								</td>
-								<td
-									data-label={m.actions_table_when()}
-									class="text-xs text-[var(--color-fg-muted)] md:whitespace-nowrap"
-								>
-									<span>
-										{fmtRelative(run.created_at)}
-										{#if run.duration_ms !== null}
-											<span class="text-3xs block font-mono text-[var(--color-fg-subtle)]">
-												{run.duration_ms} ms
-											</span>
-										{/if}
-									</span>
-								</td>
-							</tr>
-						{/each}
-					</DataTable>
-				{/if}
+									</p>
+									{#if run.expires_at}
+										<p class="text-2xs mt-0.5 text-[var(--color-fg-subtle)]">
+											{run.expires_at > now
+												? m.actions_expires_in({ d: fmtDuration(run.expires_at - now) })
+												: m.actions_expired_hint()}
+										</p>
+									{/if}
+								</div>
+								<div class="flex shrink-0 gap-2">
+									<Button
+										variant="secondary"
+										size="sm"
+										onclick={() => dismissRun(run)}
+										disabled={busyRun === run.id}
+									>
+										{m.actions_dismiss()}
+									</Button>
+									<Button
+										variant="primary"
+										size="sm"
+										onclick={() => confirmRun(run)}
+										loading={busyRun === run.id}
+									>
+										{m.actions_confirm_run()}
+									</Button>
+								</div>
+							</div>
+						</Card>
+					{/each}
+				</div>
 			</section>
 		{/if}
-	</div>
 
-	<Modal
-		open={editorOpen}
-		onClose={() => (editorOpen = false)}
-		title={editing ? m.actions_editor_edit_title() : m.actions_editor_new_title()}
-		description={m.actions_editor_description()}
-		width="lg"
-	>
-		<div class="flex flex-col gap-4">
-			<Field label={m.actions_field_rule()} required>
-				{#if editing}
-					<p class="text-md text-[var(--color-fg-muted)]">
-						{ruleName.get(editing.rule_id) ?? `#${editing.rule_id}`}
-					</p>
-				{:else}
-					<Select bind:value={fRule}>
-						{#each rules as r (r.id)}
-							<option value={String(r.id)}>{r.name}</option>
-						{/each}
-					</Select>
-				{/if}
+		<section class="mb-6">
+			<h2 class="text-md mb-2 font-semibold tracking-tight">
+				{m.actions_bindings_heading()}
+			</h2>
+			{#if bindings.length === 0}
+				<EmptyState
+					description={rules.length === 0 ? m.actions_empty_no_rules() : m.actions_empty()}
+				/>
+			{:else}
+				<DataTable scroll={false}>
+					{#snippet head()}
+						<th>{m.actions_table_action()}</th>
+						<th>{m.actions_table_rule()}</th>
+						<th>{m.actions_table_mode()}</th>
+						<th>{m.actions_table_guardrails()}</th>
+						<th class="w-px" aria-hidden="true"></th>
+					{/snippet}
+					{#each bindings as b (b.id)}
+						<tr class={cn(!b.enabled && 'muted', b.disabled_reason && 'danger')}>
+							<td>
+								<div class="flex flex-col gap-1">
+									<span class="font-mono text-xs font-medium break-all">{b.summary}</span>
+									<span class="text-2xs text-[var(--color-fg-subtle)]">
+										{b.on_event === 'both'
+											? m.actions_on_both()
+											: b.on_event === 'resolved'
+												? m.actions_on_resolved()
+												: m.actions_on_fired()}
+									</span>
+									{#if b.disabled_reason}
+										<span class="text-2xs text-[var(--color-danger)]">
+											{m.actions_disarmed({ reason: b.disabled_reason })}
+										</span>
+									{/if}
+								</div>
+							</td>
+							<td data-label={m.actions_table_rule()} class="text-xs text-[var(--color-fg-muted)]">
+								{ruleName.get(b.rule_id) ?? `#${b.rule_id}`}
+							</td>
+							<td data-label={m.actions_table_mode()}>
+								<ActionModeBadge mode={b.mode} autoAllowed={catalog?.auto ?? true} />
+							</td>
+							<td
+								data-label={m.actions_table_guardrails()}
+								class="text-2xs font-mono text-[var(--color-fg-muted)]"
+							>
+								{m.actions_guardrails_summary({
+									cooldown: fmtDuration(b.cooldown_secs),
+									rate: b.max_runs_per_hour,
+									failures: b.failure_limit
+								})}
+							</td>
+							<td class="actions">
+								<div class="flex items-center gap-1.5 md:justify-end">
+									<Switch
+										checked={b.enabled}
+										disabled={busyBinding === b.id}
+										onchange={(v) => setEnabled(b, v)}
+										label={m.actions_enabled_toggle()}
+										class="mr-1"
+									/>
+									<IconButton
+										label={m.actions_run_now()}
+										onclick={() => runNow(b)}
+										disabled={busyBinding === b.id}
+									>
+										<IconPlay class="size-[14px]" />
+									</IconButton>
+									<IconButton label={m.actions_edit()} onclick={() => openEdit(b)}>
+										<IconPencil class="size-[14px]" />
+									</IconButton>
+									<IconButton
+										tone="danger"
+										label={m.actions_delete()}
+										onclick={() => removeBinding(b)}
+									>
+										<IconTrash class="size-[14px]" />
+									</IconButton>
+								</div>
+							</td>
+						</tr>
+					{/each}
+				</DataTable>
+			{/if}
+		</section>
+
+		<section>
+			<h2 class="text-md mb-2 font-semibold tracking-tight">{m.actions_runs_heading()}</h2>
+			{#if history.length === 0}
+				<EmptyState description={m.actions_runs_empty()} />
+			{:else}
+				<DataTable>
+					{#snippet head()}
+						<th>{m.actions_table_action()}</th>
+						<th>{m.actions_table_status()}</th>
+						<th>{m.actions_table_rule()}</th>
+						<th>{m.actions_table_when()}</th>
+					{/snippet}
+					{#each history as run (run.id)}
+						<tr class="align-top">
+							<td>
+								<div class="flex flex-col gap-0.5">
+									<span class="font-mono text-xs break-all">{describeRun(run)}</span>
+									{#if run.message}
+										<!-- On a `skipped` row this is the guardrail that stopped
+											     it, which is the whole reason the row exists. -->
+										<span class="text-2xs max-w-[60ch] text-[var(--color-fg-subtle)]">
+											{run.message}
+										</span>
+									{/if}
+								</div>
+							</td>
+							<td data-label={m.actions_table_status()}>
+								<ActionRunStatusBadge status={run.status} />
+							</td>
+							<td data-label={m.actions_table_rule()} class="text-xs text-[var(--color-fg-muted)]">
+								<span>
+									{run.rule_name}
+									{#if labelSetText(run.label_set)}
+										<span class="text-3xs block font-mono text-[var(--color-fg-subtle)]">
+											{labelSetText(run.label_set)}
+										</span>
+									{/if}
+								</span>
+							</td>
+							<td
+								data-label={m.actions_table_when()}
+								class="text-xs text-[var(--color-fg-muted)] md:whitespace-nowrap"
+							>
+								<span>
+									{fmtRelative(run.created_at)}
+									{#if run.duration_ms !== null}
+										<span class="text-3xs block font-mono text-[var(--color-fg-subtle)]">
+											{run.duration_ms} ms
+										</span>
+									{/if}
+								</span>
+							</td>
+						</tr>
+					{/each}
+				</DataTable>
+			{/if}
+		</section>
+	{/if}
+</div>
+
+<Modal
+	open={editorOpen}
+	onClose={() => (editorOpen = false)}
+	title={editing ? m.actions_editor_edit_title() : m.actions_editor_new_title()}
+	description={m.actions_editor_description()}
+	width="lg"
+>
+	<div class="flex flex-col gap-4">
+		<Field label={m.actions_field_rule()} required>
+			{#if editing}
+				<p class="text-md text-[var(--color-fg-muted)]">
+					{ruleName.get(editing.rule_id) ?? `#${editing.rule_id}`}
+				</p>
+			{:else}
+				<Select bind:value={fRule}>
+					{#each rules as r (r.id)}
+						<option value={String(r.id)}>{r.name}</option>
+					{/each}
+				</Select>
+			{/if}
+		</Field>
+
+		<div class="grid gap-4 sm:grid-cols-2">
+			<Field label={m.actions_field_kind()} required>
+				<Select value={fKind} onchange={(e) => onKindChange(e.currentTarget.value as ActionKind)}>
+					<option value="script">{m.actions_kind_script()}</option>
+					<option value="service">{m.actions_kind_service()}</option>
+					<option value="container">{m.actions_kind_container()}</option>
+				</Select>
 			</Field>
 
-			<div class="grid gap-4 sm:grid-cols-2">
-				<Field label={m.actions_field_kind()} required>
-					<Select value={fKind} onchange={(e) => onKindChange(e.currentTarget.value as ActionKind)}>
-						<option value="script">{m.actions_kind_script()}</option>
-						<option value="service">{m.actions_kind_service()}</option>
-						<option value="container">{m.actions_kind_container()}</option>
-					</Select>
-				</Field>
-
-				<Field
-					label={m.actions_field_target()}
-					required
-					hint={fKind === 'script' ? m.actions_target_hint_script() : m.actions_target_hint_unit()}
-				>
-					{#if fKind === 'script'}
-						{#if scripts.length === 0}
-							<p class="text-xs text-[var(--color-fg-subtle)]">{m.actions_no_scripts()}</p>
-						{:else}
-							<Select bind:value={fTarget}>
-								{#each scripts as s (s)}
-									<option value={s}>{s}</option>
-								{/each}
-							</Select>
-						{/if}
+			<Field
+				label={m.actions_field_target()}
+				required
+				hint={fKind === 'script' ? m.actions_target_hint_script() : m.actions_target_hint_unit()}
+			>
+				{#if fKind === 'script'}
+					{#if scripts.length === 0}
+						<p class="text-xs text-[var(--color-fg-subtle)]">{m.actions_no_scripts()}</p>
 					{:else}
-						<Input bind:value={fTarget} placeholder="nginx.service" />
+						<Select bind:value={fTarget}>
+							{#each scripts as s (s)}
+								<option value={s}>{s}</option>
+							{/each}
+						</Select>
 					{/if}
-				</Field>
-			</div>
-
-			{#if fKind !== 'script'}
-				<Field label={m.actions_field_verb()} required>
-					<Select bind:value={fVerb}>
-						{#each verbOptions as v (v)}
-							<option value={v}>{v}</option>
-						{/each}
-					</Select>
-				</Field>
-			{/if}
-
-			<div class="grid gap-4 sm:grid-cols-2">
-				<Field label={m.actions_field_on_event()} hint={m.actions_on_event_hint()}>
-					<Select bind:value={fOnEvent}>
-						<option value="fired">{m.actions_on_fired()}</option>
-						<option value="resolved">{m.actions_on_resolved()}</option>
-						<option value="both">{m.actions_on_both()}</option>
-					</Select>
-				</Field>
-
-				<Field
-					label={m.actions_field_mode()}
-					hint={fMode === 'auto' && catalog && !catalog.auto
-						? m.actions_mode_auto_blocked_hint()
-						: m.actions_mode_hint()}
-				>
-					<Select bind:value={fMode}>
-						<option value="manual">{m.actions_mode_manual_option()}</option>
-						<option value="dry_run">{m.actions_mode_dry_run_option()}</option>
-						<option value="auto">{m.actions_mode_auto_option()}</option>
-					</Select>
-				</Field>
-			</div>
-
-			<div class="grid gap-4 sm:grid-cols-3">
-				<Field label={m.actions_field_cooldown()} hint={m.actions_cooldown_hint()}>
-					<Input bind:value={fCooldown} inputmode="numeric" invalid={cooldownSecs === null} />
-				</Field>
-				<Field label={m.actions_field_max_runs()} hint={m.actions_max_runs_hint()}>
-					<Input bind:value={fMaxRuns} inputmode="numeric" invalid={maxRuns === null} />
-				</Field>
-				<Field label={m.actions_field_failure_limit()} hint={m.actions_failure_limit_hint()}>
-					<Input bind:value={fFailureLimit} inputmode="numeric" invalid={failureLimit === null} />
-				</Field>
-			</div>
-
-			<label class="flex cursor-pointer items-center gap-3 text-sm">
-				<Switch
-					checked={fEnabled}
-					onchange={(v) => (fEnabled = v)}
-					label={m.actions_field_enabled()}
-				/>
-				{m.actions_field_enabled()}
-			</label>
+				{:else}
+					<Input bind:value={fTarget} placeholder="nginx.service" />
+				{/if}
+			</Field>
 		</div>
 
-		{#snippet footer()}
-			<Button variant="secondary" onclick={() => (editorOpen = false)}>
-				{m.common_cancel()}
-			</Button>
-			<Button variant="primary" onclick={saveEditor} disabled={!editorValid} loading={saving}>
-				{editing ? m.actions_save() : m.actions_create()}
-			</Button>
-		{/snippet}
-	</Modal>
-{/if}
+		{#if fKind !== 'script'}
+			<Field label={m.actions_field_verb()} required>
+				<Select bind:value={fVerb}>
+					{#each verbOptions as v (v)}
+						<option value={v}>{v}</option>
+					{/each}
+				</Select>
+			</Field>
+		{/if}
+
+		<div class="grid gap-4 sm:grid-cols-2">
+			<Field label={m.actions_field_on_event()} hint={m.actions_on_event_hint()}>
+				<Select bind:value={fOnEvent}>
+					<option value="fired">{m.actions_on_fired()}</option>
+					<option value="resolved">{m.actions_on_resolved()}</option>
+					<option value="both">{m.actions_on_both()}</option>
+				</Select>
+			</Field>
+
+			<Field
+				label={m.actions_field_mode()}
+				hint={fMode === 'auto' && catalog && !catalog.auto
+					? m.actions_mode_auto_blocked_hint()
+					: m.actions_mode_hint()}
+			>
+				<Select bind:value={fMode}>
+					<option value="manual">{m.actions_mode_manual_option()}</option>
+					<option value="dry_run">{m.actions_mode_dry_run_option()}</option>
+					<option value="auto">{m.actions_mode_auto_option()}</option>
+				</Select>
+			</Field>
+		</div>
+
+		<div class="grid gap-4 sm:grid-cols-3">
+			<Field label={m.actions_field_cooldown()} hint={m.actions_cooldown_hint()}>
+				<Input bind:value={fCooldown} inputmode="numeric" invalid={cooldownSecs === null} />
+			</Field>
+			<Field label={m.actions_field_max_runs()} hint={m.actions_max_runs_hint()}>
+				<Input bind:value={fMaxRuns} inputmode="numeric" invalid={maxRuns === null} />
+			</Field>
+			<Field label={m.actions_field_failure_limit()} hint={m.actions_failure_limit_hint()}>
+				<Input bind:value={fFailureLimit} inputmode="numeric" invalid={failureLimit === null} />
+			</Field>
+		</div>
+
+		<label class="flex cursor-pointer items-center gap-3 text-sm">
+			<Switch
+				checked={fEnabled}
+				onchange={(v) => (fEnabled = v)}
+				label={m.actions_field_enabled()}
+			/>
+			{m.actions_field_enabled()}
+		</label>
+	</div>
+
+	{#snippet footer()}
+		<Button variant="secondary" onclick={() => (editorOpen = false)}>
+			{m.common_cancel()}
+		</Button>
+		<Button variant="primary" onclick={saveEditor} disabled={!editorValid} loading={saving}>
+			{editing ? m.actions_save() : m.actions_create()}
+		</Button>
+	{/snippet}
+</Modal>

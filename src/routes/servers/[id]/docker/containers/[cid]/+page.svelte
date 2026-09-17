@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { useServer } from '$lib/server-scope';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import Card from '$lib/components/ui/Card.svelte';
@@ -9,8 +9,6 @@
 	import StatsPanel from '$lib/components/docker/StatsPanel.svelte';
 	import ContainerHistory from '$lib/components/docker/ContainerHistory.svelte';
 	import Banner from '$lib/components/ui/Banner.svelte';
-	import { profiles } from '$lib/stores/profiles.svelte';
-	import { connections } from '$lib/stores/connections.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { confirm } from '$lib/stores/confirm.svelte';
 	import IconChevronLeft from '~icons/lucide/chevron-left';
@@ -19,20 +17,8 @@
 	import type { ContainerInspectInfo } from '$lib/types/api';
 	import { m } from '$lib/paraglide/messages';
 
-	let id = $derived(page.params.id ?? '');
 	let cid = $derived(page.params.cid ?? '');
-	let profile = $derived(id ? profiles.byId(id) : undefined);
-	let conn = $derived(profile ? connections.connect(profile) : null);
-
-	$effect(() => {
-		if (!conn) return;
-		untrack(() => {
-			conn.ensureSignedIn().catch((e) => {
-				if (e instanceof ApiError)
-					toast.error(m.docker_container_toast_signin_failed(), { description: e.userMessage });
-			});
-		});
-	});
+	let { id, conn } = $derived(useServer());
 
 	let inspect = $state<ContainerInspectInfo | null>(null);
 	let inspectError = $state<string | null>(null);
@@ -41,7 +27,7 @@
 	let retryTimers: ReturnType<typeof setTimeout>[] = [];
 
 	async function fetchInspect() {
-		if (!conn?.isAuthenticated || !cid) return;
+		if (!conn.isAuthenticated || !cid) return;
 		busy = true;
 		try {
 			const next = await conn.client.inspectContainer(cid);
@@ -69,7 +55,7 @@
 	}
 
 	$effect(() => {
-		if (conn?.isAuthenticated && cid) fetchInspect();
+		if (conn.isAuthenticated && cid) fetchInspect();
 		return () => {
 			retryTimers.forEach(clearTimeout);
 			retryTimers = [];
@@ -77,7 +63,7 @@
 	});
 
 	$effect(() => {
-		if (!conn?.isAuthenticated) return;
+		if (!conn.isAuthenticated) return;
 		const t = setInterval(fetchInspect, 5000);
 		return () => clearInterval(t);
 	});
@@ -119,23 +105,23 @@
 
 	const start = () =>
 		withAction('start', m.docker_container_toast_started({ name: displayName }), () =>
-			conn!.client.startContainer(cid)
+			conn.client.startContainer(cid)
 		);
 	const stop = () =>
 		withAction('stop', m.docker_container_toast_stopped({ name: displayName }), () =>
-			conn!.client.stopContainer(cid)
+			conn.client.stopContainer(cid)
 		);
 	const restart = () =>
 		withAction('restart', m.docker_container_toast_restarted({ name: displayName }), () =>
-			conn!.client.restartContainer(cid)
+			conn.client.restartContainer(cid)
 		);
 	const pause = () =>
 		withAction('pause', m.docker_container_toast_paused({ name: displayName }), () =>
-			conn!.client.pauseContainer(cid)
+			conn.client.pauseContainer(cid)
 		);
 	const unpause = () =>
 		withAction('unpause', m.docker_container_toast_resumed({ name: displayName }), () =>
-			conn!.client.unpauseContainer(cid)
+			conn.client.unpauseContainer(cid)
 		);
 
 	async function remove() {
@@ -155,7 +141,7 @@
 		if (!ok) return;
 		try {
 			acting = 'delete';
-			await conn!.client.deleteContainer(cid, !!force);
+			await conn.client.deleteContainer(cid, !!force);
 			toast.success(m.docker_container_toast_deleted({ name: displayName }));
 			goto(`/servers/${id}/docker`);
 		} catch (e) {
@@ -171,271 +157,269 @@
 	let stopped = $derived(!running && !paused);
 </script>
 
-{#if profile}
-	<div class="px-4 py-6 md:px-8 md:py-8">
-		<button
-			type="button"
-			onclick={() => goto(`/servers/${id}/docker`)}
-			class="mb-5 inline-flex items-center gap-1.5 text-xs text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]"
-		>
-			<IconChevronLeft class="size-[14px]" stroke-width="2" />
-			{m.docker_container_back_all_containers()}
-		</button>
+<div class="px-4 py-6 md:px-8 md:py-8">
+	<button
+		type="button"
+		onclick={() => goto(`/servers/${id}/docker`)}
+		class="mb-5 inline-flex items-center gap-1.5 text-xs text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]"
+	>
+		<IconChevronLeft class="size-[14px]" stroke-width="2" />
+		{m.docker_container_back_all_containers()}
+	</button>
 
-		<!-- Stacks below sm: the action group is shrink-0, so side-by-side it
+	<!-- Stacks below sm: the action group is shrink-0, so side-by-side it
 		     squeezed the title column until the state badge had nowhere to go. -->
-		<header class="mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-			<div class="min-w-0 flex-1">
-				<div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-					<h1 class="truncate text-2xl font-semibold tracking-tight">{displayName}</h1>
-					<StateBadge state={stateStr} />
-				</div>
-				<p class="mt-1 flex items-center gap-3 font-mono text-xs text-[var(--color-fg-muted)]">
-					<span>{shortId(cid)}</span>
-					{#if inspect?.image}
-						<span class="text-[var(--color-fg-subtle)]">·</span>
-						<span class="truncate">{inspect.image}</span>
-					{/if}
-				</p>
+	<header class="mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+		<div class="min-w-0 flex-1">
+			<div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+				<h1 class="truncate text-2xl font-semibold tracking-tight">{displayName}</h1>
+				<StateBadge state={stateStr} />
 			</div>
+			<p class="mt-1 flex items-center gap-3 font-mono text-xs text-[var(--color-fg-muted)]">
+				<span>{shortId(cid)}</span>
+				{#if inspect?.image}
+					<span class="text-[var(--color-fg-subtle)]">·</span>
+					<span class="truncate">{inspect.image}</span>
+				{/if}
+			</p>
+		</div>
 
-			<div class="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
-				{#if stopped}
-					<Button size="sm" onclick={start} loading={acting === 'start'} disabled={!!acting}>
-						{m.docker_container_action_start()}
-					</Button>
-				{/if}
-				{#if running}
-					<Button
-						variant="secondary"
-						size="sm"
-						onclick={pause}
-						loading={acting === 'pause'}
-						disabled={!!acting}
-					>
-						{m.docker_container_action_pause()}
-					</Button>
-					<Button
-						variant="secondary"
-						size="sm"
-						onclick={stop}
-						loading={acting === 'stop'}
-						disabled={!!acting}
-					>
-						{m.docker_container_action_stop()}
-					</Button>
-				{/if}
-				{#if paused}
-					<Button size="sm" onclick={unpause} loading={acting === 'unpause'} disabled={!!acting}>
-						{m.docker_container_action_resume()}
-					</Button>
-				{/if}
-				{#if running || paused}
-					<Button
-						variant="secondary"
-						size="sm"
-						onclick={restart}
-						loading={acting === 'restart'}
-						disabled={!!acting}
-					>
-						{m.docker_container_action_restart()}
-					</Button>
-				{/if}
+		<div class="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+			{#if stopped}
+				<Button size="sm" onclick={start} loading={acting === 'start'} disabled={!!acting}>
+					{m.docker_container_action_start()}
+				</Button>
+			{/if}
+			{#if running}
 				<Button
-					variant="danger"
+					variant="secondary"
 					size="sm"
-					onclick={remove}
-					loading={acting === 'delete'}
+					onclick={pause}
+					loading={acting === 'pause'}
 					disabled={!!acting}
 				>
-					{m.docker_container_action_delete()}
+					{m.docker_container_action_pause()}
 				</Button>
-			</div>
-		</header>
-
-		{#if inspectError}
-			<Banner
-				variant={inspect ? 'warning' : 'danger'}
-				title={inspect
-					? m.docker_container_inspect_refresh_failed()
-					: m.docker_container_inspect_failed()}
-				class="mb-4"
-			>
-				{inspectError}
-				{#snippet actions()}
-					<Button variant="secondary" size="sm" onclick={fetchInspect} loading={busy}>
-						{m.common_retry()}
-					</Button>
-				{/snippet}
-			</Banner>
-		{/if}
-
-		{#if inspect}
-			<div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-				<Card>
-					<h2 class="mb-3 text-sm font-medium text-[var(--color-fg)]">
-						{m.docker_container_section_state()}
-					</h2>
-					<dl class="grid gap-2.5 text-sm">
-						<div class="flex items-baseline justify-between gap-3">
-							<dt class="text-[var(--color-fg-muted)]">{m.docker_container_field_status()}</dt>
-							<dd class="text-[var(--color-fg)]">{inspect.state?.status ?? '—'}</dd>
-						</div>
-						{#if startedStamp}
-							<div class="flex items-baseline justify-between gap-3">
-								<dt class="text-[var(--color-fg-muted)]">{m.docker_container_field_started()}</dt>
-								<dd class="text-xs text-[var(--color-fg)]" title={startedStamp.title}>
-									{startedStamp.label}
-								</dd>
-							</div>
-						{/if}
-						{#if finishedStamp}
-							<div class="flex items-baseline justify-between gap-3">
-								<dt class="text-[var(--color-fg-muted)]">{m.docker_container_field_finished()}</dt>
-								<dd class="text-xs text-[var(--color-fg)]" title={finishedStamp.title}>
-									{finishedStamp.label}
-								</dd>
-							</div>
-						{/if}
-						{#if inspect.state?.exit_code !== null && inspect.state?.exit_code !== undefined}
-							<div class="flex items-baseline justify-between gap-3">
-								<dt class="text-[var(--color-fg-muted)]">{m.docker_container_field_exit_code()}</dt>
-								<dd
-									class="font-mono"
-									class:text-[var(--color-success)]={inspect.state.exit_code === 0}
-									class:text-[var(--color-danger)]={(inspect.state.exit_code ?? 0) !== 0}
-								>
-									{inspect.state.exit_code}
-								</dd>
-							</div>
-						{/if}
-						{#if inspect.state?.health}
-							<div class="flex items-baseline justify-between gap-3">
-								<dt class="text-[var(--color-fg-muted)]">{m.docker_container_field_health()}</dt>
-								<dd class="text-[var(--color-fg)]">{inspect.state.health}</dd>
-							</div>
-						{/if}
-						{#if inspect.restart_count !== null && inspect.restart_count !== undefined}
-							<div class="flex items-baseline justify-between gap-3">
-								<dt class="text-[var(--color-fg-muted)]">
-									{m.docker_container_field_restart_count()}
-								</dt>
-								<dd class="font-mono">{inspect.restart_count}</dd>
-							</div>
-						{/if}
-						{#if createdStamp}
-							<div class="flex items-baseline justify-between gap-3">
-								<dt class="text-[var(--color-fg-muted)]">{m.docker_container_field_created()}</dt>
-								<dd class="text-xs text-[var(--color-fg)]" title={createdStamp.title}>
-									{createdStamp.label}
-								</dd>
-							</div>
-						{/if}
-					</dl>
-				</Card>
-
-				<Card>
-					<h2 class="mb-3 text-sm font-medium text-[var(--color-fg)]">
-						{m.docker_container_section_ports()}
-					</h2>
-					{#if inspect.ports.length === 0}
-						<p class="text-sm text-[var(--color-fg-subtle)]">
-							{m.docker_container_ports_empty()}
-						</p>
-					{:else}
-						<ul class="flex flex-col gap-2 text-sm">
-							{#each inspect.ports as p (p.container_port + p.protocol + (p.host_port ?? ''))}
-								<li class="flex items-center justify-between gap-2 font-mono text-xs">
-									<span class="text-[var(--color-fg-muted)]">
-										{p.container_port}/{p.protocol}
-									</span>
-									{#if p.host_port}
-										<span class="text-[var(--color-fg)]"
-											>→ {m.docker_container_ports_host({ port: p.host_port })}</span
-										>
-									{:else}
-										<span class="text-[var(--color-fg-subtle)]"
-											>{m.docker_container_ports_unbound()}</span
-										>
-									{/if}
-								</li>
-							{/each}
-						</ul>
-					{/if}
-				</Card>
-
-				<Card>
-					<h2 class="mb-3 text-sm font-medium text-[var(--color-fg)]">
-						{m.docker_container_section_networks()}
-					</h2>
-					{#if inspect.networks.length === 0}
-						<p class="text-sm text-[var(--color-fg-subtle)]">
-							{m.docker_container_networks_empty()}
-						</p>
-					{:else}
-						<ul class="flex flex-col gap-2 text-sm">
-							{#each inspect.networks as n (n.name)}
-								<li class="flex flex-col gap-0.5">
-									<span class="text-[var(--color-fg)]">{n.name}</span>
-									{#if n.network_id}
-										<span class="text-2xs font-mono text-[var(--color-fg-subtle)]"
-											>{shortId(n.network_id)}</span
-										>
-									{/if}
-								</li>
-							{/each}
-						</ul>
-					{/if}
-				</Card>
-			</div>
-
-			{#if conn?.isAuthenticated}
-				<div class="mt-4">
-					<StatsPanel {conn} containerId={cid} paused={!running} />
-				</div>
-				<div class="mt-4">
-					<ContainerHistory {conn} name={inspect?.name ?? ''} paused={!running} />
-				</div>
+				<Button
+					variant="secondary"
+					size="sm"
+					onclick={stop}
+					loading={acting === 'stop'}
+					disabled={!!acting}
+				>
+					{m.docker_container_action_stop()}
+				</Button>
 			{/if}
+			{#if paused}
+				<Button size="sm" onclick={unpause} loading={acting === 'unpause'} disabled={!!acting}>
+					{m.docker_container_action_resume()}
+				</Button>
+			{/if}
+			{#if running || paused}
+				<Button
+					variant="secondary"
+					size="sm"
+					onclick={restart}
+					loading={acting === 'restart'}
+					disabled={!!acting}
+				>
+					{m.docker_container_action_restart()}
+				</Button>
+			{/if}
+			<Button
+				variant="danger"
+				size="sm"
+				onclick={remove}
+				loading={acting === 'delete'}
+				disabled={!!acting}
+			>
+				{m.docker_container_action_delete()}
+			</Button>
+		</div>
+	</header>
 
-			<Card class="mt-4">
-				<div class="mb-3 flex items-center justify-between">
-					<h2 class="text-sm font-medium text-[var(--color-fg)]">
-						{m.docker_container_section_logs()}
-					</h2>
-					<span class="text-xs text-[var(--color-fg-subtle)]">
-						{m.docker_container_logs_via_sse()} · /sse/docker/containers/{shortId(cid)}/logs/stream
-					</span>
-				</div>
-				{#if conn?.isAuthenticated}
-					<LogStream {conn} path={`/docker/containers/${cid}/logs/stream`} />
-				{/if}
+	{#if inspectError}
+		<Banner
+			variant={inspect ? 'warning' : 'danger'}
+			title={inspect
+				? m.docker_container_inspect_refresh_failed()
+				: m.docker_container_inspect_failed()}
+			class="mb-4"
+		>
+			{inspectError}
+			{#snippet actions()}
+				<Button variant="secondary" size="sm" onclick={fetchInspect} loading={busy}>
+					{m.common_retry()}
+				</Button>
+			{/snippet}
+		</Banner>
+	{/if}
+
+	{#if inspect}
+		<div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+			<Card>
+				<h2 class="mb-3 text-sm font-medium text-[var(--color-fg)]">
+					{m.docker_container_section_state()}
+				</h2>
+				<dl class="grid gap-2.5 text-sm">
+					<div class="flex items-baseline justify-between gap-3">
+						<dt class="text-[var(--color-fg-muted)]">{m.docker_container_field_status()}</dt>
+						<dd class="text-[var(--color-fg)]">{inspect.state?.status ?? '—'}</dd>
+					</div>
+					{#if startedStamp}
+						<div class="flex items-baseline justify-between gap-3">
+							<dt class="text-[var(--color-fg-muted)]">{m.docker_container_field_started()}</dt>
+							<dd class="text-xs text-[var(--color-fg)]" title={startedStamp.title}>
+								{startedStamp.label}
+							</dd>
+						</div>
+					{/if}
+					{#if finishedStamp}
+						<div class="flex items-baseline justify-between gap-3">
+							<dt class="text-[var(--color-fg-muted)]">{m.docker_container_field_finished()}</dt>
+							<dd class="text-xs text-[var(--color-fg)]" title={finishedStamp.title}>
+								{finishedStamp.label}
+							</dd>
+						</div>
+					{/if}
+					{#if inspect.state?.exit_code !== null && inspect.state?.exit_code !== undefined}
+						<div class="flex items-baseline justify-between gap-3">
+							<dt class="text-[var(--color-fg-muted)]">{m.docker_container_field_exit_code()}</dt>
+							<dd
+								class="font-mono"
+								class:text-[var(--color-success)]={inspect.state.exit_code === 0}
+								class:text-[var(--color-danger)]={(inspect.state.exit_code ?? 0) !== 0}
+							>
+								{inspect.state.exit_code}
+							</dd>
+						</div>
+					{/if}
+					{#if inspect.state?.health}
+						<div class="flex items-baseline justify-between gap-3">
+							<dt class="text-[var(--color-fg-muted)]">{m.docker_container_field_health()}</dt>
+							<dd class="text-[var(--color-fg)]">{inspect.state.health}</dd>
+						</div>
+					{/if}
+					{#if inspect.restart_count !== null && inspect.restart_count !== undefined}
+						<div class="flex items-baseline justify-between gap-3">
+							<dt class="text-[var(--color-fg-muted)]">
+								{m.docker_container_field_restart_count()}
+							</dt>
+							<dd class="font-mono">{inspect.restart_count}</dd>
+						</div>
+					{/if}
+					{#if createdStamp}
+						<div class="flex items-baseline justify-between gap-3">
+							<dt class="text-[var(--color-fg-muted)]">{m.docker_container_field_created()}</dt>
+							<dd class="text-xs text-[var(--color-fg)]" title={createdStamp.title}>
+								{createdStamp.label}
+							</dd>
+						</div>
+					{/if}
+				</dl>
 			</Card>
 
-			<Card class="mt-4">
-				<div class="mb-3 flex items-center justify-between">
-					<h2 class="text-sm font-medium text-[var(--color-fg)]">
-						{m.docker_container_section_console()}
-					</h2>
-					<span class="text-xs text-[var(--color-fg-subtle)]">
-						{m.docker_container_console_via_ws()} · /ws/docker/containers/{shortId(cid)}/exec
-					</span>
-				</div>
-				{#if conn?.isAuthenticated && running}
-					<!-- xterm is ~360 KB of this route's parse weight; keep it off the shell. -->
-					{#await import('$lib/components/docker/Terminal.svelte') then { default: Terminal }}
-						<Terminal {conn} containerId={cid} />
-					{/await}
-				{:else if !running}
+			<Card>
+				<h2 class="mb-3 text-sm font-medium text-[var(--color-fg)]">
+					{m.docker_container_section_ports()}
+				</h2>
+				{#if inspect.ports.length === 0}
 					<p class="text-sm text-[var(--color-fg-subtle)]">
-						{m.docker_container_console_not_running()}
+						{m.docker_container_ports_empty()}
 					</p>
+				{:else}
+					<ul class="flex flex-col gap-2 text-sm">
+						{#each inspect.ports as p (p.container_port + p.protocol + (p.host_port ?? ''))}
+							<li class="flex items-center justify-between gap-2 font-mono text-xs">
+								<span class="text-[var(--color-fg-muted)]">
+									{p.container_port}/{p.protocol}
+								</span>
+								{#if p.host_port}
+									<span class="text-[var(--color-fg)]"
+										>→ {m.docker_container_ports_host({ port: p.host_port })}</span
+									>
+								{:else}
+									<span class="text-[var(--color-fg-subtle)]"
+										>{m.docker_container_ports_unbound()}</span
+									>
+								{/if}
+							</li>
+						{/each}
+					</ul>
 				{/if}
 			</Card>
-		{:else if busy && !inspectError}
-			<Card padding="lg">
-				<p class="text-sm text-[var(--color-fg-muted)]">{m.docker_container_loading()}</p>
+
+			<Card>
+				<h2 class="mb-3 text-sm font-medium text-[var(--color-fg)]">
+					{m.docker_container_section_networks()}
+				</h2>
+				{#if inspect.networks.length === 0}
+					<p class="text-sm text-[var(--color-fg-subtle)]">
+						{m.docker_container_networks_empty()}
+					</p>
+				{:else}
+					<ul class="flex flex-col gap-2 text-sm">
+						{#each inspect.networks as n (n.name)}
+							<li class="flex flex-col gap-0.5">
+								<span class="text-[var(--color-fg)]">{n.name}</span>
+								{#if n.network_id}
+									<span class="text-2xs font-mono text-[var(--color-fg-subtle)]"
+										>{shortId(n.network_id)}</span
+									>
+								{/if}
+							</li>
+						{/each}
+					</ul>
+				{/if}
 			</Card>
+		</div>
+
+		{#if conn.isAuthenticated}
+			<div class="mt-4">
+				<StatsPanel {conn} containerId={cid} paused={!running} />
+			</div>
+			<div class="mt-4">
+				<ContainerHistory {conn} name={inspect?.name ?? ''} paused={!running} />
+			</div>
 		{/if}
-	</div>
-{/if}
+
+		<Card class="mt-4">
+			<div class="mb-3 flex items-center justify-between">
+				<h2 class="text-sm font-medium text-[var(--color-fg)]">
+					{m.docker_container_section_logs()}
+				</h2>
+				<span class="text-xs text-[var(--color-fg-subtle)]">
+					{m.docker_container_logs_via_sse()} · /sse/docker/containers/{shortId(cid)}/logs/stream
+				</span>
+			</div>
+			{#if conn.isAuthenticated}
+				<LogStream {conn} path={`/docker/containers/${cid}/logs/stream`} />
+			{/if}
+		</Card>
+
+		<Card class="mt-4">
+			<div class="mb-3 flex items-center justify-between">
+				<h2 class="text-sm font-medium text-[var(--color-fg)]">
+					{m.docker_container_section_console()}
+				</h2>
+				<span class="text-xs text-[var(--color-fg-subtle)]">
+					{m.docker_container_console_via_ws()} · /ws/docker/containers/{shortId(cid)}/exec
+				</span>
+			</div>
+			{#if conn.isAuthenticated && running}
+				<!-- xterm is ~360 KB of this route's parse weight; keep it off the shell. -->
+				{#await import('$lib/components/docker/Terminal.svelte') then { default: Terminal }}
+					<Terminal {conn} containerId={cid} />
+				{/await}
+			{:else if !running}
+				<p class="text-sm text-[var(--color-fg-subtle)]">
+					{m.docker_container_console_not_running()}
+				</p>
+			{/if}
+		</Card>
+	{:else if busy && !inspectError}
+		<Card padding="lg">
+			<p class="text-sm text-[var(--color-fg-muted)]">{m.docker_container_loading()}</p>
+		</Card>
+	{/if}
+</div>

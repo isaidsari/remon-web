@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { useServer } from '$lib/server-scope';
 	import { SvelteMap } from 'svelte/reactivity';
-	import { page } from '$app/state';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
-	import Banner from '$lib/components/ui/Banner.svelte';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
@@ -12,8 +11,6 @@
 	import RefreshButton from '$lib/components/ui/RefreshButton.svelte';
 	import SegmentedControl from '$lib/components/ui/SegmentedControl.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
-	import { profiles } from '$lib/stores/profiles.svelte';
-	import { connections } from '$lib/stores/connections.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { ApiError } from '$lib/api/error';
 	import { fmtBytes, fmtPercent } from '$lib/utils/format';
@@ -22,9 +19,7 @@
 	import { m } from '$lib/paraglide/messages';
 	import type { ProcessInfo } from '$lib/types/api';
 
-	const id = $derived(page.params.id ?? '');
-	const profile = $derived(id ? profiles.byId(id) : undefined);
-	const conn = $derived(profile ? connections.connect(profile) : null);
+	let { conn } = $derived(useServer());
 	let processes = $state<ProcessInfo[]>([]);
 	let loading = $state(false);
 	let lastFetched = $state<number | null>(null);
@@ -45,17 +40,6 @@
 	);
 	const visible = $derived(result.rows.slice(0, visibleCount));
 	const selectedProcess = $derived(processes.find((p) => processKey(p) === selected));
-
-	$effect(() => {
-		const current = conn;
-		if (!current) return;
-		untrack(() =>
-			current.ensureSignedIn().catch((e) => {
-				if (current === conn && e instanceof ApiError)
-					toast.error(m.processes_toast_signin_failed(), { description: e.userMessage });
-			})
-		);
-	});
 
 	async function fetchProcesses() {
 		const current = conn;
@@ -118,7 +102,7 @@
 	});
 
 	$effect(() => {
-		if (!autoRefresh || !conn?.isAuthenticated) return;
+		if (!autoRefresh || !conn.isAuthenticated) return;
 		const refresh = () => {
 			if (!document.hidden && !selected && !killTarget) void fetchProcesses();
 		};
@@ -187,232 +171,223 @@
 	}
 </script>
 
-{#if profile}
-	<div class="px-4 py-6 md:px-8 md:py-8">
-		<PageHeader
-			title={m.section_processes()}
-			count={q.trim() ? result.matches : processes.length}
-			class="mb-5"
+<div class="px-4 py-6 md:px-8 md:py-8">
+	<PageHeader
+		title={m.section_processes()}
+		count={q.trim() ? result.matches : processes.length}
+		class="mb-5"
+	>
+		<Select
+			value={autoRefresh ? '5s' : 'off'}
+			onchange={(e) => (autoRefresh = e.currentTarget.value !== 'off')}
+			class="w-28"
 		>
-			<Select
-				value={autoRefresh ? '5s' : 'off'}
-				onchange={(e) => (autoRefresh = e.currentTarget.value !== 'off')}
-				class="w-28"
-			>
-				<option value="off">{m.chart_autorefresh_off()}</option>
-				<option value="5s">5s</option>
-			</Select>
-			<RefreshButton
-				onclick={() => fetchProcesses()}
-				{loading}
-				label={m.processes_action_refresh()}
-			/>
-		</PageHeader>
-		<Modal
-			open={killTarget !== null}
-			onClose={() => (killTarget = null)}
-			title={killTarget ? m.processes_kill_modal_title({ name: killTarget.name }) : ''}
-			description={killTarget ? m.processes_kill_modal_description({ pid: killTarget.pid }) : ''}
-			width="sm"
-		>
-			<div class="flex flex-col gap-2">
-				{#each [15, 9] as const as sig (sig)}
-					<label
-						class={cn(
-							'flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition',
-							killSignal === sig
-								? 'border-[var(--color-accent)] bg-[var(--color-accent)]/5'
-								: 'border-[var(--color-border)] hover:bg-[var(--color-surface-2)]/50'
-						)}
-					>
-						<input
-							type="radio"
-							name="kill-signal"
-							value={sig}
-							bind:group={killSignal}
-							class="mt-0.5 accent-[var(--color-accent)]"
-						/>
-						<div>
-							<p class="text-md font-medium">
-								{sig === 15 ? m.processes_kill_signal_term() : m.processes_kill_signal_kill()}
-							</p>
-							<p class="mt-0.5 text-xs text-[var(--color-fg-muted)]">
-								{sig === 15
-									? m.processes_kill_signal_term_hint()
-									: m.processes_kill_signal_kill_hint()}
-							</p>
-						</div>
-					</label>
-				{/each}
-			</div>
-			{#snippet footer()}
-				<Button variant="ghost" size="sm" onclick={() => (killTarget = null)}>
-					{m.processes_kill_cancel()}
-				</Button>
-				<Button variant="danger" size="sm" onclick={confirmKill} loading={killing}>
-					{m.processes_kill_confirm()}
-				</Button>
-			{/snippet}
-		</Modal>
+			<option value="off">{m.chart_autorefresh_off()}</option>
+			<option value="5s">5s</option>
+		</Select>
+		<RefreshButton
+			onclick={() => fetchProcesses()}
+			{loading}
+			label={m.processes_action_refresh()}
+		/>
+	</PageHeader>
+	<Modal
+		open={killTarget !== null}
+		onClose={() => (killTarget = null)}
+		title={killTarget ? m.processes_kill_modal_title({ name: killTarget.name }) : ''}
+		description={killTarget ? m.processes_kill_modal_description({ pid: killTarget.pid }) : ''}
+		width="sm"
+	>
+		<div class="flex flex-col gap-2">
+			{#each [15, 9] as const as sig (sig)}
+				<label
+					class={cn(
+						'flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition',
+						killSignal === sig
+							? 'border-[var(--color-accent)] bg-[var(--color-accent)]/5'
+							: 'border-[var(--color-border)] hover:bg-[var(--color-surface-2)]/50'
+					)}
+				>
+					<input
+						type="radio"
+						name="kill-signal"
+						value={sig}
+						bind:group={killSignal}
+						class="mt-0.5 accent-[var(--color-accent)]"
+					/>
+					<div>
+						<p class="text-md font-medium">
+							{sig === 15 ? m.processes_kill_signal_term() : m.processes_kill_signal_kill()}
+						</p>
+						<p class="mt-0.5 text-xs text-[var(--color-fg-muted)]">
+							{sig === 15
+								? m.processes_kill_signal_term_hint()
+								: m.processes_kill_signal_kill_hint()}
+						</p>
+					</div>
+				</label>
+			{/each}
+		</div>
+		{#snippet footer()}
+			<Button variant="ghost" size="sm" onclick={() => (killTarget = null)}>
+				{m.processes_kill_cancel()}
+			</Button>
+			<Button variant="danger" size="sm" onclick={confirmKill} loading={killing}>
+				{m.processes_kill_confirm()}
+			</Button>
+		{/snippet}
+	</Modal>
 
-		{#if !conn?.isAuthenticated}
-			<Banner variant="warning">{m.processes_signin_required()}</Banner>
-		{:else}
-			<div class="mb-3 flex flex-wrap items-center gap-2">
-				<Input
-					placeholder={m.processes_filter_placeholder()}
-					bind:value={q}
-					oninput={() => (visibleCount = 100)}
-					class="min-w-48 flex-1 text-sm"
-				/>
-				<SegmentedControl
-					value={viewMode}
-					options={[
-						{ value: 'flat', label: m.processes_view_flat() },
-						{ value: 'tree', label: m.processes_view_tree() }
-					]}
-					onSelect={changeView}
-					ariaLabel={m.processes_aria_view_mode()}
-				/>
-				{#if viewMode === 'tree'}
-					<Button variant="ghost" size="sm" onclick={() => expandAll(true)} disabled={!!q.trim()}
-						>{m.processes_action_expand_all()}</Button
-					>
-					<Button variant="ghost" size="sm" onclick={() => expandAll(false)} disabled={!!q.trim()}
-						>{m.processes_action_collapse_all()}</Button
-					>
-				{/if}
-			</div>
-			{#if error}<p role="alert" class="mb-3 text-sm text-[var(--color-danger)]">{error}</p>{/if}
-			<Card padding="none" class="overflow-hidden">
-				<div class="max-h-[max(18rem,calc(100dvh-19rem))] overflow-auto">
-					<table
-						class={cn(
-							'w-full table-fixed text-sm',
-							viewMode === 'tree' ? 'min-w-[32rem]' : 'min-w-[20rem]'
-						)}
-					>
-						<thead
-							class="sticky top-0 z-10 bg-[var(--color-surface-2)] text-xs text-[var(--color-fg-muted)]"
-						>
-							<tr>
-								{@render th('name', m.processes_table_name(), '')}
-								{@render th('cpu_percent', 'CPU', 'w-20 text-right')}
-								{@render th('memory_bytes', m.processes_table_memory(), 'w-24 text-right')}
-								{@render th('pid', 'PID', 'hidden w-20 text-right sm:table-cell')}
-								{@render th('user', m.processes_table_user(), 'hidden w-28 lg:table-cell')}
-								{@render th('state', m.processes_table_state(), 'hidden w-24 md:table-cell')}
-							</tr>
-						</thead>
-						<tbody>
-							{#if loading && lastFetched === null}
-								{#each { length: 8 } as _, i (i)}<tr
-										><td colspan="6" class="px-3 py-3"><Skeleton class="h-4 w-full" /></td></tr
-									>{/each}
-							{:else}
-								{#each visible as row (processKey(row.process))}
-									{@const p = row.process}
-									<tr
-										class="border-t border-[var(--color-border)] hover:bg-[var(--color-surface-2)]/50"
-									>
-										<td class="py-2 pr-2 pl-3">
-											<div
-												class="flex min-w-0 items-center gap-1"
-												style:padding-left={viewMode === 'tree'
-													? Math.min(row.depth, 8) * 12 + 'px'
-													: '0'}
-											>
-												{#if viewMode === 'tree'}
-													{#if row.hasChildren}<button
-															type="button"
-															class="grid size-7 shrink-0 place-items-center rounded text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-2)]"
-															aria-expanded={row.expanded}
-															aria-label={row.expanded
-																? m.processes_aria_collapse()
-																: m.processes_aria_expand()}
-															disabled={!!q.trim()}
-															onclick={() => expansion.set(processKey(p), !row.expanded)}
-															><svg
-																width="12"
-																height="12"
-																viewBox="0 0 24 24"
-																fill="none"
-																stroke="currentColor"
-																stroke-width="2"
-																class={row.expanded ? 'rotate-90' : ''}
-																><path d="m9 18 6-6-6-6" /></svg
-															></button
-														>
-													{:else}<span
-															aria-hidden="true"
-															class="grid size-7 shrink-0 place-items-center text-[var(--color-fg-faint)]"
-															>·</span
-														>{/if}
-												{/if}
-												<button
-													type="button"
-													class={cn(
-														'min-w-0 flex-1 rounded text-left hover:text-[var(--color-accent)]',
-														!row.match && 'opacity-50'
-													)}
-													onclick={() => (selected = processKey(p))}
-												>
-													<span class="block truncate font-medium">{p.name}</span>
-													<span class="text-2xs block text-[var(--color-fg-muted)] sm:hidden"
-														>{p.pid}</span
-													>
-												</button>
-											</div>
-										</td>
-										<td class="px-3 py-2 text-right font-mono text-xs tabular-nums"
-											>{fmtPercent(p.cpu_percent, 1)}</td
-										>
-										<td class="px-3 py-2 text-right font-mono text-xs tabular-nums"
-											>{fmtBytes(p.memory_bytes)}</td
-										>
-										<td
-											class="hidden px-3 py-2 text-right font-mono text-xs text-[var(--color-fg-muted)] sm:table-cell"
-											>{p.pid}</td
-										>
-										<td
-											class="hidden truncate px-3 py-2 text-xs text-[var(--color-fg-muted)] lg:table-cell"
-											>{p.user ?? '—'}</td
-										>
-										<td
-											class={cn(
-												'hidden px-3 py-2 text-xs md:table-cell',
-												p.state === 'zombie' || p.state === 'stopped'
-													? 'text-[var(--color-warning)]'
-													: 'text-[var(--color-fg-muted)]'
-											)}>{p.state}</td
-										>
-									</tr>
-								{/each}
-								{#if !result.rows.length}<tr
-										><td
-											colspan="6"
-											class="px-3 py-10 text-center text-sm text-[var(--color-fg-muted)]"
-											>{error ? m.processes_toast_fetch_failed() : m.processes_empty_state()}</td
-										></tr
-									>{/if}
-							{/if}
-						</tbody>
-					</table>
-					{#if visibleCount < result.rows.length}<div
-							class="border-t border-[var(--color-border)] p-3 text-center"
-						>
-							<Button variant="ghost" size="sm" onclick={() => (visibleCount += 100)}
-								>{m.processes_load_more()} ({result.rows.length - visible.length})</Button
-							>
-						</div>{/if}
-				</div>
-			</Card>
-			{#if lastFetched}<p class="mt-2 text-xs text-[var(--color-fg-subtle)]">
-					{m.processes_updated({ time: new Date(lastFetched).toLocaleTimeString() })}
-				</p>{/if}
+	<div class="mb-3 flex flex-wrap items-center gap-2">
+		<Input
+			placeholder={m.processes_filter_placeholder()}
+			bind:value={q}
+			oninput={() => (visibleCount = 100)}
+			class="min-w-48 flex-1 text-sm"
+		/>
+		<SegmentedControl
+			value={viewMode}
+			options={[
+				{ value: 'flat', label: m.processes_view_flat() },
+				{ value: 'tree', label: m.processes_view_tree() }
+			]}
+			onSelect={changeView}
+			ariaLabel={m.processes_aria_view_mode()}
+		/>
+		{#if viewMode === 'tree'}
+			<Button variant="ghost" size="sm" onclick={() => expandAll(true)} disabled={!!q.trim()}
+				>{m.processes_action_expand_all()}</Button
+			>
+			<Button variant="ghost" size="sm" onclick={() => expandAll(false)} disabled={!!q.trim()}
+				>{m.processes_action_collapse_all()}</Button
+			>
 		{/if}
 	</div>
-{/if}
+	{#if error}<p role="alert" class="mb-3 text-sm text-[var(--color-danger)]">{error}</p>{/if}
+	<Card padding="none" class="overflow-hidden">
+		<div class="max-h-[max(18rem,calc(100dvh-19rem))] overflow-auto">
+			<table
+				class={cn(
+					'w-full table-fixed text-sm',
+					viewMode === 'tree' ? 'min-w-[32rem]' : 'min-w-[20rem]'
+				)}
+			>
+				<thead
+					class="sticky top-0 z-10 bg-[var(--color-surface-2)] text-xs text-[var(--color-fg-muted)]"
+				>
+					<tr>
+						{@render th('name', m.processes_table_name(), '')}
+						{@render th('cpu_percent', 'CPU', 'w-20 text-right')}
+						{@render th('memory_bytes', m.processes_table_memory(), 'w-24 text-right')}
+						{@render th('pid', 'PID', 'hidden w-20 text-right sm:table-cell')}
+						{@render th('user', m.processes_table_user(), 'hidden w-28 lg:table-cell')}
+						{@render th('state', m.processes_table_state(), 'hidden w-24 md:table-cell')}
+					</tr>
+				</thead>
+				<tbody>
+					{#if loading && lastFetched === null}
+						{#each { length: 8 } as _, i (i)}<tr
+								><td colspan="6" class="px-3 py-3"><Skeleton class="h-4 w-full" /></td></tr
+							>{/each}
+					{:else}
+						{#each visible as row (processKey(row.process))}
+							{@const p = row.process}
+							<tr
+								class="border-t border-[var(--color-border)] hover:bg-[var(--color-surface-2)]/50"
+							>
+								<td class="py-2 pr-2 pl-3">
+									<div
+										class="flex min-w-0 items-center gap-1"
+										style:padding-left={viewMode === 'tree'
+											? Math.min(row.depth, 8) * 12 + 'px'
+											: '0'}
+									>
+										{#if viewMode === 'tree'}
+											{#if row.hasChildren}<button
+													type="button"
+													class="grid size-7 shrink-0 place-items-center rounded text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-2)]"
+													aria-expanded={row.expanded}
+													aria-label={row.expanded
+														? m.processes_aria_collapse()
+														: m.processes_aria_expand()}
+													disabled={!!q.trim()}
+													onclick={() => expansion.set(processKey(p), !row.expanded)}
+													><svg
+														width="12"
+														height="12"
+														viewBox="0 0 24 24"
+														fill="none"
+														stroke="currentColor"
+														stroke-width="2"
+														class={row.expanded ? 'rotate-90' : ''}><path d="m9 18 6-6-6-6" /></svg
+													></button
+												>
+											{:else}<span
+													aria-hidden="true"
+													class="grid size-7 shrink-0 place-items-center text-[var(--color-fg-faint)]"
+													>·</span
+												>{/if}
+										{/if}
+										<button
+											type="button"
+											class={cn(
+												'min-w-0 flex-1 rounded text-left hover:text-[var(--color-accent)]',
+												!row.match && 'opacity-50'
+											)}
+											onclick={() => (selected = processKey(p))}
+										>
+											<span class="block truncate font-medium">{p.name}</span>
+											<span class="text-2xs block text-[var(--color-fg-muted)] sm:hidden"
+												>{p.pid}</span
+											>
+										</button>
+									</div>
+								</td>
+								<td class="px-3 py-2 text-right font-mono text-xs tabular-nums"
+									>{fmtPercent(p.cpu_percent, 1)}</td
+								>
+								<td class="px-3 py-2 text-right font-mono text-xs tabular-nums"
+									>{fmtBytes(p.memory_bytes)}</td
+								>
+								<td
+									class="hidden px-3 py-2 text-right font-mono text-xs text-[var(--color-fg-muted)] sm:table-cell"
+									>{p.pid}</td
+								>
+								<td
+									class="hidden truncate px-3 py-2 text-xs text-[var(--color-fg-muted)] lg:table-cell"
+									>{p.user ?? '—'}</td
+								>
+								<td
+									class={cn(
+										'hidden px-3 py-2 text-xs md:table-cell',
+										p.state === 'zombie' || p.state === 'stopped'
+											? 'text-[var(--color-warning)]'
+											: 'text-[var(--color-fg-muted)]'
+									)}>{p.state}</td
+								>
+							</tr>
+						{/each}
+						{#if !result.rows.length}<tr
+								><td colspan="6" class="px-3 py-10 text-center text-sm text-[var(--color-fg-muted)]"
+									>{error ? m.processes_toast_fetch_failed() : m.processes_empty_state()}</td
+								></tr
+							>{/if}
+					{/if}
+				</tbody>
+			</table>
+			{#if visibleCount < result.rows.length}<div
+					class="border-t border-[var(--color-border)] p-3 text-center"
+				>
+					<Button variant="ghost" size="sm" onclick={() => (visibleCount += 100)}
+						>{m.processes_load_more()} ({result.rows.length - visible.length})</Button
+					>
+				</div>{/if}
+		</div>
+	</Card>
+	{#if lastFetched}<p class="mt-2 text-xs text-[var(--color-fg-subtle)]">
+			{m.processes_updated({ time: new Date(lastFetched).toLocaleTimeString() })}
+		</p>{/if}
+</div>
 
 <Modal
 	open={!!selectedProcess && !killTarget}

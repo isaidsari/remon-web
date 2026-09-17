@@ -1,8 +1,6 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { page } from '$app/state';
-	import Banner from '$lib/components/ui/Banner.svelte';
+	import { useServer } from '$lib/server-scope';
+	import { tabParam } from '$lib/utils/tab';
 	import DataTable from '$lib/components/ui/DataTable.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 	import ErrorState from '$lib/components/ui/ErrorState.svelte';
@@ -21,8 +19,6 @@
 	import IconRefreshCw from '~icons/lucide/refresh-cw';
 	import IconPlus from '~icons/lucide/plus';
 	import IconMinus from '~icons/lucide/minus';
-	import { profiles } from '$lib/stores/profiles.svelte';
-	import { connections } from '$lib/stores/connections.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { confirm } from '$lib/stores/confirm.svelte';
 	import { ApiError } from '$lib/api/error';
@@ -37,31 +33,10 @@
 		TimerDto
 	} from '$lib/types/api';
 
-	let id = $derived(page.params.id ?? '');
-	let profile = $derived(id ? profiles.byId(id) : undefined);
-	let conn = $derived(profile ? connections.connect(profile) : null);
+	let { conn } = $derived(useServer());
 
-	$effect(() => {
-		if (!conn) return;
-		untrack(() => {
-			conn.ensureSignedIn().catch((e) => {
-				if (e instanceof ApiError)
-					toast.error(m.services_toast_sign_in_failed(), { description: e.userMessage });
-			});
-		});
-	});
-
-	type TabKey = 'services' | 'timers' | 'cron';
-	const TABS: TabKey[] = ['services', 'timers', 'cron'];
-	let tab = $derived<TabKey>(
-		TABS.find((k) => k === page.url.searchParams.get('tab')) ?? 'services'
-	);
-
-	function setTab(t: TabKey) {
-		const url = new URL(page.url);
-		url.searchParams.set('tab', t);
-		goto(url, { replaceState: true, keepFocus: true });
-	}
+	const tabs = tabParam(['services', 'timers', 'cron'] as const, 'services');
+	let tab = $derived(tabs.current);
 
 	let services = $state<ServiceDto[]>([]);
 	let serviceBackend = $state<ServiceBackend | null>(null);
@@ -81,7 +56,7 @@
 	let cronError = $state<ApiError | null>(null);
 
 	async function fetchServices() {
-		if (!conn?.isAuthenticated) return;
+		if (!conn.isAuthenticated) return;
 		servicesLoading = true;
 		servicesError = null;
 		try {
@@ -98,7 +73,7 @@
 	}
 
 	async function fetchTimers() {
-		if (!conn?.isAuthenticated) return;
+		if (!conn.isAuthenticated) return;
 		timersLoading = true;
 		timersError = null;
 		try {
@@ -112,7 +87,7 @@
 	}
 
 	async function fetchCron() {
-		if (!conn?.isAuthenticated) return;
+		if (!conn.isAuthenticated) return;
 		cronLoading = true;
 		cronError = null;
 		try {
@@ -132,7 +107,7 @@
 	}
 
 	$effect(() => {
-		if (!conn?.isAuthenticated) return;
+		if (!conn.isAuthenticated) return;
 		void stateFilter;
 		fetchCurrent();
 	});
@@ -140,7 +115,7 @@
 	// Pre-fetch inactive tabs once so badge counts show without the user clicking into each.
 	let countsPrimed = $state(false);
 	$effect(() => {
-		if (!conn?.isAuthenticated || countsPrimed) return;
+		if (!conn.isAuthenticated || countsPrimed) return;
 		countsPrimed = true;
 		if (tab !== 'timers') void fetchTimers();
 		if (tab !== 'cron') void fetchCron();
@@ -213,27 +188,27 @@
 
 	function doStart(s: ServiceDto) {
 		void withAction(`start:${s.name}`, m.services_toast_started({ name: s.name }), () =>
-			conn!.client.startService(s.name)
+			conn.client.startService(s.name)
 		);
 	}
 	function doStop(s: ServiceDto) {
 		void withAction(`stop:${s.name}`, m.services_toast_stopped({ name: s.name }), () =>
-			conn!.client.stopService(s.name)
+			conn.client.stopService(s.name)
 		);
 	}
 	function doRestart(s: ServiceDto) {
 		void withAction(`restart:${s.name}`, m.services_toast_restarted({ name: s.name }), () =>
-			conn!.client.restartService(s.name)
+			conn.client.restartService(s.name)
 		);
 	}
 	function doReload(s: ServiceDto) {
 		void withAction(`reload:${s.name}`, m.services_toast_reloaded({ name: s.name }), () =>
-			conn!.client.reloadService(s.name)
+			conn.client.reloadService(s.name)
 		);
 	}
 	function doEnable(s: ServiceDto) {
 		void withAction(`enable:${s.name}`, m.services_toast_enabled_at_boot({ name: s.name }), () =>
-			conn!.client.enableService(s.name)
+			conn.client.enableService(s.name)
 		);
 	}
 	async function doDisable(s: ServiceDto) {
@@ -245,15 +220,15 @@
 		});
 		if (!ok) return;
 		void withAction(`disable:${s.name}`, m.services_toast_disabled({ name: s.name }), () =>
-			conn!.client.disableService(s.name)
+			conn.client.disableService(s.name)
 		);
 	}
 
 	async function toggleTimer(t: TimerDto) {
 		const desiredEnable = !(t.enabled_at_boot === true);
 		const action = desiredEnable
-			? () => conn!.client.enableTimer(t.name)
-			: () => conn!.client.disableTimer(t.name);
+			? () => conn.client.enableTimer(t.name)
+			: () => conn.client.disableTimer(t.name);
 		try {
 			await action();
 			toast.success(
@@ -425,56 +400,50 @@
 	{/if}
 {/snippet}
 
-{#if profile}
-	<div class="px-4 py-6 md:px-8 md:py-8">
-		<PageHeader
-			title={m.section_services()}
-			subtitle={m.services_page_subtitle({
-				backend: serviceBackend ?? 'systemd / OpenRC / Windows'
-			})}
-		/>
+<div class="px-4 py-6 md:px-8 md:py-8">
+	<PageHeader
+		title={m.section_services()}
+		subtitle={m.services_page_subtitle({
+			backend: serviceBackend ?? 'systemd / OpenRC / Windows'
+		})}
+	/>
 
-		{#if !conn?.isAuthenticated}
-			<Banner variant="warning">{m.services_sign_in_prompt()}</Banner>
-		{:else}
-			<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-				<div class="overflow-x-auto">
-					<Tabs tabs={tabsConfig} value={tab} onSelect={setTab} />
-				</div>
-				<div class="flex items-center gap-2">
-					{#if tab === 'services'}
-						<Select bind:value={stateFilter} class="shrink-0">
-							{#each stateOptions as opt (opt)}
-								<option value={opt}>{stateLabel(opt)}</option>
-							{/each}
-						</Select>
-					{/if}
-					<Input
-						placeholder={tab === 'cron'
-							? m.services_filter_cron_placeholder()
-							: m.services_filter_placeholder()}
-						bind:value={q}
-						class="w-full sm:w-48"
-					/>
-					<RefreshButton
-						onclick={fetchCurrent}
-						loading={servicesLoading || timersLoading || cronLoading}
-						label={m.services_action_refresh()}
-						class="size-9"
-					/>
-				</div>
-			</div>
-
+	<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+		<div class="overflow-x-auto">
+			<Tabs tabs={tabsConfig} value={tab} onSelect={tabs.set} />
+		</div>
+		<div class="flex items-center gap-2">
 			{#if tab === 'services'}
-				{@render servicesTab()}
-			{:else if tab === 'timers'}
-				{@render timersTab()}
-			{:else}
-				{@render cronTab()}
+				<Select bind:value={stateFilter} class="shrink-0">
+					{#each stateOptions as opt (opt)}
+						<option value={opt}>{stateLabel(opt)}</option>
+					{/each}
+				</Select>
 			{/if}
-		{/if}
+			<Input
+				placeholder={tab === 'cron'
+					? m.services_filter_cron_placeholder()
+					: m.services_filter_placeholder()}
+				bind:value={q}
+				class="w-full sm:w-48"
+			/>
+			<RefreshButton
+				onclick={fetchCurrent}
+				loading={servicesLoading || timersLoading || cronLoading}
+				label={m.services_action_refresh()}
+				class="size-9"
+			/>
+		</div>
 	</div>
-{/if}
+
+	{#if tab === 'services'}
+		{@render servicesTab()}
+	{:else if tab === 'timers'}
+		{@render timersTab()}
+	{:else}
+		{@render cronTab()}
+	{/if}
+</div>
 
 {#snippet servicesTab()}
 	{#if servicesError}

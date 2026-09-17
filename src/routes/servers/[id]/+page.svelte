@@ -1,13 +1,10 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { page } from '$app/state';
+	import { useServer } from '$lib/server-scope';
 	import { profiles } from '$lib/stores/profiles.svelte';
-	import { connections } from '$lib/stores/connections.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
-	import { ApiError } from '$lib/api/error';
-	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import EmptyState from '$lib/components/ui/EmptyState.svelte';
+	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import DashboardGrid from '$lib/components/dashboard/DashboardGrid.svelte';
 	import WidgetEditorModal from '$lib/components/dashboard/WidgetEditorModal.svelte';
 	import StatusBand from '$lib/components/overview/StatusBand.svelte';
@@ -20,10 +17,8 @@
 	import IconPlus from '~icons/lucide/plus';
 	import IconRotateCcw from '~icons/lucide/rotate-ccw';
 
-	let id = $derived(page.params.id ?? '');
-	let profile = $derived(id ? profiles.byId(id) : undefined);
-	let conn = $derived(profile ? connections.connect(profile) : null);
-	let live = $derived(conn?.live);
+	let { profile, conn } = $derived(useServer());
+	let live = $derived(conn.live);
 
 	let editing = $state(false);
 	let draft = $state<DashboardLayout | null>(null);
@@ -54,21 +49,8 @@
 		fallbackDashboard = defaultDashboard();
 	});
 
-	// untrack: ensureSignedIn is idempotent; without it, status flicker retriggers the effect.
 	$effect(() => {
-		if (!conn) return;
-		untrack(() => {
-			conn.ensureSignedIn().catch((e) => {
-				if (e instanceof ApiError) {
-					toast.error(m.overview_toast_signin_failed(), { description: e.userMessage });
-				}
-			});
-		});
-	});
-
-	$effect(() => {
-		if (!conn || !live) return;
-		if (!conn.isAuthenticated || !needsLive) return;
+		if (!needsLive) return;
 		live.acquire();
 		return () => live.release();
 	});
@@ -145,122 +127,54 @@
 		editorOpen = false;
 		editorTarget = null;
 	}
-
-	async function manualSignIn() {
-		if (!conn) return;
-		try {
-			await conn.login();
-			toast.success(m.overview_toast_signed_in());
-		} catch (e) {
-			if (e instanceof ApiError) {
-				toast.error(m.overview_toast_signin_failed(), { description: e.userMessage });
-			}
-		}
-	}
 </script>
 
-{#if profile}
-	<div class="px-4 py-6 md:px-8 md:py-8">
-		<header class="mb-6 flex items-center justify-between gap-3">
-			<h1 class="text-2xl font-semibold tracking-tight">{m.section_overview()}</h1>
-			{#if conn?.isAuthenticated}
-				<div class="flex items-center gap-2">
-					{#if editing}
-						<Button variant="secondary" size="sm" onclick={openAdd}>
-							<IconPlus class="size-4" stroke-width="2" />
-							{m.dashboard_add_widget()}
-						</Button>
-						<Button variant="ghost" size="sm" onclick={resetDefault}>
-							<IconRotateCcw class="size-4" stroke-width="2" />
-							{m.dashboard_reset()}
-						</Button>
-						<Button variant="ghost" size="sm" onclick={cancelEdit}>{m.common_cancel()}</Button>
-						<Button variant="primary" size="sm" onclick={saveEdit} loading={saving}>
-							{m.dashboard_save()}
-						</Button>
-					{:else}
-						<Button variant="secondary" size="sm" onclick={enterEdit}>
-							<IconPencil class="size-4" stroke-width="2" />
-							{m.dashboard_edit()}
-						</Button>
-					{/if}
-				</div>
-			{/if}
-		</header>
-
-		{#if !conn?.isAuthenticated}
-			{@const needsRepair = conn?.error?.needsRepair === true}
-			<Card padding="lg" class="mb-6 border-[var(--color-warning)]/30">
-				<div class="flex items-start justify-between gap-4">
-					<div>
-						<p class="font-medium">
-							{conn?.status === 'authenticating'
-								? m.overview_auth_signing_in()
-								: needsRepair
-									? m.overview_auth_credential_rejected()
-									: m.overview_auth_not_signed_in()}
-						</p>
-						<p class="mt-1 text-sm text-[var(--color-fg-muted)]">
-							{#if needsRepair}
-								{m.overview_auth_needs_repair_body()}
-							{:else}
-								{m.overview_auth_signin_prompt()}
-							{/if}
-						</p>
-						{#if conn?.error}
-							<p class="mt-1 text-sm text-[var(--color-danger)]">{conn.error.userMessage}</p>
-						{/if}
-					</div>
-					<div class="flex flex-shrink-0 items-center gap-2">
-						{#if needsRepair}
-							<Button variant="primary" onclick={() => goto(`/servers/new?replace=${id}`)}>
-								{m.overview_auth_repair_button()}
-							</Button>
-							<Button
-								variant="ghost"
-								onclick={manualSignIn}
-								loading={conn?.status === 'authenticating'}
-							>
-								{m.overview_auth_retry_button()}
-							</Button>
-						{:else}
-							<Button onclick={manualSignIn} loading={conn?.status === 'authenticating'}>
-								{m.overview_auth_signin_button()}
-							</Button>
-						{/if}
-					</div>
-				</div>
-			</Card>
+<div class="px-4 py-6 md:px-8 md:py-8">
+	<PageHeader title={m.section_overview()}>
+		{#if editing}
+			<Button variant="secondary" size="sm" onclick={openAdd}>
+				<IconPlus class="size-4" stroke-width="2" />
+				{m.dashboard_add_widget()}
+			</Button>
+			<Button variant="ghost" size="sm" onclick={resetDefault}>
+				<IconRotateCcw class="size-4" stroke-width="2" />
+				{m.dashboard_reset()}
+			</Button>
+			<Button variant="ghost" size="sm" onclick={cancelEdit}>{m.common_cancel()}</Button>
+			<Button variant="primary" size="sm" onclick={saveEdit} loading={saving}>
+				{m.dashboard_save()}
+			</Button>
+		{:else}
+			<Button variant="secondary" size="sm" onclick={enterEdit}>
+				<IconPencil class="size-4" stroke-width="2" />
+				{m.dashboard_edit()}
+			</Button>
 		{/if}
+	</PageHeader>
 
-		{#if conn?.isAuthenticated}
-			<div class="mb-4">
-				<StatusBand {conn} />
-			</div>
-			{#if editing && layout.widgets.length === 0}
-				<Card padding="lg" class="border-dashed text-center">
-					<p class="text-sm text-[var(--color-fg-muted)]">{m.dashboard_empty()}</p>
-				</Card>
-			{/if}
-			<DashboardGrid
-				{layout}
-				{conn}
-				{editing}
-				onConfigure={openConfigure}
-				onRemove={removeWidget}
-				onLayoutChange={applyLayout}
-			/>
-		{/if}
+	<div class="mb-4">
+		<StatusBand {conn} />
 	</div>
-
-	<WidgetEditorModal
-		open={editorOpen}
+	{#if editing && layout.widgets.length === 0}
+		<EmptyState description={m.dashboard_empty()} />
+	{/if}
+	<DashboardGrid
+		{layout}
 		{conn}
-		initial={editorInitial}
-		onSave={onEditorSave}
-		onClose={() => {
-			editorOpen = false;
-			editorTarget = null;
-		}}
+		{editing}
+		onConfigure={openConfigure}
+		onRemove={removeWidget}
+		onLayoutChange={applyLayout}
 	/>
-{/if}
+</div>
+
+<WidgetEditorModal
+	open={editorOpen}
+	{conn}
+	initial={editorInitial}
+	onSave={onEditorSave}
+	onClose={() => {
+		editorOpen = false;
+		editorTarget = null;
+	}}
+/>

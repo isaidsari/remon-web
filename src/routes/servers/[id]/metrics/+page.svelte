@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { onDestroy, untrack } from 'svelte';
+	import { onDestroy } from 'svelte';
+	import { useServer } from '$lib/server-scope';
 	import { cpuUsageHistory, cpuUsageStats } from '$lib/charts/cpu-history';
 	import { observedHistory, groupHistory } from '$lib/charts/observed-history';
-	import { page } from '$app/state';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import HistoryChart, {
 		type Series,
@@ -10,7 +10,6 @@
 	} from '$lib/components/charts/HistoryChart.svelte';
 	import RangePicker, { type RefreshInterval } from '$lib/components/charts/RangePicker.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
-	import Banner from '$lib/components/ui/Banner.svelte';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import IconHistory from '~icons/lucide/history';
 	import StatStrip from '$lib/components/charts/StatStrip.svelte';
@@ -20,8 +19,6 @@
 	import MetricPanel from '$lib/components/metrics/MetricPanel.svelte';
 	import PanelSection from '$lib/components/metrics/PanelSection.svelte';
 	import SeriesStrips from '$lib/components/metrics/SeriesStrips.svelte';
-	import { profiles } from '$lib/stores/profiles.svelte';
-	import { connections } from '$lib/stores/connections.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { ApiError } from '$lib/api/error';
 	import { fmtBps, fmtBytes, fmtNumber, fmtPercent } from '$lib/utils/format';
@@ -42,22 +39,7 @@
 		SmartResponse
 	} from '$lib/types/api';
 
-	let id = $derived(page.params.id ?? '');
-	let profile = $derived(id ? profiles.byId(id) : undefined);
-	let conn = $derived(profile ? connections.connect(profile) : null);
-
-	$effect(() => {
-		if (!conn) return;
-		untrack(() => {
-			conn.ensureSignedIn().catch((e) => {
-				if (e instanceof ApiError) {
-					toast.error(m.overview_toast_signin_failed(), {
-						description: e.userMessage
-					});
-				}
-			});
-		});
-	});
+	let { profile, conn } = $derived(useServer());
 
 	let range = $state<RangeKey>('1h');
 	let autoRefresh = $state<RefreshInterval>('off');
@@ -75,7 +57,7 @@
 	$effect(() => {
 		const ms = REFRESH_MS[autoRefresh];
 		// Skip auto-refresh when panning to a past window — the window shouldn't shift on a timer.
-		if (!conn?.isAuthenticated || ms === 0 || offsetSecs !== 0) return;
+		if (!conn.isAuthenticated || ms === 0 || offsetSecs !== 0) return;
 		const t = setInterval(() => {
 			void fetchAll();
 		}, ms);
@@ -132,7 +114,7 @@
 	onDestroy(() => cancelCtrl?.abort());
 
 	async function fetchAll() {
-		if (!conn?.isAuthenticated) return;
+		if (!conn.isAuthenticated) return;
 		// Supersede any in-flight window: without this a slow earlier response
 		// could land after a newer one and repaint the charts with stale data.
 		cancelCtrl?.abort();
@@ -217,7 +199,7 @@
 	}
 
 	$effect(() => {
-		if (conn?.isAuthenticated) {
+		if (conn.isAuthenticated) {
 			void range;
 			void offsetSecs;
 			void profile?.id;
@@ -226,7 +208,7 @@
 	});
 
 	$effect(() => {
-		if (!conn?.isAuthenticated || smart !== null) return;
+		if (!conn.isAuthenticated || smart !== null) return;
 		conn.client
 			.systemSmart()
 			.then((r) => (smart = r))
@@ -236,7 +218,7 @@
 	// Fitted over its own fixed window server-side, so unlike everything above it
 	// does not move with the range picker — fetched once, like SMART.
 	$effect(() => {
-		if (!conn?.isAuthenticated || diskForecast !== null) return;
+		if (!conn.isAuthenticated || diskForecast !== null) return;
 		conn.client
 			.diskForecast()
 			.then((r) => (diskForecast = r))
@@ -601,542 +583,519 @@
 	}
 </script>
 
-{#if profile}
-	<div class="px-4 py-6 md:px-8 md:py-8">
-		<PageHeader title={m.section_metrics()} subtitle={m.metrics_page_subtitle()} class="lg:mb-8">
-			<div class="flex flex-col gap-2 lg:items-end">
-				<div class="flex items-center gap-2">
-					<Button
-						variant={showAnnotations ? 'secondary' : 'ghost'}
-						size="sm"
-						aria-pressed={showAnnotations}
-						title={m.metrics_annotations_toggle_hint()}
-						onclick={() => (showAnnotations = !showAnnotations)}
-					>
-						<IconHistory class="size-3.5" stroke-width="2" />
-						{m.metrics_annotations_toggle()}
-					</Button>
-					<RangePicker
-						class="lg:w-auto lg:justify-end"
-						value={range}
-						onSelect={(k) => (range = k)}
-						onRefresh={fetchAll}
-						{busy}
-						{autoRefresh}
-						onAutoRefreshChange={(i) => (autoRefresh = i)}
-						{offsetSecs}
-						onShift={(d) => (offsetSecs = Math.max(0, offsetSecs - d))}
-						onResetNow={() => (offsetSecs = 0)}
-					/>
-				</div>
-				<div
-					class="text-2xs flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[var(--color-fg-subtle)] tabular-nums lg:justify-end"
+<div class="px-4 py-6 md:px-8 md:py-8">
+	<PageHeader title={m.section_metrics()} subtitle={m.metrics_page_subtitle()} class="lg:mb-8">
+		<div class="flex flex-col gap-2 lg:items-end">
+			<div class="flex items-center gap-2">
+				<Button
+					variant={showAnnotations ? 'secondary' : 'ghost'}
+					size="sm"
+					aria-pressed={showAnnotations}
+					title={m.metrics_annotations_toggle_hint()}
+					onclick={() => (showAnnotations = !showAnnotations)}
 				>
-					{#if resolution}
-						<span>
-							{m.metrics_resolution_label({ value: resolution })}
-						</span>
-					{/if}
-					{#if lastFetched}
-						<span>
-							{m.metrics_updated_at({
-								time: new Date(lastFetched).toLocaleTimeString()
-							})}
-						</span>
-					{/if}
-				</div>
+					<IconHistory class="size-3.5" stroke-width="2" />
+					{m.metrics_annotations_toggle()}
+				</Button>
+				<RangePicker
+					class="lg:w-auto lg:justify-end"
+					value={range}
+					onSelect={(k) => (range = k)}
+					onRefresh={fetchAll}
+					{busy}
+					{autoRefresh}
+					onAutoRefreshChange={(i) => (autoRefresh = i)}
+					{offsetSecs}
+					onShift={(d) => (offsetSecs = Math.max(0, offsetSecs - d))}
+					onResetNow={() => (offsetSecs = 0)}
+				/>
 			</div>
-		</PageHeader>
+			<div
+				class="text-2xs flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[var(--color-fg-subtle)] tabular-nums lg:justify-end"
+			>
+				{#if resolution}
+					<span>
+						{m.metrics_resolution_label({ value: resolution })}
+					</span>
+				{/if}
+				{#if lastFetched}
+					<span>
+						{m.metrics_updated_at({
+							time: new Date(lastFetched).toLocaleTimeString()
+						})}
+					</span>
+				{/if}
+			</div>
+		</div>
+	</PageHeader>
 
-		{#if !conn?.isAuthenticated}
-			<Banner variant="warning">{m.metrics_signin_required()}</Banner>
-		{:else}
-			<!-- Cards stretch to their row so every pair lines up; the pairing below
+	<!-- Cards stretch to their row so every pair lines up; the pairing below
 			     keeps the two cards in a row close in content, so nothing is left
 			     holding a big empty box. -->
-			<div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
-				<MetricPanel title={m.metrics_card_cpu_title()}>
-					{#if loading}
-						{@render chartSkeleton()}
-					{:else}
-						{#if cpuSeries.length > 0}
-							<StatStrip
-								data={cpuSeries[0].data}
-								summary={cpuUsageStats(cpu?.points ?? [])}
-								showPercentile={cpu?.resolution === 'raw'}
-								format={fmtPct}
-								accent={cpuSeries[0].color}
-								class="mb-3"
-							/>
+	<div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+		<MetricPanel title={m.metrics_card_cpu_title()}>
+			{#if loading}
+				{@render chartSkeleton()}
+			{:else}
+				{#if cpuSeries.length > 0}
+					<StatStrip
+						data={cpuSeries[0].data}
+						summary={cpuUsageStats(cpu?.points ?? [])}
+						showPercentile={cpu?.resolution === 'raw'}
+						format={fmtPct}
+						accent={cpuSeries[0].color}
+						class="mb-3"
+					/>
+				{/if}
+				{#key cpuKey}
+					<HistoryChart
+						series={cpuSeries}
+						valueFormatter={fmtPct}
+						axisFormatter={fmtPctAxis}
+						yMin={0}
+						yMax={100}
+						group="metrics"
+						annotations={showAnnotations ? chartAnnotations : []}
+					/>
+				{/key}
+				{#if hasKernelRateData && lastCpu}
+					<div
+						class="text-2xs mt-3 flex items-center justify-end gap-4 border-t border-[var(--color-border)] pt-2.5 font-mono text-[var(--color-fg-muted)] tabular-nums"
+					>
+						{#if lastCpu.context_switches_per_sec != null}
+							<span>
+								<span class="text-[var(--color-fg-subtle)]">{m.metrics_kernel_ctx_label()}</span>
+								{fmtRate(lastCpu.context_switches_per_sec)}
+							</span>
 						{/if}
-						{#key cpuKey}
-							<HistoryChart
-								series={cpuSeries}
-								valueFormatter={fmtPct}
-								axisFormatter={fmtPctAxis}
-								yMin={0}
-								yMax={100}
-								group="metrics"
-								annotations={showAnnotations ? chartAnnotations : []}
-							/>
-						{/key}
-						{#if hasKernelRateData && lastCpu}
-							<div
-								class="text-2xs mt-3 flex items-center justify-end gap-4 border-t border-[var(--color-border)] pt-2.5 font-mono text-[var(--color-fg-muted)] tabular-nums"
-							>
-								{#if lastCpu.context_switches_per_sec != null}
-									<span>
-										<span class="text-[var(--color-fg-subtle)]">{m.metrics_kernel_ctx_label()}</span
-										>
-										{fmtRate(lastCpu.context_switches_per_sec)}
-									</span>
-								{/if}
-								{#if lastCpu.process_forks_per_sec != null}
-									<span>
-										<span class="text-[var(--color-fg-subtle)]"
-											>{m.metrics_kernel_forks_label()}</span
-										>
-										{fmtRate(lastCpu.process_forks_per_sec)}
-									</span>
-								{/if}
-							</div>
+						{#if lastCpu.process_forks_per_sec != null}
+							<span>
+								<span class="text-[var(--color-fg-subtle)]">{m.metrics_kernel_forks_label()}</span>
+								{fmtRate(lastCpu.process_forks_per_sec)}
+							</span>
 						{/if}
-					{/if}
-				</MetricPanel>
+					</div>
+				{/if}
+			{/if}
+		</MetricPanel>
 
-				<MetricPanel title={m.metrics_card_memory_title()}>
-					{#if loading}
-						{@render chartSkeleton()}
-					{:else}
-						{#if memorySeries.length > 0}
-							<StatStrip
-								data={memorySeries[0].data}
-								summary={memorySeries[0].summary}
-								showPercentile={memorySeries[0].showPercentile}
-								format={fmtPct}
-								accent={memorySeries[0].color}
-								class="mb-3"
-							/>
-						{/if}
-						{#key memoryKey}
-							<HistoryChart
-								series={memorySeries}
-								valueFormatter={fmtPct}
-								axisFormatter={fmtPctAxis}
-								yMin={0}
-								yMax={100}
-								group="metrics"
-								annotations={showAnnotations ? chartAnnotations : []}
-							/>
-						{/key}
-					{/if}
-				</MetricPanel>
+		<MetricPanel title={m.metrics_card_memory_title()}>
+			{#if loading}
+				{@render chartSkeleton()}
+			{:else}
+				{#if memorySeries.length > 0}
+					<StatStrip
+						data={memorySeries[0].data}
+						summary={memorySeries[0].summary}
+						showPercentile={memorySeries[0].showPercentile}
+						format={fmtPct}
+						accent={memorySeries[0].color}
+						class="mb-3"
+					/>
+				{/if}
+				{#key memoryKey}
+					<HistoryChart
+						series={memorySeries}
+						valueFormatter={fmtPct}
+						axisFormatter={fmtPctAxis}
+						yMin={0}
+						yMax={100}
+						group="metrics"
+						annotations={showAnnotations ? chartAnnotations : []}
+					/>
+				{/key}
+			{/if}
+		</MetricPanel>
 
-				<MetricPanel title={m.metrics_card_disk_title()}>
-					{#if loading}
-						{@render chartSkeleton()}
-					{:else}
-						{#if diskSeries.length > 0}
-							<SeriesStrips series={diskSeries} format={fmtPct} class="mb-3" />
-						{/if}
-						{#key diskKey}
-							<HistoryChart
-								series={diskSeries}
-								valueFormatter={fmtPct}
-								axisFormatter={fmtPctAxis}
-								yMin={0}
-								yMax={100}
-								group="metrics"
-								annotations={showAnnotations ? chartAnnotations : []}
-							/>
-						{/key}
-						{#if datedMounts.length > 0}
-							<!-- The chart says how full; only this says how long. Mounts
+		<MetricPanel title={m.metrics_card_disk_title()}>
+			{#if loading}
+				{@render chartSkeleton()}
+			{:else}
+				{#if diskSeries.length > 0}
+					<SeriesStrips series={diskSeries} format={fmtPct} class="mb-3" />
+				{/if}
+				{#key diskKey}
+					<HistoryChart
+						series={diskSeries}
+						valueFormatter={fmtPct}
+						axisFormatter={fmtPctAxis}
+						yMin={0}
+						yMax={100}
+						group="metrics"
+						annotations={showAnnotations ? chartAnnotations : []}
+					/>
+				{/key}
+				{#if datedMounts.length > 0}
+					<!-- The chart says how full; only this says how long. Mounts
 							     whose drift is lost in their own churn are left out
 							     entirely rather than shown as a shrug. -->
-							<PanelSection label={m.metrics_disk_runway_label()}>
-								<ul class="flex flex-col gap-1.5">
-									{#each datedMounts as f (f.mount_point)}
-										<li class="flex items-baseline justify-between gap-3 text-xs">
-											<span class="truncate font-mono text-[var(--color-fg-muted)]">
-												{f.mount_point}
-											</span>
-											<span class="flex shrink-0 items-baseline gap-2 tabular-nums">
-												<span class="text-3xs font-mono text-[var(--color-fg-subtle)]">
-													+{fmtBytes(f.bytes_per_day)}{m.metrics_disk_runway_per_day()}
-												</span>
-												<span
-													class={f.days_until_full != null &&
-													f.days_until_full <= RUNWAY_URGENT_DAYS
-														? 'font-mono text-[var(--color-danger)]'
-														: 'font-mono text-[var(--color-warning)]'}
-													title={runwayRangeText(f)}
-												>
-													{m.metrics_disk_runway_full_in({
-														days: fmtNumber(f.days_until_full ?? 0, 0)
-													})}
-												</span>
-											</span>
-										</li>
-									{/each}
-								</ul>
-							</PanelSection>
-						{/if}
-						{#if inodeRows.length > 0}
-							<PanelSection label={m.metrics_inode_usage_label()}>
-								<ul class="flex flex-col gap-2">
-									{#each mainInodeRows as r (r.mount)}
+					<PanelSection label={m.metrics_disk_runway_label()}>
+						<ul class="flex flex-col gap-1.5">
+							{#each datedMounts as f (f.mount_point)}
+								<li class="flex items-baseline justify-between gap-3 text-xs">
+									<span class="truncate font-mono text-[var(--color-fg-muted)]">
+										{f.mount_point}
+									</span>
+									<span class="flex shrink-0 items-baseline gap-2 tabular-nums">
+										<span class="text-3xs font-mono text-[var(--color-fg-subtle)]">
+											+{fmtBytes(f.bytes_per_day)}{m.metrics_disk_runway_per_day()}
+										</span>
+										<span
+											class={f.days_until_full != null && f.days_until_full <= RUNWAY_URGENT_DAYS
+												? 'font-mono text-[var(--color-danger)]'
+												: 'font-mono text-[var(--color-warning)]'}
+											title={runwayRangeText(f)}
+										>
+											{m.metrics_disk_runway_full_in({
+												days: fmtNumber(f.days_until_full ?? 0, 0)
+											})}
+										</span>
+									</span>
+								</li>
+							{/each}
+						</ul>
+					</PanelSection>
+				{/if}
+				{#if inodeRows.length > 0}
+					<PanelSection label={m.metrics_inode_usage_label()}>
+						<ul class="flex flex-col gap-2">
+							{#each mainInodeRows as r (r.mount)}
+								{@render inodeRow(r)}
+							{/each}
+						</ul>
+						{#if dockerInodeRows.length > 0}
+							<details class="mt-3 border-t border-[var(--color-border)] pt-3">
+								<summary
+									class="text-3xs cursor-pointer font-mono tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
+								>
+									{m.metrics_container_layers_label({ count: dockerInodeRows.length })}
+								</summary>
+								<ul class="mt-2 flex flex-col gap-2">
+									{#each dockerInodeRows as r (r.mount)}
 										{@render inodeRow(r)}
 									{/each}
 								</ul>
-								{#if dockerInodeRows.length > 0}
-									<details class="mt-3 border-t border-[var(--color-border)] pt-3">
-										<summary
-											class="text-3xs cursor-pointer font-mono tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
-										>
-											{m.metrics_container_layers_label({ count: dockerInodeRows.length })}
-										</summary>
-										<ul class="mt-2 flex flex-col gap-2">
-											{#each dockerInodeRows as r (r.mount)}
-												{@render inodeRow(r)}
-											{/each}
-										</ul>
-									</details>
-								{/if}
-							</PanelSection>
+							</details>
 						{/if}
-					{/if}
-				</MetricPanel>
-
-				{#if loading || (disk?.points.length ?? 0) > 0}
-					<MetricPanel title={m.metrics_disk_iops_label()}>
-						<div class="mb-3 flex gap-1" role="group" aria-label={m.metrics_disk_iops_label()}>
-							{#each ['bytes', 'iops', 'util'] as mode (mode)}
-								<button
-									type="button"
-									aria-pressed={diskIoMode === mode}
-									class="rounded border border-[var(--color-border)] px-2 py-1 text-xs aria-pressed:bg-[var(--color-bg-hover)]"
-									onclick={() => (diskIoMode = mode as typeof diskIoMode)}
-								>
-									{mode === 'bytes' ? 'B/s' : mode === 'iops' ? 'IOPS' : '%'}
-								</button>
-							{/each}
-						</div>
-						{#if loading}
-							{@render chartSkeleton()}
-						{:else}
-							<SeriesStrips series={diskIopsSeries} format={diskIoFormat} class="mb-3" />
-							{#key diskIopsKey}
-								<HistoryChart
-									series={diskIopsSeries}
-									valueFormatter={diskIoFormat}
-									yMin={0}
-									yMax={diskIoMode === 'util' ? 100 : undefined}
-									group="metrics"
-								/>
-							{/key}
-							{#if ioUtilRows.length > 0}
-								<PanelSection label={m.metrics_disk_util_label()}>
-									<ul class="flex flex-col gap-1.5">
-										{#each ioUtilRows as r (r.mount)}
-											<li
-												class="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-xs"
-											>
-												<span
-													class="truncate font-mono text-[var(--color-fg-muted)]"
-													title={r.mount}
-												>
-													{shortenMount(r.mount)}
-												</span>
-												<div
-													class="flex items-center gap-3 text-[var(--color-fg-subtle)] tabular-nums"
-												>
-													<span class="text-[rgb(251,191,36)]">↓ {fmtRate(r.readIops)}</span>
-													<span class="text-[rgb(244,114,182)]">↑ {fmtRate(r.writeIops)}</span>
-													<span
-														class={r.util >= 80
-															? 'text-[var(--color-danger)]'
-															: r.util >= 50
-																? 'text-[var(--color-warning)]'
-																: ''}
-													>
-														{fmtPct(r.util)}
-													</span>
-												</div>
-											</li>
-										{/each}
-									</ul>
-								</PanelSection>
-							{/if}
-						{/if}
-					</MetricPanel>
+					</PanelSection>
 				{/if}
+			{/if}
+		</MetricPanel>
 
-				{#if memoryPressureSeries.length > 0}
-					<MetricPanel
-						title={m.metrics_card_memory_pressure_title()}
-						subtitle={m.metrics_card_memory_pressure_subtitle()}
-					>
-						<SeriesStrips
-							series={memoryPressureSeries}
-							format={(v) => (v == null ? '—' : fmtNumber(v, 0))}
-							class="mb-3"
+		{#if loading || (disk?.points.length ?? 0) > 0}
+			<MetricPanel title={m.metrics_disk_iops_label()}>
+				<div class="mb-3 flex gap-1" role="group" aria-label={m.metrics_disk_iops_label()}>
+					{#each ['bytes', 'iops', 'util'] as mode (mode)}
+						<button
+							type="button"
+							aria-pressed={diskIoMode === mode}
+							class="rounded border border-[var(--color-border)] px-2 py-1 text-xs aria-pressed:bg-[var(--color-bg-hover)]"
+							onclick={() => (diskIoMode = mode as typeof diskIoMode)}
+						>
+							{mode === 'bytes' ? 'B/s' : mode === 'iops' ? 'IOPS' : '%'}
+						</button>
+					{/each}
+				</div>
+				{#if loading}
+					{@render chartSkeleton()}
+				{:else}
+					<SeriesStrips series={diskIopsSeries} format={diskIoFormat} class="mb-3" />
+					{#key diskIopsKey}
+						<HistoryChart
+							series={diskIopsSeries}
+							valueFormatter={diskIoFormat}
+							yMin={0}
+							yMax={diskIoMode === 'util' ? 100 : undefined}
+							group="metrics"
 						/>
-						{#key memoryPressureKey}
-							<HistoryChart
-								series={memoryPressureSeries}
-								valueFormatter={(v) => (v == null ? '—' : fmtNumber(v, 0))}
-								group="metrics"
-							/>
-						{/key}
-					</MetricPanel>
+					{/key}
+					{#if ioUtilRows.length > 0}
+						<PanelSection label={m.metrics_disk_util_label()}>
+							<ul class="flex flex-col gap-1.5">
+								{#each ioUtilRows as r (r.mount)}
+									<li
+										class="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-xs"
+									>
+										<span class="truncate font-mono text-[var(--color-fg-muted)]" title={r.mount}>
+											{shortenMount(r.mount)}
+										</span>
+										<div class="flex items-center gap-3 text-[var(--color-fg-subtle)] tabular-nums">
+											<span class="text-[rgb(251,191,36)]">↓ {fmtRate(r.readIops)}</span>
+											<span class="text-[rgb(244,114,182)]">↑ {fmtRate(r.writeIops)}</span>
+											<span
+												class={r.util >= 80
+													? 'text-[var(--color-danger)]'
+													: r.util >= 50
+														? 'text-[var(--color-warning)]'
+														: ''}
+											>
+												{fmtPct(r.util)}
+											</span>
+										</div>
+									</li>
+								{/each}
+							</ul>
+						</PanelSection>
+					{/if}
 				{/if}
+			</MetricPanel>
+		{/if}
 
-				<MetricPanel
-					title={m.metrics_card_network_title()}
-					class={lastHalfSpansRow ? 'xl:col-span-2' : ''}
-				>
-					{#if loading}
-						{@render chartSkeleton()}
-					{:else}
-						{#if netUsage}
-							<!-- The chart answers "how fast"; this is the only thing on the
+		{#if memoryPressureSeries.length > 0}
+			<MetricPanel
+				title={m.metrics_card_memory_pressure_title()}
+				subtitle={m.metrics_card_memory_pressure_subtitle()}
+			>
+				<SeriesStrips
+					series={memoryPressureSeries}
+					format={(v) => (v == null ? '—' : fmtNumber(v, 0))}
+					class="mb-3"
+				/>
+				{#key memoryPressureKey}
+					<HistoryChart
+						series={memoryPressureSeries}
+						valueFormatter={(v) => (v == null ? '—' : fmtNumber(v, 0))}
+						group="metrics"
+					/>
+				{/key}
+			</MetricPanel>
+		{/if}
+
+		<MetricPanel
+			title={m.metrics_card_network_title()}
+			class={lastHalfSpansRow ? 'xl:col-span-2' : ''}
+		>
+			{#if loading}
+				{@render chartSkeleton()}
+			{:else}
+				{#if netUsage}
+					<!-- The chart answers "how fast"; this is the only thing on the
 							     page that answers "how much", which is the question a
 							     bandwidth quota is written in. -->
-							<div
-								class="mb-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-[var(--color-border)] pb-3"
-							>
-								<span class="text-3xs tracking-wide text-[var(--color-fg-subtle)]">
-									{m.metrics_network_usage_label()}
-								</span>
-								<span class="text-md font-mono text-[var(--color-info)] tabular-nums">
-									↓ {fmtBytes(netUsage.total_rx_bytes)}
-								</span>
-								<span class="text-md font-mono text-[var(--color-success)] tabular-nums">
-									↑ {fmtBytes(netUsage.total_tx_bytes)}
-								</span>
-								<span class="text-2xs font-mono text-[var(--color-fg-muted)] tabular-nums">
-									{fmtBytes(netUsage.total_rx_bytes + netUsage.total_tx_bytes)}
-									{m.metrics_network_usage_combined()}
-								</span>
-								{#if netUsage.coverage < COVERAGE_FLOOR}
-									<!-- A total read against a quota must not look complete when
+					<div
+						class="mb-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-[var(--color-border)] pb-3"
+					>
+						<span class="text-3xs tracking-wide text-[var(--color-fg-subtle)]">
+							{m.metrics_network_usage_label()}
+						</span>
+						<span class="text-md font-mono text-[var(--color-info)] tabular-nums">
+							↓ {fmtBytes(netUsage.total_rx_bytes)}
+						</span>
+						<span class="text-md font-mono text-[var(--color-success)] tabular-nums">
+							↑ {fmtBytes(netUsage.total_tx_bytes)}
+						</span>
+						<span class="text-2xs font-mono text-[var(--color-fg-muted)] tabular-nums">
+							{fmtBytes(netUsage.total_rx_bytes + netUsage.total_tx_bytes)}
+							{m.metrics_network_usage_combined()}
+						</span>
+						{#if netUsage.coverage < COVERAGE_FLOOR}
+							<!-- A total read against a quota must not look complete when
 									     it is not. Only shown once the gap is big enough to
 									     change a decision. -->
-									<span
-										class="text-2xs ml-auto font-mono text-[var(--color-warning)] tabular-nums"
-										title={m.metrics_network_usage_coverage_hint()}
-									>
-										{m.metrics_network_usage_partial({
-											percent: fmtPercent(netUsage.coverage * 100, 0)
-										})}
-									</span>
-								{/if}
-							</div>
+							<span
+								class="text-2xs ml-auto font-mono text-[var(--color-warning)] tabular-nums"
+								title={m.metrics_network_usage_coverage_hint()}
+							>
+								{m.metrics_network_usage_partial({
+									percent: fmtPercent(netUsage.coverage * 100, 0)
+								})}
+							</span>
 						{/if}
-						{#if networkSeries.length > 0}
-							<SeriesStrips series={networkSeries} format={fmtBpsCell} class="mb-3" />
-						{/if}
-						{#key networkKey}
-							<HistoryChart
-								series={networkSeries}
-								valueFormatter={fmtBpsCell}
-								group="metrics"
-								annotations={showAnnotations ? chartAnnotations : []}
-							/>
-						{/key}
-						{#if netErrorRows.length > 0}
-							<PanelSection label={m.metrics_per_interface_latest_label()}>
-								<ul class="flex flex-col gap-1.5">
-									{#each physicalNetRows as r (r.iface)}
+					</div>
+				{/if}
+				{#if networkSeries.length > 0}
+					<SeriesStrips series={networkSeries} format={fmtBpsCell} class="mb-3" />
+				{/if}
+				{#key networkKey}
+					<HistoryChart
+						series={networkSeries}
+						valueFormatter={fmtBpsCell}
+						group="metrics"
+						annotations={showAnnotations ? chartAnnotations : []}
+					/>
+				{/key}
+				{#if netErrorRows.length > 0}
+					<PanelSection label={m.metrics_per_interface_latest_label()}>
+						<ul class="flex flex-col gap-1.5">
+							{#each physicalNetRows as r (r.iface)}
+								{@render ifaceRow(r)}
+							{/each}
+						</ul>
+						{#if containerNetRows.length > 0}
+							<details class="mt-3 border-t border-[var(--color-border)] pt-3">
+								<summary
+									class="text-3xs cursor-pointer font-mono tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
+								>
+									{m.metrics_iface_group_container({ count: containerNetRows.length })}
+								</summary>
+								<ul class="mt-2 flex flex-col gap-1.5">
+									{#each containerNetRows as r (r.iface)}
 										{@render ifaceRow(r)}
 									{/each}
 								</ul>
-								{#if containerNetRows.length > 0}
-									<details class="mt-3 border-t border-[var(--color-border)] pt-3">
-										<summary
-											class="text-3xs cursor-pointer font-mono tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
-										>
-											{m.metrics_iface_group_container({ count: containerNetRows.length })}
-										</summary>
-										<ul class="mt-2 flex flex-col gap-1.5">
-											{#each containerNetRows as r (r.iface)}
-												{@render ifaceRow(r)}
-											{/each}
-										</ul>
-									</details>
-								{/if}
-								{#if virtualNetRows.length > 0}
-									<details class="mt-2">
-										<summary
-											class="text-3xs cursor-pointer font-mono tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
-										>
-											{m.metrics_iface_group_virtual({ count: virtualNetRows.length })}
-										</summary>
-										<ul class="mt-2 flex flex-col gap-1.5">
-											{#each virtualNetRows as r (r.iface)}
-												{@render ifaceRow(r)}
-											{/each}
-										</ul>
-									</details>
-								{/if}
-							</PanelSection>
+							</details>
 						{/if}
-					{/if}
-				</MetricPanel>
-
-				{#if hasPressure}
-					<PressureCard cpu={pressureCpu} memory={pressureMem} io={pressureIo} />
-				{/if}
-
-				{#if components && components.points.length > 0}
-					<ComponentsCard data={components} />
-				{/if}
-
-				<!-- Only when the host actually reports drives: an empty card saying
-				     "unsupported" is a full-width sliver that tells nobody anything. -->
-				{#if smart?.available && smart.devices.length > 0}
-					<MetricPanel title={m.metrics_smart_title()} class="xl:col-span-2" padding="none">
-						<div class="overflow-x-auto">
-							<table class="w-full text-sm">
-								<thead
-									class="bg-[var(--color-surface-2)] text-xs tracking-wide text-[var(--color-fg-muted)]"
+						{#if virtualNetRows.length > 0}
+							<details class="mt-2">
+								<summary
+									class="text-3xs cursor-pointer font-mono tracking-[0.08em] text-[var(--color-fg-subtle)] select-none hover:text-[var(--color-fg-muted)]"
 								>
-									<tr>
-										<th class="px-3 py-2 text-left font-medium">{m.metrics_smart_col_device()}</th>
-										<th class="px-3 py-2 text-left font-medium">{m.metrics_smart_col_model()}</th>
-										<th class="px-3 py-2 text-left font-medium">{m.metrics_smart_col_health()}</th>
-										<th class="px-3 py-2 text-right font-medium">{m.metrics_smart_col_temp()}</th>
-										<th class="px-3 py-2 text-right font-medium">{m.metrics_smart_col_hours()}</th>
-										{#if smartIsAta}
-											<th class="px-3 py-2 text-right font-medium"
-												>{m.metrics_smart_col_reallocated()}</th
+									{m.metrics_iface_group_virtual({ count: virtualNetRows.length })}
+								</summary>
+								<ul class="mt-2 flex flex-col gap-1.5">
+									{#each virtualNetRows as r (r.iface)}
+										{@render ifaceRow(r)}
+									{/each}
+								</ul>
+							</details>
+						{/if}
+					</PanelSection>
+				{/if}
+			{/if}
+		</MetricPanel>
+
+		{#if hasPressure}
+			<PressureCard cpu={pressureCpu} memory={pressureMem} io={pressureIo} />
+		{/if}
+
+		{#if components && components.points.length > 0}
+			<ComponentsCard data={components} />
+		{/if}
+
+		<!-- Only when the host actually reports drives: an empty card saying
+				     "unsupported" is a full-width sliver that tells nobody anything. -->
+		{#if smart?.available && smart.devices.length > 0}
+			<MetricPanel title={m.metrics_smart_title()} class="xl:col-span-2" padding="none">
+				<div class="overflow-x-auto">
+					<table class="w-full text-sm">
+						<thead
+							class="bg-[var(--color-surface-2)] text-xs tracking-wide text-[var(--color-fg-muted)]"
+						>
+							<tr>
+								<th class="px-3 py-2 text-left font-medium">{m.metrics_smart_col_device()}</th>
+								<th class="px-3 py-2 text-left font-medium">{m.metrics_smart_col_model()}</th>
+								<th class="px-3 py-2 text-left font-medium">{m.metrics_smart_col_health()}</th>
+								<th class="px-3 py-2 text-right font-medium">{m.metrics_smart_col_temp()}</th>
+								<th class="px-3 py-2 text-right font-medium">{m.metrics_smart_col_hours()}</th>
+								{#if smartIsAta}
+									<th class="px-3 py-2 text-right font-medium"
+										>{m.metrics_smart_col_reallocated()}</th
+									>
+									<th class="px-3 py-2 text-right font-medium">{m.metrics_smart_col_pending()}</th>
+									<th class="px-3 py-2 text-right font-medium"
+										>{m.metrics_smart_col_uncorrectable()}</th
+									>
+								{/if}
+								{#if smartIsNvme}
+									<th class="px-3 py-2 text-right font-medium">{m.metrics_smart_col_nvme_used()}</th
+									>
+									<th class="px-3 py-2 text-right font-medium">{m.metrics_smart_col_spare()}</th>
+									<th class="px-3 py-2 text-right font-medium"
+										>{m.metrics_smart_col_media_errors()}</th
+									>
+								{/if}
+							</tr>
+						</thead>
+						<tbody>
+							{#each smart.devices as dev (dev.device)}
+								{@const failed = dev.health_passed === false}
+								<tr
+									class={cn(
+										'border-t border-[var(--color-border)]',
+										failed && 'bg-[var(--color-danger)]/5'
+									)}
+								>
+									<td class="px-3 py-2.5 font-mono text-xs text-[var(--color-fg)]">{dev.device}</td>
+									<td class="px-3 py-2.5 text-xs text-[var(--color-fg-muted)]"
+										>{dev.model ?? '—'}</td
+									>
+									<td class="px-3 py-2.5">
+										{#if dev.health_passed === true}
+											<span
+												class="text-3xs inline-flex items-center rounded-full bg-[var(--color-success)]/10 px-2 py-0.5 font-mono text-[var(--color-success)]"
 											>
-											<th class="px-3 py-2 text-right font-medium"
-												>{m.metrics_smart_col_pending()}</th
+												{m.metrics_smart_health_passed()}
+											</span>
+										{:else if dev.health_passed === false}
+											<span
+												class="text-3xs inline-flex items-center rounded-full bg-[var(--color-danger)]/10 px-2 py-0.5 font-mono font-medium text-[var(--color-danger)]"
 											>
-											<th class="px-3 py-2 text-right font-medium"
-												>{m.metrics_smart_col_uncorrectable()}</th
+												{m.metrics_smart_health_failed()}
+											</span>
+										{:else}
+											<span class="text-2xs font-mono text-[var(--color-fg-subtle)]"
+												>{m.metrics_smart_health_unknown()}</span
 											>
 										{/if}
-										{#if smartIsNvme}
-											<th class="px-3 py-2 text-right font-medium"
-												>{m.metrics_smart_col_nvme_used()}</th
-											>
-											<th class="px-3 py-2 text-right font-medium">{m.metrics_smart_col_spare()}</th
-											>
-											<th class="px-3 py-2 text-right font-medium"
-												>{m.metrics_smart_col_media_errors()}</th
-											>
-										{/if}
-									</tr>
-								</thead>
-								<tbody>
-									{#each smart.devices as dev (dev.device)}
-										{@const failed = dev.health_passed === false}
-										<tr
+									</td>
+									<td class="px-3 py-2.5 text-right font-mono text-xs tabular-nums">
+										{dev.temperature_c != null ? `${dev.temperature_c.toFixed(0)} °C` : '—'}
+									</td>
+									<td
+										class="px-3 py-2.5 text-right font-mono text-xs text-[var(--color-fg-muted)] tabular-nums"
+									>
+										{dev.power_on_hours != null ? `${dev.power_on_hours.toLocaleString()} h` : '—'}
+									</td>
+									{#if smartIsAta}
+										<td
 											class={cn(
-												'border-t border-[var(--color-border)]',
-												failed && 'bg-[var(--color-danger)]/5'
+												'px-3 py-2.5 text-right font-mono text-xs tabular-nums',
+												(dev.reallocated_sectors ?? 0) > 0 && 'text-[var(--color-warning)]'
 											)}
 										>
-											<td class="px-3 py-2.5 font-mono text-xs text-[var(--color-fg)]"
-												>{dev.device}</td
-											>
-											<td class="px-3 py-2.5 text-xs text-[var(--color-fg-muted)]"
-												>{dev.model ?? '—'}</td
-											>
-											<td class="px-3 py-2.5">
-												{#if dev.health_passed === true}
-													<span
-														class="text-3xs inline-flex items-center rounded-full bg-[var(--color-success)]/10 px-2 py-0.5 font-mono text-[var(--color-success)]"
-													>
-														{m.metrics_smart_health_passed()}
-													</span>
-												{:else if dev.health_passed === false}
-													<span
-														class="text-3xs inline-flex items-center rounded-full bg-[var(--color-danger)]/10 px-2 py-0.5 font-mono font-medium text-[var(--color-danger)]"
-													>
-														{m.metrics_smart_health_failed()}
-													</span>
-												{:else}
-													<span class="text-2xs font-mono text-[var(--color-fg-subtle)]"
-														>{m.metrics_smart_health_unknown()}</span
-													>
-												{/if}
-											</td>
-											<td class="px-3 py-2.5 text-right font-mono text-xs tabular-nums">
-												{dev.temperature_c != null ? `${dev.temperature_c.toFixed(0)} °C` : '—'}
-											</td>
-											<td
-												class="px-3 py-2.5 text-right font-mono text-xs text-[var(--color-fg-muted)] tabular-nums"
-											>
-												{dev.power_on_hours != null
-													? `${dev.power_on_hours.toLocaleString()} h`
-													: '—'}
-											</td>
-											{#if smartIsAta}
-												<td
-													class={cn(
-														'px-3 py-2.5 text-right font-mono text-xs tabular-nums',
-														(dev.reallocated_sectors ?? 0) > 0 && 'text-[var(--color-warning)]'
-													)}
-												>
-													{dev.reallocated_sectors ?? '—'}
-												</td>
-												<td
-													class={cn(
-														'px-3 py-2.5 text-right font-mono text-xs tabular-nums',
-														(dev.pending_sectors ?? 0) > 0 && 'text-[var(--color-warning)]'
-													)}
-												>
-													{dev.pending_sectors ?? '—'}
-												</td>
-												<td
-													class={cn(
-														'px-3 py-2.5 text-right font-mono text-xs tabular-nums',
-														(dev.uncorrectable_sectors ?? 0) > 0 && 'text-[var(--color-danger)]'
-													)}
-												>
-													{dev.uncorrectable_sectors ?? '—'}
-												</td>
-											{/if}
-											{#if smartIsNvme}
-												<td
-													class={cn(
-														'px-3 py-2.5 text-right font-mono text-xs tabular-nums',
-														(dev.percentage_used ?? 0) >= 90 && 'text-[var(--color-warning)]'
-													)}
-												>
-													{dev.percentage_used != null ? `${dev.percentage_used}%` : '—'}
-												</td>
-												<td
-													class="px-3 py-2.5 text-right font-mono text-xs text-[var(--color-fg-muted)] tabular-nums"
-												>
-													{dev.available_spare_percent != null
-														? `${dev.available_spare_percent}%`
-														: '—'}
-												</td>
-												<td
-													class={cn(
-														'px-3 py-2.5 text-right font-mono text-xs tabular-nums',
-														(dev.media_errors ?? 0) > 0 && 'text-[var(--color-danger)]'
-													)}
-												>
-													{dev.media_errors ?? '—'}
-												</td>
-											{/if}
-										</tr>
-									{/each}
-								</tbody>
-							</table>
-						</div>
-					</MetricPanel>
-				{/if}
-			</div>
+											{dev.reallocated_sectors ?? '—'}
+										</td>
+										<td
+											class={cn(
+												'px-3 py-2.5 text-right font-mono text-xs tabular-nums',
+												(dev.pending_sectors ?? 0) > 0 && 'text-[var(--color-warning)]'
+											)}
+										>
+											{dev.pending_sectors ?? '—'}
+										</td>
+										<td
+											class={cn(
+												'px-3 py-2.5 text-right font-mono text-xs tabular-nums',
+												(dev.uncorrectable_sectors ?? 0) > 0 && 'text-[var(--color-danger)]'
+											)}
+										>
+											{dev.uncorrectable_sectors ?? '—'}
+										</td>
+									{/if}
+									{#if smartIsNvme}
+										<td
+											class={cn(
+												'px-3 py-2.5 text-right font-mono text-xs tabular-nums',
+												(dev.percentage_used ?? 0) >= 90 && 'text-[var(--color-warning)]'
+											)}
+										>
+											{dev.percentage_used != null ? `${dev.percentage_used}%` : '—'}
+										</td>
+										<td
+											class="px-3 py-2.5 text-right font-mono text-xs text-[var(--color-fg-muted)] tabular-nums"
+										>
+											{dev.available_spare_percent != null
+												? `${dev.available_spare_percent}%`
+												: '—'}
+										</td>
+										<td
+											class={cn(
+												'px-3 py-2.5 text-right font-mono text-xs tabular-nums',
+												(dev.media_errors ?? 0) > 0 && 'text-[var(--color-danger)]'
+											)}
+										>
+											{dev.media_errors ?? '—'}
+										</td>
+									{/if}
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+			</MetricPanel>
 		{/if}
 	</div>
-{/if}
+</div>
 
 {#snippet chartSkeleton()}
 	<div class="mb-3 flex gap-4">

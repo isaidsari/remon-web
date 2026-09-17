@@ -1,7 +1,6 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { useServer } from '$lib/server-scope';
 	import type { Component } from 'svelte';
-	import { page } from '$app/state';
 	import { m } from '$lib/paraglide/messages';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
@@ -14,7 +13,6 @@
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
 	import Switch from '$lib/components/ui/Switch.svelte';
-	import { profiles } from '$lib/stores/profiles.svelte';
 	import IconBell from '~icons/lucide/bell';
 	import IconPencil from '~icons/lucide/pencil';
 	import IconTrash from '~icons/lucide/trash-2';
@@ -23,7 +21,6 @@
 	import IconRadio from '~icons/lucide/radio';
 	import IconWebhook from '~icons/lucide/webhook';
 	import IconBellRing from '~icons/lucide/bell-ring';
-	import { connections } from '$lib/stores/connections.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { confirm } from '$lib/stores/confirm.svelte';
 	import { ApiError } from '$lib/api/error';
@@ -36,19 +33,7 @@
 		CreateChannelRequest
 	} from '$lib/types/api';
 
-	let id = $derived(page.params.id ?? '');
-	let profile = $derived(id ? profiles.byId(id) : undefined);
-	let conn = $derived(profile ? connections.connect(profile) : null);
-
-	$effect(() => {
-		if (!conn) return;
-		untrack(() => {
-			conn.ensureSignedIn().catch((e) => {
-				if (e instanceof ApiError)
-					toast.error(m.notifications_toast_signin_failed(), { description: e.userMessage });
-			});
-		});
-	});
+	let { conn } = $derived(useServer());
 
 	interface TestResult {
 		ok: boolean;
@@ -63,7 +48,7 @@
 	let testResults = $state(new Map<number, TestResult>());
 
 	async function fetchAll() {
-		if (!conn?.isAuthenticated) return;
+		if (!conn.isAuthenticated) return;
 		busy = true;
 		try {
 			const res = await conn.client.listChannels();
@@ -77,13 +62,13 @@
 	}
 
 	$effect(() => {
-		if (conn?.isAuthenticated) fetchAll();
+		if (conn.isAuthenticated) fetchAll();
 	});
 
 	async function testChannel(ch: NotificationChannelResponse) {
 		testing = ch.id;
 		try {
-			const res = await conn!.client.testChannel(ch.id);
+			const res = await conn.client.testChannel(ch.id);
 			toast.success(m.notifications_toast_test_sent({ count: res.delivered }));
 			testResults = new Map(testResults).set(ch.id, {
 				ok: true,
@@ -106,7 +91,7 @@
 	async function toggleEnabled(ch: NotificationChannelResponse) {
 		acting = `toggle:${ch.id}`;
 		try {
-			await conn!.client.updateChannel(ch.id, {
+			await conn.client.updateChannel(ch.id, {
 				name: ch.name,
 				enabled: !ch.enabled,
 				config: ch.config,
@@ -131,7 +116,7 @@
 		if (!ok) return;
 		acting = `delete:${ch.id}`;
 		try {
-			await conn!.client.deleteChannel(ch.id);
+			await conn.client.deleteChannel(ch.id);
 			toast.success(m.notifications_toast_deleted({ name: ch.name }));
 			fetchAll();
 		} catch (e) {
@@ -199,7 +184,7 @@
 	}
 
 	async function submitForm() {
-		if (!conn?.isAuthenticated) return;
+		if (!conn.isAuthenticated) return;
 		formBusy = true;
 		try {
 			const req: CreateChannelRequest = {
@@ -273,111 +258,102 @@
 	</span>
 {/snippet}
 
-{#if profile}
-	<div class="px-4 py-6 md:px-8 md:py-8">
-		<PageHeader title={m.notifications_page_title()} subtitle={m.notifications_page_subtitle()}>
-			<Button variant="secondary" size="sm" onclick={fetchAll} loading={busy}>
-				{m.notifications_action_refresh()}
-			</Button>
-			<Button size="sm" onclick={openCreate}>{m.notifications_action_add_channel()}</Button>
-		</PageHeader>
+<div class="px-4 py-6 md:px-8 md:py-8">
+	<PageHeader title={m.notifications_page_title()} subtitle={m.notifications_page_subtitle()}>
+		<Button variant="secondary" size="sm" onclick={fetchAll} loading={busy}>
+			{m.notifications_action_refresh()}
+		</Button>
+		<Button size="sm" onclick={openCreate}>{m.notifications_action_add_channel()}</Button>
+	</PageHeader>
 
-		{#if !conn?.isAuthenticated}
-			<Banner variant="warning" title={m.notifications_banner_not_signed_in_title()}>
-				{m.notifications_banner_not_signed_in_body()}
-			</Banner>
-		{:else if channels.length === 0 && !busy}
-			<EmptyState
-				icon={IconBell}
-				tone="accent"
-				title={m.notifications_empty_title()}
-				description={m.notifications_empty_body()}
-			>
-				<Button onclick={openCreate}>{m.notifications_action_add_channel()}</Button>
-			</EmptyState>
-		{:else}
-			<div class="flex flex-col gap-3">
-				{#each channels as ch (ch.id)}
-					{@const tr = testResults.get(ch.id)}
-					<Card
-						padding="none"
-						class={cn('overflow-hidden transition', !ch.enabled && 'opacity-60')}
-					>
-						<div class="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
-							<div class="flex min-w-0 flex-1 flex-col gap-1">
-								<div class="flex flex-wrap items-center gap-2">
-									<span class="truncate font-medium">{ch.name}</span>
-									{@render typePill(ch.type)}
-									{#if ch.min_severity}
-										<span
-											class={cn(
-												'text-3xs rounded-full px-2 py-0.5 font-mono tracking-wide',
-												ch.min_severity === 'crit'
-													? 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]'
-													: 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]'
-											)}
-										>
-											{m.notifications_min_severity_pill({ severity: ch.min_severity })}
-										</span>
-									{/if}
-								</div>
-								<p class="text-2xs font-mono break-all text-[var(--color-fg-subtle)]">
-									{target(ch)}
-									<span class="ml-2 text-[var(--color-fg-faint)]">
-										{m.notifications_updated_suffix({ when: fmtRelative(ch.updated_at) })}
-									</span>
-								</p>
-								{#if tr}
-									<p
+	{#if channels.length === 0 && !busy}
+		<EmptyState
+			icon={IconBell}
+			tone="accent"
+			title={m.notifications_empty_title()}
+			description={m.notifications_empty_body()}
+		>
+			<Button onclick={openCreate}>{m.notifications_action_add_channel()}</Button>
+		</EmptyState>
+	{:else}
+		<div class="flex flex-col gap-3">
+			{#each channels as ch (ch.id)}
+				{@const tr = testResults.get(ch.id)}
+				<Card padding="none" class={cn('overflow-hidden transition', !ch.enabled && 'opacity-60')}>
+					<div class="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
+						<div class="flex min-w-0 flex-1 flex-col gap-1">
+							<div class="flex flex-wrap items-center gap-2">
+								<span class="truncate font-medium">{ch.name}</span>
+								{@render typePill(ch.type)}
+								{#if ch.min_severity}
+									<span
 										class={cn(
-											'text-2xs mt-1',
-											tr.ok ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'
+											'text-3xs rounded-full px-2 py-0.5 font-mono tracking-wide',
+											ch.min_severity === 'crit'
+												? 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]'
+												: 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]'
 										)}
 									>
-										{tr.ok ? '✓' : '✗'}
-										{tr.message}
-										<span class="ml-1 text-[var(--color-fg-faint)]">{fmtRelative(tr.ts)}</span>
-									</p>
+										{m.notifications_min_severity_pill({ severity: ch.min_severity })}
+									</span>
 								{/if}
 							</div>
-
-							<div class="flex shrink-0 items-center gap-2">
-								<Switch
-									checked={ch.enabled}
-									onchange={() => toggleEnabled(ch)}
-									disabled={acting !== null}
-									label={ch.enabled
-										? m.notifications_action_disable()
-										: m.notifications_action_enable()}
-								/>
-								<Button
-									variant="secondary"
-									size="sm"
-									loading={testing === ch.id}
-									onclick={() => testChannel(ch)}
-									disabled={!ch.enabled || testing !== null}
+							<p class="text-2xs font-mono break-all text-[var(--color-fg-subtle)]">
+								{target(ch)}
+								<span class="ml-2 text-[var(--color-fg-faint)]">
+									{m.notifications_updated_suffix({ when: fmtRelative(ch.updated_at) })}
+								</span>
+							</p>
+							{#if tr}
+								<p
+									class={cn(
+										'text-2xs mt-1',
+										tr.ok ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'
+									)}
 								>
-									{m.notifications_action_test()}
-								</Button>
-								<IconButton label={m.notifications_action_edit()} onclick={() => openEdit(ch)}>
-									<IconPencil class="size-[13px]" stroke-width="2" />
-								</IconButton>
-								<IconButton
-									tone="danger"
-									label={m.notifications_action_delete()}
-									onclick={() => deleteChannel(ch)}
-									loading={acting === `delete:${ch.id}`}
-								>
-									<IconTrash class="size-[13px]" stroke-width="2" />
-								</IconButton>
-							</div>
+									{tr.ok ? '✓' : '✗'}
+									{tr.message}
+									<span class="ml-1 text-[var(--color-fg-faint)]">{fmtRelative(tr.ts)}</span>
+								</p>
+							{/if}
 						</div>
-					</Card>
-				{/each}
-			</div>
-		{/if}
-	</div>
-{/if}
+
+						<div class="flex shrink-0 items-center gap-2">
+							<Switch
+								checked={ch.enabled}
+								onchange={() => toggleEnabled(ch)}
+								disabled={acting !== null}
+								label={ch.enabled
+									? m.notifications_action_disable()
+									: m.notifications_action_enable()}
+							/>
+							<Button
+								variant="secondary"
+								size="sm"
+								loading={testing === ch.id}
+								onclick={() => testChannel(ch)}
+								disabled={!ch.enabled || testing !== null}
+							>
+								{m.notifications_action_test()}
+							</Button>
+							<IconButton label={m.notifications_action_edit()} onclick={() => openEdit(ch)}>
+								<IconPencil class="size-[13px]" stroke-width="2" />
+							</IconButton>
+							<IconButton
+								tone="danger"
+								label={m.notifications_action_delete()}
+								onclick={() => deleteChannel(ch)}
+								loading={acting === `delete:${ch.id}`}
+							>
+								<IconTrash class="size-[13px]" stroke-width="2" />
+							</IconButton>
+						</div>
+					</div>
+				</Card>
+			{/each}
+		</div>
+	{/if}
+</div>
 
 <Modal
 	open={showForm}
