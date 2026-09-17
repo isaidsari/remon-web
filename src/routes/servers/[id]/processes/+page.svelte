@@ -4,6 +4,8 @@
 	import { page } from '$app/state';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import Banner from '$lib/components/ui/Banner.svelte';
+	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
@@ -187,29 +189,25 @@
 
 {#if profile}
 	<div class="px-4 py-6 md:px-8 md:py-8">
-		<header class="mb-5 flex flex-wrap items-center justify-between gap-3">
-			<div class="flex items-baseline gap-3">
-				<h1 class="text-2xl font-semibold tracking-tight">{m.section_processes()}</h1>
-				<span class="text-xs text-[var(--color-fg-muted)] tabular-nums"
-					>{q.trim() ? result.matches + ' / ' : ''}{processes.length}</span
-				>
-			</div>
-			<div class="flex items-center gap-2">
-				<Select
-					value={autoRefresh ? '5s' : 'off'}
-					onchange={(e) => (autoRefresh = e.currentTarget.value !== 'off')}
-					class="w-28"
-				>
-					<option value="off">{m.chart_autorefresh_off()}</option>
-					<option value="5s">5s</option>
-				</Select>
-				<RefreshButton
-					onclick={() => fetchProcesses()}
-					{loading}
-					label={m.processes_action_refresh()}
-				/>
-			</div>
-		</header>
+		<PageHeader
+			title={m.section_processes()}
+			count={q.trim() ? result.matches : processes.length}
+			class="mb-5"
+		>
+			<Select
+				value={autoRefresh ? '5s' : 'off'}
+				onchange={(e) => (autoRefresh = e.currentTarget.value !== 'off')}
+				class="w-28"
+			>
+				<option value="off">{m.chart_autorefresh_off()}</option>
+				<option value="5s">5s</option>
+			</Select>
+			<RefreshButton
+				onclick={() => fetchProcesses()}
+				{loading}
+				label={m.processes_action_refresh()}
+			/>
+		</PageHeader>
 		<Modal
 			open={killTarget !== null}
 			onClose={() => (killTarget = null)}
@@ -258,9 +256,7 @@
 		</Modal>
 
 		{#if !conn?.isAuthenticated}
-			<Card padding="lg"
-				><p class="text-sm text-[var(--color-fg-muted)]">{m.processes_signin_required()}</p></Card
-			>
+			<Banner variant="warning">{m.processes_signin_required()}</Banner>
 		{:else}
 			<div class="mb-3 flex flex-wrap items-center gap-2">
 				<Input

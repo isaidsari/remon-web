@@ -3,7 +3,6 @@
 	import { cpuUsageHistory, cpuUsageStats } from '$lib/charts/cpu-history';
 	import { observedHistory, groupHistory } from '$lib/charts/observed-history';
 	import { page } from '$app/state';
-	import Card from '$lib/components/ui/Card.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import HistoryChart, {
 		type Series,
@@ -11,6 +10,8 @@
 	} from '$lib/components/charts/HistoryChart.svelte';
 	import RangePicker, { type RefreshInterval } from '$lib/components/charts/RangePicker.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import Banner from '$lib/components/ui/Banner.svelte';
+	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import IconHistory from '~icons/lucide/history';
 	import StatStrip from '$lib/components/charts/StatStrip.svelte';
 	import { RANGE_SECONDS, type RangeKey } from '$lib/components/charts/range';
@@ -602,15 +603,7 @@
 
 {#if profile}
 	<div class="px-4 py-6 md:px-8 md:py-8">
-		<header class="mb-6 flex flex-col gap-4 lg:mb-8 lg:flex-row lg:items-start lg:justify-between">
-			<div class="min-w-0">
-				<h1 class="text-2xl font-semibold tracking-tight">
-					{m.section_metrics()}
-				</h1>
-				<p class="mt-1.5 max-w-2xl text-sm leading-6 text-[var(--color-fg-muted)]">
-					{m.metrics_page_subtitle()}
-				</p>
-			</div>
+		<PageHeader title={m.section_metrics()} subtitle={m.metrics_page_subtitle()} class="lg:mb-8">
 			<div class="flex flex-col gap-2 lg:items-end">
 				<div class="flex items-center gap-2">
 					<Button
@@ -653,14 +646,10 @@
 					{/if}
 				</div>
 			</div>
-		</header>
+		</PageHeader>
 
 		{#if !conn?.isAuthenticated}
-			<Card padding="lg" class="border-[var(--color-warning)]/30">
-				<p class="text-sm text-[var(--color-fg-muted)]">
-					{m.metrics_signin_required()}
-				</p>
-			</Card>
+			<Banner variant="warning">{m.metrics_signin_required()}</Banner>
 		{:else}
 			<!-- Cards stretch to their row so every pair lines up; the pairing below
 			     keeps the two cards in a row close in content, so nothing is left

@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import Button from '$lib/components/ui/Button.svelte';
+	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Field from '$lib/components/ui/Field.svelte';
@@ -442,12 +443,11 @@
 
 {#if profile}
 	<div class="mx-auto max-w-3xl px-4 py-8 md:px-8 md:py-10">
-		<header class="mb-8">
-			<h1 class="text-2xl font-semibold tracking-tight">{m.section_settings()}</h1>
-			<p class="mt-1.5 max-w-md text-sm leading-relaxed text-[var(--color-fg-muted)]">
-				{m.settings_page_description()}
-			</p>
-		</header>
+		<PageHeader
+			title={m.section_settings()}
+			subtitle={m.settings_page_description()}
+			class="mb-8"
+		/>
 
 		<Card class="mb-5">
 			<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

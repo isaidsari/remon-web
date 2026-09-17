@@ -2,6 +2,8 @@
 	import { onMount, untrack } from 'svelte';
 	import Field from '$lib/components/ui/Field.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
+	import Select from '$lib/components/ui/Select.svelte';
+	import Switch from '$lib/components/ui/Switch.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import type {
 		AlertRuleDto,
@@ -489,16 +491,15 @@
 		{@const metricDisabledByGate = isDynamicMetricNs && selectorValue === ''}
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 			<Field label={m.alerts_editor_field_resource()}>
-				<select
+				<Select
 					value={builder.namespace}
 					onchange={(e) => selectNamespace((e.currentTarget as HTMLSelectElement).value)}
-					class="text-md h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 focus:border-[var(--color-accent)] focus:outline-none"
 				>
 					<option value="" disabled>{m.alerts_editor_select_resource()}</option>
 					{#each schema?.namespaces ?? [] as ns (ns.name)}
 						<option value={ns.name}>{ns.name}</option>
 					{/each}
-				</select>
+				</Select>
 				{#if currentNamespace}
 					<p class="text-2xs mt-1 leading-relaxed text-[var(--color-fg-muted)]">
 						{currentNamespace.description}
@@ -509,17 +510,16 @@
 			{#if selectorLabel}
 				<Field label={selectorLabel.name}>
 					{#if labelOptions[selectorLabel.name]?.length}
-						<select
+						<Select
 							value={selectorValue}
 							onchange={(e) =>
 								setLabel(selectorLabel!.name, (e.currentTarget as HTMLSelectElement).value)}
-							class="text-md h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 focus:border-[var(--color-accent)] focus:outline-none"
 						>
 							<option value="">{m.alerts_editor_label_pick_one()}</option>
 							{#each labelOptions[selectorLabel.name] as opt (opt)}
 								<option value={opt}>{opt}</option>
 							{/each}
-						</select>
+						</Select>
 					{:else}
 						<Input
 							value={selectorValue}
@@ -533,16 +533,15 @@
 			{:else}
 				<Field label={m.alerts_editor_field_metric()}>
 					{#if currentNamespace?.dynamic_metrics && dynamicMetricOptions.length > 0}
-						<select
+						<Select
 							value={builder.field}
 							onchange={(e) => selectField((e.currentTarget as HTMLSelectElement).value)}
-							class="text-md h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 focus:border-[var(--color-accent)] focus:outline-none"
 						>
 							<option value="" disabled>{m.alerts_editor_select_metric()}</option>
 							{#each dynamicMetricOptions as opt (opt)}
 								<option value={opt}>{opt}</option>
 							{/each}
-						</select>
+						</Select>
 					{:else if currentNamespace?.dynamic_metrics}
 						<Input
 							value={builder.field}
@@ -551,17 +550,16 @@
 							class="font-mono text-xs"
 						/>
 					{:else}
-						<select
+						<Select
 							value={builder.field}
 							disabled={!currentNamespace}
 							onchange={(e) => selectField((e.currentTarget as HTMLSelectElement).value)}
-							class="text-md h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 focus:border-[var(--color-accent)] focus:outline-none disabled:opacity-50"
 						>
 							<option value="" disabled>{m.alerts_editor_select_metric()}</option>
 							{#each currentNamespace?.metrics ?? [] as opt (opt.name)}
 								<option value={opt.name}>{opt.name}{opt.unit ? ` (${opt.unit})` : ''}</option>
 							{/each}
-						</select>
+						</Select>
 					{/if}
 					{#if currentMetric?.description}
 						<p class="text-2xs mt-1 leading-relaxed text-[var(--color-fg-muted)]">
@@ -575,27 +573,23 @@
 		{#if isDynamicMetricNs}
 			<Field label={m.alerts_editor_field_metric()}>
 				{#if metricDisabledByGate}
-					<select
-						disabled
-						class="text-md h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 opacity-50"
-					>
+					<Select disabled>
 						<option
 							>{m.alerts_editor_metric_pick_selector_first({
 								label: selectorLabel?.name ?? ''
 							})}</option
 						>
-					</select>
+					</Select>
 				{:else if dynamicMetricOptions.length > 0}
-					<select
+					<Select
 						value={builder.field}
 						onchange={(e) => selectField((e.currentTarget as HTMLSelectElement).value)}
-						class="text-md h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 focus:border-[var(--color-accent)] focus:outline-none"
 					>
 						<option value="" disabled>{m.alerts_editor_select_metric()}</option>
 						{#each dynamicMetricOptions as opt (opt)}
 							<option value={opt}>{opt}</option>
 						{/each}
-					</select>
+					</Select>
 				{:else}
 					<Input
 						value={builder.field}
@@ -613,16 +607,15 @@
 				<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					{#each dynamicScopeLabels as label (label.name)}
 						<Field label={label.name}>
-							<select
+							<Select
 								value={builder.labels[label.name] ?? ''}
 								onchange={(e) => setLabel(label.name, (e.currentTarget as HTMLSelectElement).value)}
-								class="text-md h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 focus:border-[var(--color-accent)] focus:outline-none"
 							>
 								<option value="">{m.alerts_editor_label_any()}</option>
 								{#each label.values as opt (opt)}
 									<option value={opt}>{opt}</option>
 								{/each}
-							</select>
+							</Select>
 						</Field>
 					{/each}
 				</div>
@@ -634,10 +627,9 @@
 				{#each staticLabelsExcludingSelector as label (label.name)}
 					<Field label={`${label.name}${label.required ? ' *' : ''}`}>
 						{#if labelOptions[label.name]?.length}
-							<select
+							<Select
 								value={builder.labels[label.name] ?? ''}
 								onchange={(e) => setLabel(label.name, (e.currentTarget as HTMLSelectElement).value)}
-								class="text-md h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 focus:border-[var(--color-accent)] focus:outline-none"
 							>
 								<option value=""
 									>{label.required
@@ -647,7 +639,7 @@
 								{#each labelOptions[label.name] as opt (opt)}
 									<option value={opt}>{opt}</option>
 								{/each}
-							</select>
+							</Select>
 						{:else}
 							<Input
 								value={builder.labels[label.name] ?? ''}
@@ -669,16 +661,15 @@
 		{#if windowSupported}
 			<div class="grid grid-cols-1 gap-4 sm:grid-cols-[160px_1fr]">
 				<Field label={m.alerts_editor_field_aggregate()} hint={m.alerts_editor_aggregate_hint()}>
-					<select
+					<Select
 						value={builder.aggregate ?? ''}
 						onchange={(e) => setAggregate((e.currentTarget as HTMLSelectElement).value)}
-						class="text-md h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 focus:border-[var(--color-accent)] focus:outline-none"
 					>
 						<option value="">{m.alerts_editor_aggregate_none()}</option>
 						{#each schema?.aggregates ?? [] as a (a.name)}
 							<option value={a.name}>{a.name} — {a.display}</option>
 						{/each}
-					</select>
+					</Select>
 				</Field>
 				{#if builder.aggregate}
 					<Field label={m.alerts_editor_field_window()} hint={windowHint} error={windowError}>
@@ -697,17 +688,16 @@
 
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-[140px_1fr]">
 			<Field label={m.alerts_editor_field_comparator()}>
-				<select
+				<Select
 					value={builder.comparator}
 					onchange={(e) => {
 						builder = { ...builder, comparator: (e.currentTarget as HTMLSelectElement).value };
 					}}
-					class="text-md h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 focus:border-[var(--color-accent)] focus:outline-none"
 				>
 					{#each schema?.comparators ?? [] as c (c.op)}
 						<option value={c.op}>{c.op}</option>
 					{/each}
-				</select>
+				</Select>
 			</Field>
 			<Field
 				label={currentMetric?.unit
@@ -800,17 +790,18 @@
 
 			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<Field label={m.alerts_form_severity_label()}>
-					<select
-						bind:value={severity}
-						class="text-md h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 focus:border-[var(--color-accent)] focus:outline-none"
-					>
+					<Select bind:value={severity}>
 						<option value="warn">{m.alerts_severity_warn()}</option>
 						<option value="crit">{m.alerts_severity_crit()}</option>
-					</select>
+					</Select>
 				</Field>
 				<Field label={m.alerts_form_enabled_label()}>
-					<label class="flex h-9 cursor-pointer items-center gap-2 text-sm">
-						<input type="checkbox" bind:checked={enabled} class="accent-[var(--color-accent)]" />
+					<label class="flex h-9 cursor-pointer items-center gap-3 text-sm">
+						<Switch
+							checked={enabled}
+							onchange={(v) => (enabled = v)}
+							label={m.alerts_form_run_on_every_tick()}
+						/>
 						<span class="text-[var(--color-fg-muted)]">{m.alerts_form_run_on_every_tick()}</span>
 					</label>
 				</Field>

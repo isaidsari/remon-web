@@ -2,6 +2,7 @@
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Field from '$lib/components/ui/Field.svelte';
+	import Select from '$lib/components/ui/Select.svelte';
 	import type { Connection } from '$lib/stores/connections.svelte';
 	import type { WidgetConfig, WidgetKind } from '$lib/types/dashboard';
 	import type { ProbeListEntry, ProbeMetric } from '$lib/types/api';
@@ -182,9 +183,6 @@
 		{ value: 'disk-detail', label: () => m.dashboard_widget_disk_detail() },
 		{ value: 'alert-timeline', label: () => m.dashboard_widget_alert_timeline() }
 	];
-
-	const selectCls =
-		'w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface-2)] px-2.5 py-2 text-sm text-[var(--color-fg)] focus:border-[var(--color-accent)] focus:outline-none';
 </script>
 
 <Modal
@@ -195,21 +193,16 @@
 >
 	<div class="flex flex-col gap-4">
 		<Field label={m.dashboard_field_kind()}>
-			<select
-				class={selectCls}
-				value={kind}
-				onchange={(e) => (kind = e.currentTarget.value as WidgetKind)}
-			>
+			<Select value={kind} onchange={(e) => (kind = e.currentTarget.value as WidgetKind)}>
 				{#each KIND_OPTS as o (o.value)}
 					<option value={o.value}>{o.label()}</option>
 				{/each}
-			</select>
+			</Select>
 		</Field>
 
 		{#if kind === 'live-kpi'}
 			<Field label={m.dashboard_field_source()}>
-				<select
-					class={selectCls}
+				<Select
 					value={liveSource}
 					onchange={(e) => (liveSource = e.currentTarget.value as typeof liveSource)}
 				>
@@ -217,12 +210,11 @@
 					<option value="memory">{m.overview_metric_memory_label()}</option>
 					<option value="disk-io">{m.overview_metric_disk_io_label()}</option>
 					<option value="network">{m.overview_metric_network_label()}</option>
-				</select>
+				</Select>
 			</Field>
 		{:else if kind === 'history-chart'}
 			<Field label={m.dashboard_field_resource()}>
-				<select
-					class={selectCls}
+				<Select
 					value={histResource}
 					onchange={(e) => (histResource = e.currentTarget.value as typeof histResource)}
 				>
@@ -230,23 +222,21 @@
 					<option value="memory">{m.metrics_card_memory_title()}</option>
 					<option value="disk">{m.metrics_card_disk_title()}</option>
 					<option value="network">{m.metrics_card_network_title()}</option>
-				</select>
+				</Select>
 			</Field>
 			<Field label={m.dashboard_field_range()}>
-				<select
-					class={selectCls}
+				<Select
 					value={histRange}
 					onchange={(e) => (histRange = e.currentTarget.value as typeof histRange)}
 				>
 					{#each ['30m', '1h', '6h', '24h', '7d', '30d'] as r (r)}
 						<option value={r}>{r}</option>
 					{/each}
-				</select>
+				</Select>
 			</Field>
 		{:else if kind === 'status-summary'}
 			<Field label={m.dashboard_field_summary()}>
-				<select
-					class={selectCls}
+				<Select
 					value={summary}
 					onchange={(e) => (summary = e.currentTarget.value as typeof summary)}
 				>
@@ -254,12 +244,11 @@
 					<option value="services">{m.section_services()}</option>
 					<option value="containers">{m.section_containers()}</option>
 					<option value="alerts">{m.section_alerts()}</option>
-				</select>
+				</Select>
 			</Field>
 		{:else if kind === 'probe-metric'}
 			<Field label={m.dashboard_field_probe()}>
-				<select
-					class={selectCls}
+				<Select
 					value={probe}
 					onchange={(e) => onProbeChange(e.currentTarget.value)}
 					disabled={probesLoading}
@@ -270,12 +259,11 @@
 					{#each probeList as p (p.name)}
 						<option value={p.name}>{p.name}</option>
 					{/each}
-				</select>
+				</Select>
 			</Field>
 			{#if probe}
 				<Field label={m.dashboard_field_metric()}>
-					<select
-						class={selectCls}
+					<Select
 						value={metric}
 						onchange={(e) => onMetricChange(e.currentTarget.value)}
 						disabled={metricsLoading}
@@ -287,32 +275,24 @@
 							{@const unit = metricsForProbe.find((mt) => mt.name === name)?.unit}
 							<option value={name}>{name}{unit ? ` (${unit})` : ''}</option>
 						{/each}
-					</select>
+					</Select>
 				</Field>
 			{/if}
 			{#if showLabelPicker}
 				<Field label={m.dashboard_field_label()} hint={m.dashboard_label_auto_hint()}>
-					<select
-						class={selectCls}
-						value={labelSel}
-						onchange={(e) => (labelSel = e.currentTarget.value)}
-					>
+					<Select value={labelSel} onchange={(e) => (labelSel = e.currentTarget.value)}>
 						<option value="">{m.dashboard_label_auto()}</option>
 						{#each labelOptions as o (o.key)}
 							<option value={o.key}>{o.label}</option>
 						{/each}
-					</select>
+					</Select>
 				</Field>
 			{/if}
 			<Field label={m.dashboard_field_viz()}>
-				<select
-					class={selectCls}
-					value={viz}
-					onchange={(e) => (viz = e.currentTarget.value as typeof viz)}
-				>
+				<Select value={viz} onchange={(e) => (viz = e.currentTarget.value as typeof viz)}>
 					<option value="chart">{m.dashboard_viz_chart()}</option>
 					<option value="scalar">{m.dashboard_viz_scalar()}</option>
-				</select>
+				</Select>
 			</Field>
 		{/if}
 	</div>
