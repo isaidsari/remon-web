@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import Banner from '$lib/components/ui/Banner.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Field from '$lib/components/ui/Field.svelte';
@@ -173,21 +174,15 @@
 </script>
 
 <div class="px-4 py-6 md:px-8 md:py-8">
-	<header class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-		<div>
-			<h1 class="text-2xl font-semibold tracking-tight">{m.incidents_title()}</h1>
-			<p class="mt-1.5 text-sm text-[var(--color-fg-muted)]">{m.incidents_subtitle()}</p>
-		</div>
-		<div class="flex shrink-0 items-center gap-2">
-			<Button variant="secondary" size="sm" onclick={() => fetchList(true)} loading={busy}>
-				{m.alerts_action_refresh()}
-			</Button>
-			<Button variant="primary" size="sm" onclick={openCapture} disabled={!conn?.isAuthenticated}>
-				<IconCamera class="size-4" stroke-width="2" />
-				{m.incidents_capture()}
-			</Button>
-		</div>
-	</header>
+	<PageHeader title={m.incidents_title()} subtitle={m.incidents_subtitle()}>
+		<Button variant="secondary" size="sm" onclick={() => fetchList(true)} loading={busy}>
+			{m.alerts_action_refresh()}
+		</Button>
+		<Button variant="primary" size="sm" onclick={openCapture} disabled={!conn?.isAuthenticated}>
+			<IconCamera class="size-4" stroke-width="2" />
+			{m.incidents_capture()}
+		</Button>
+	</PageHeader>
 
 	{#if !conn?.isAuthenticated}
 		<Banner variant="warning" title={m.alerts_banner_not_signed_in_title()}>

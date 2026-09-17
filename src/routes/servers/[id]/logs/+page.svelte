@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import Banner from '$lib/components/ui/Banner.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
@@ -127,16 +128,12 @@
 </script>
 
 <div class="px-4 py-6 md:px-8 md:py-8">
-	<header class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-		<div>
-			<h1 class="text-2xl font-semibold tracking-tight">{m.logs_title()}</h1>
-			<p class="mt-1.5 text-sm text-[var(--color-fg-muted)]">{m.logs_subtitle()}</p>
-		</div>
+	<PageHeader title={m.logs_title()} subtitle={m.logs_subtitle()}>
 		<!-- Wrapped, not passed by reference: the click event would land in `background`. -->
 		<Button variant="secondary" size="sm" onclick={() => fetchData()} loading={busy}>
 			{m.alerts_action_refresh()}
 		</Button>
-	</header>
+	</PageHeader>
 
 	{#if !conn?.isAuthenticated}
 		<Banner variant="warning" title={m.alerts_banner_not_signed_in_title()}>

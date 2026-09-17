@@ -3,6 +3,8 @@
 	import { page } from '$app/state';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import Banner from '$lib/components/ui/Banner.svelte';
+	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Field from '$lib/components/ui/Field.svelte';
 	import { profiles } from '$lib/stores/profiles.svelte';
@@ -351,10 +353,9 @@
 
 {#if profile}
 	<div class="px-4 py-6 md:px-8 md:py-8">
-		<header class="mb-6 flex items-end justify-between gap-4">
-			<div>
-				<h1 class="text-2xl font-semibold tracking-tight">{m.section_config()}</h1>
-				<p class="mt-1.5 max-w-md text-sm leading-relaxed text-[var(--color-fg-muted)]">
+		<PageHeader title={m.section_config()}>
+			{#snippet meta()}
+				<p class="max-w-md leading-relaxed">
 					{m.config_page_description_prefix()} <span class="font-mono text-xs">server_config</span>
 					{m.config_page_description_suffix()}
 				</p>
@@ -363,16 +364,12 @@
 						{m.config_updated_at({ time: fmtRelative(original.updated_at) })}
 					</p>
 				{/if}
-			</div>
+			{/snippet}
 			<Button variant="ghost" size="sm" onclick={load} loading={busy}>{m.config_reload()}</Button>
-		</header>
+		</PageHeader>
 
 		{#if !conn?.isAuthenticated}
-			<Card padding="lg" class="border-[var(--color-warning)]/30">
-				<p class="text-sm text-[var(--color-fg-muted)]">
-					{m.config_signin_required()}
-				</p>
-			</Card>
+			<Banner variant="warning">{m.config_signin_required()}</Banner>
 		{:else if form && original}
 			<form
 				class="flex flex-col gap-5"
