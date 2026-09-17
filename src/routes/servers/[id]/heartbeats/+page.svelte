@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
-	import { page } from '$app/state';
+	import { useServer } from '$lib/server-scope';
 	import Button from '$lib/components/ui/Button.svelte';
 	import DataTable from '$lib/components/ui/DataTable.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
@@ -14,8 +13,6 @@
 	import Select from '$lib/components/ui/Select.svelte';
 	import RefreshButton from '$lib/components/ui/RefreshButton.svelte';
 	import HeartbeatStateBadge from '$lib/components/heartbeats/HeartbeatStateBadge.svelte';
-	import { profiles } from '$lib/stores/profiles.svelte';
-	import { connections } from '$lib/stores/connections.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { confirm } from '$lib/stores/confirm.svelte';
 	import { ApiError } from '$lib/api/error';
@@ -27,19 +24,7 @@
 	import IconPlus from '~icons/lucide/plus';
 	import type { HeartbeatCheckDto, HeartbeatPingDto, UpdateHeartbeatRequest } from '$lib/types/api';
 
-	let id = $derived(page.params.id ?? '');
-	let profile = $derived(id ? profiles.byId(id) : undefined);
-	let conn = $derived(profile ? connections.connect(profile) : null);
-
-	$effect(() => {
-		if (!conn) return;
-		untrack(() => {
-			conn.ensureSignedIn().catch((e) => {
-				if (e instanceof ApiError)
-					toast.error(m.heartbeats_toast_signin_failed(), { description: e.userMessage });
-			});
-		});
-	});
+	let { profile, conn } = $derived(useServer());
 
 	let checks = $state<HeartbeatCheckDto[]>([]);
 	let loading = $state(false);
@@ -71,7 +56,7 @@
 	});
 
 	async function fetchList(bust = false) {
-		if (!conn?.isAuthenticated) return;
+		if (!conn.isAuthenticated) return;
 		loading = true;
 		error = null;
 		try {
@@ -91,11 +76,11 @@
 	}
 
 	$effect(() => {
-		if (conn?.isAuthenticated) fetchList();
+		if (conn.isAuthenticated) fetchList();
 	});
 
 	$effect(() => {
-		if (!autoRefresh || !conn?.isAuthenticated) return;
+		if (!autoRefresh || !conn.isAuthenticated) return;
 		const t = setInterval(() => fetchList(true), 10_000);
 		return () => clearInterval(t);
 	});
@@ -109,7 +94,7 @@
 		if (!bust && pingsCache[checkId]) return;
 		pingsLoading[checkId] = true;
 		try {
-			const res = await conn!.client.heartbeatPings(checkId, PINGS_PAGE);
+			const res = await conn.client.heartbeatPings(checkId, PINGS_PAGE);
 			pingsCache[checkId] = res.pings;
 		} catch (e) {
 			pingsCache[checkId] = { error: e instanceof ApiError ? e.userMessage : String(e) };
@@ -179,7 +164,7 @@
 	);
 
 	async function saveEditor() {
-		if (!conn?.isAuthenticated || !editorValid) return;
+		if (!conn.isAuthenticated || !editorValid) return;
 		saving = true;
 		try {
 			if (editing) {
@@ -241,7 +226,7 @@
 			confirmLabel: m.heartbeats_rotate(),
 			variant: 'warning'
 		});
-		if (!ok || !conn?.isAuthenticated) return;
+		if (!ok || !conn.isAuthenticated) return;
 		try {
 			const res = await conn.client.rotateHeartbeatSlug(c.id);
 			openSlugModal(res.ping_path);
@@ -272,7 +257,7 @@
 	}
 
 	async function submitPause() {
-		if (!pauseTarget || !conn?.isAuthenticated) return;
+		if (!pauseTarget || !conn.isAuthenticated) return;
 		pausing = true;
 		try {
 			await conn.client.pauseHeartbeat(pauseTarget.id, {
@@ -291,7 +276,7 @@
 	}
 
 	async function resume(c: HeartbeatCheckDto) {
-		if (!conn?.isAuthenticated) return;
+		if (!conn.isAuthenticated) return;
 		try {
 			await conn.client.resumeHeartbeat(c.id);
 			toast.success(m.heartbeats_resumed_toast({ name: c.name }));
@@ -309,7 +294,7 @@
 			confirmLabel: m.heartbeats_delete(),
 			variant: 'danger'
 		});
-		if (!ok || !conn?.isAuthenticated) return;
+		if (!ok || !conn.isAuthenticated) return;
 		try {
 			await conn.client.deleteHeartbeat(c.id);
 			toast.success(m.heartbeats_deleted_toast({ name: c.name }));
@@ -322,403 +307,399 @@
 	}
 </script>
 
-{#if profile}
-	<div class="px-4 py-6 md:px-8 md:py-8">
-		<PageHeader title={m.section_heartbeats()} count={checks.length}>
-			{#snippet meta()}
-				{m.heartbeats_page_description()}
-				{#if lastFetched}
-					<span class="ml-2 text-xs text-[var(--color-fg-subtle)]">
-						{m.heartbeats_updated_at({ time: new Date(lastFetched).toLocaleTimeString() })}
-					</span>
-				{/if}
+<div class="px-4 py-6 md:px-8 md:py-8">
+	<PageHeader title={m.section_heartbeats()} count={checks.length}>
+		{#snippet meta()}
+			{m.heartbeats_page_description()}
+			{#if lastFetched}
+				<span class="ml-2 text-xs text-[var(--color-fg-subtle)]">
+					{m.heartbeats_updated_at({ time: new Date(lastFetched).toLocaleTimeString() })}
+				</span>
+			{/if}
+		{/snippet}
+		<Select
+			value={autoRefresh ? '10s' : 'off'}
+			onchange={(e) => (autoRefresh = e.currentTarget.value !== 'off')}
+			class="w-28"
+		>
+			<option value="off">{m.chart_autorefresh_off()}</option>
+			<option value="10s">10s</option>
+		</Select>
+		<RefreshButton onclick={() => fetchList(true)} {loading} label={m.heartbeats_refresh()} />
+		<Button variant="primary" size="sm" onclick={openCreate}>
+			<IconPlus class="size-[14px]" stroke-width="2.25" />
+			{m.heartbeats_new_check()}
+		</Button>
+	</PageHeader>
+
+	{#if error}
+		<ErrorState {error} onRetry={() => fetchList(true)} />
+	{:else if checks.length === 0 && !loading}
+		<EmptyState description={m.heartbeats_empty()} />
+	{:else}
+		<div class="mb-3 flex">
+			<Input
+				placeholder={m.heartbeats_filter_placeholder()}
+				bind:value={q}
+				class="w-full sm:max-w-xs"
+			/>
+		</div>
+
+		<DataTable loading={loading && checks.length === 0}>
+			{#snippet head()}
+				<th>{m.heartbeats_table_name()}</th>
+				<th>{m.heartbeats_table_state()}</th>
+				<th>{m.heartbeats_table_period()}</th>
+				<th>{m.heartbeats_table_last_ping()}</th>
+				<th>{m.heartbeats_table_deadline()}</th>
+				<th class="w-8" aria-hidden="true"></th>
 			{/snippet}
-			<Select
-				value={autoRefresh ? '10s' : 'off'}
-				onchange={(e) => (autoRefresh = e.currentTarget.value !== 'off')}
-				class="w-28"
-			>
-				<option value="off">{m.chart_autorefresh_off()}</option>
-				<option value="10s">10s</option>
-			</Select>
-			<RefreshButton onclick={() => fetchList(true)} {loading} label={m.heartbeats_refresh()} />
-			<Button variant="primary" size="sm" onclick={openCreate}>
-				<IconPlus class="size-[14px]" stroke-width="2.25" />
-				{m.heartbeats_new_check()}
-			</Button>
-		</PageHeader>
-
-		{#if !conn?.isAuthenticated}
-			<Banner variant="warning">{m.heartbeats_signin_required()}</Banner>
-		{:else if error}
-			<ErrorState {error} onRetry={() => fetchList(true)} />
-		{:else if checks.length === 0 && !loading}
-			<EmptyState description={m.heartbeats_empty()} />
-		{:else}
-			<div class="mb-3 flex">
-				<Input
-					placeholder={m.heartbeats_filter_placeholder()}
-					bind:value={q}
-					class="w-full sm:max-w-xs"
-				/>
-			</div>
-
-			<DataTable loading={loading && checks.length === 0}>
-				{#snippet head()}
-					<th>{m.heartbeats_table_name()}</th>
-					<th>{m.heartbeats_table_state()}</th>
-					<th>{m.heartbeats_table_period()}</th>
-					<th>{m.heartbeats_table_last_ping()}</th>
-					<th>{m.heartbeats_table_deadline()}</th>
-					<th class="w-8" aria-hidden="true"></th>
-				{/snippet}
-				{#each filtered as c (c.id)}
-					{@const isOpen = expanded === c.id}
-					<tr
-						class={cn(
-							'cursor-pointer',
-							(c.state === 'down' || c.state === 'failed') && 'danger',
-							!c.enabled && 'muted'
-						)}
-						onclick={() => toggleExpand(c.id)}
-					>
-						<td>
-							<div class="flex flex-col">
-								<span class="font-mono text-xs font-medium break-all text-[var(--color-fg)]">
-									{c.name}
+			{#each filtered as c (c.id)}
+				{@const isOpen = expanded === c.id}
+				<tr
+					class={cn(
+						'cursor-pointer',
+						(c.state === 'down' || c.state === 'failed') && 'danger',
+						!c.enabled && 'muted'
+					)}
+					onclick={() => toggleExpand(c.id)}
+				>
+					<td>
+						<div class="flex flex-col">
+							<span class="font-mono text-xs font-medium break-all text-[var(--color-fg)]">
+								{c.name}
+							</span>
+							{#if c.description}
+								<span class="text-2xs text-[var(--color-fg-subtle)] md:max-w-[28ch] md:truncate">
+									{c.description}
 								</span>
-								{#if c.description}
-									<span class="text-2xs text-[var(--color-fg-subtle)] md:max-w-[28ch] md:truncate">
-										{c.description}
-									</span>
-								{/if}
+							{/if}
+						</div>
+					</td>
+					<td data-label={m.heartbeats_table_state()}>
+						<HeartbeatStateBadge state={c.state} />
+					</td>
+					<td
+						data-label={m.heartbeats_table_period()}
+						class="font-mono text-xs text-[var(--color-fg-muted)]"
+					>
+						<span>
+							{fmtDuration(c.period_secs)}
+							<span class="text-[var(--color-fg-subtle)]">+ {fmtDuration(c.grace_secs)}</span>
+						</span>
+					</td>
+					<td
+						data-label={m.heartbeats_table_last_ping()}
+						class="text-xs text-[var(--color-fg-muted)]"
+					>
+						{c.last_ping_at ? fmtRelative(c.last_ping_at) : m.heartbeats_never_pinged()}
+					</td>
+					<td
+						data-label={m.heartbeats_table_deadline()}
+						class="text-xs text-[var(--color-fg-muted)]"
+					>
+						{deadlineText(c)}
+					</td>
+					<td class="hidden text-[var(--color-fg-subtle)] md:table-cell">
+						<IconChevronDown class={cn('size-4 transition-transform', isOpen && 'rotate-180')} />
+					</td>
+				</tr>
+				{#if isOpen}
+					{@const pings = pingsCache[c.id]}
+					<tr class="detail">
+						<td colspan="6" class="px-4 py-4">
+							<div class="flex flex-col gap-4">
+								<div
+									class="grid grid-cols-2 gap-x-6 gap-y-2 text-xs text-[var(--color-fg-muted)] sm:grid-cols-3 lg:grid-cols-4"
+								>
+									<div>
+										<span
+											class="text-3xs block tracking-wide text-[var(--color-fg-subtle)] uppercase"
+										>
+											{m.heartbeats_meta_last_fail()}
+										</span>
+										{c.last_fail_at ? fmtRelative(c.last_fail_at) : '—'}
+									</div>
+									<div>
+										<span
+											class="text-3xs block tracking-wide text-[var(--color-fg-subtle)] uppercase"
+										>
+											{m.heartbeats_meta_created()}
+										</span>
+										{fmtRelative(c.created_at)}
+									</div>
+									{#if c.paused}
+										<div>
+											<span
+												class="text-3xs block tracking-wide text-[var(--color-fg-subtle)] uppercase"
+											>
+												{m.heartbeats_meta_pause()}
+											</span>
+											{c.pause_origin ?? '—'}
+											{#if c.pause_reason}
+												· {c.pause_reason}
+											{/if}
+										</div>
+									{/if}
+								</div>
+
+								<div class="flex flex-wrap items-center gap-2">
+									{#if c.paused}
+										<Button variant="secondary" size="sm" onclick={() => resume(c)}>
+											{m.heartbeats_action_resume()}
+										</Button>
+									{:else}
+										<Button variant="secondary" size="sm" onclick={() => openPause(c)}>
+											{m.heartbeats_action_pause()}
+										</Button>
+									{/if}
+									<Button variant="secondary" size="sm" onclick={() => openEdit(c)}>
+										{m.heartbeats_action_edit()}
+									</Button>
+									<Button variant="secondary" size="sm" onclick={() => rotateSlug(c)}>
+										{m.heartbeats_action_rotate()}
+									</Button>
+									<Button variant="ghost" size="sm" onclick={() => remove(c)}>
+										<span class="text-[var(--color-danger)]">{m.heartbeats_delete()}</span>
+									</Button>
+								</div>
+
+								<div>
+									<h3
+										class="text-2xs mb-2 font-medium tracking-wide text-[var(--color-fg-subtle)] uppercase"
+									>
+										{m.heartbeats_pings_title()}
+									</h3>
+									{#if pingsLoading[c.id]}
+										<p class="text-xs text-[var(--color-fg-subtle)]">…</p>
+									{:else if pings && 'error' in pings}
+										<p class="text-xs text-[var(--color-danger)]">{pings.error}</p>
+									{:else if pings && pings.length === 0}
+										<p class="text-xs text-[var(--color-fg-subtle)]">
+											{m.heartbeats_pings_empty()}
+										</p>
+									{:else if pings}
+										<div class="overflow-x-auto">
+											<table class="w-full text-xs">
+												<thead
+													class="text-3xs text-left tracking-wide text-[var(--color-fg-subtle)] uppercase"
+												>
+													<tr>
+														<th class="py-1 pr-4 font-medium">{m.heartbeats_ping_kind()}</th>
+														<th class="py-1 pr-4 font-medium">{m.heartbeats_ping_time()}</th>
+														<th class="py-1 pr-4 font-medium">{m.heartbeats_ping_exit()}</th>
+														<th class="py-1 pr-4 font-medium">{m.heartbeats_ping_source()}</th>
+														<th class="py-1 font-medium">{m.heartbeats_ping_body()}</th>
+													</tr>
+												</thead>
+												<tbody class="text-[var(--color-fg-muted)]">
+													{#each pings as p, i (i)}
+														<tr class="border-t border-[var(--color-border)]/60">
+															<td class="py-1.5 pr-4">
+																<span
+																	class={cn(
+																		'text-2xs font-mono',
+																		p.kind === 'success' && 'text-[var(--color-success)]',
+																		p.kind === 'fail' && 'text-[var(--color-danger)]',
+																		(p.kind === 'pause' || p.kind === 'resume') &&
+																			'text-[var(--color-info)]'
+																	)}
+																>
+																	{p.kind}
+																</span>
+															</td>
+															<td class="py-1.5 pr-4 whitespace-nowrap">
+																{fmtRelative(p.received_at)}
+															</td>
+															<td class="py-1.5 pr-4 font-mono">
+																{p.exit_code ?? '—'}
+															</td>
+															<td class="text-2xs py-1.5 pr-4 font-mono">
+																{p.source_ip ?? '—'}
+															</td>
+															<td
+																class="text-2xs max-w-[36ch] truncate py-1.5 font-mono"
+																title={p.body ?? ''}
+															>
+																{p.body ?? '—'}
+															</td>
+														</tr>
+													{/each}
+												</tbody>
+											</table>
+										</div>
+									{/if}
+								</div>
 							</div>
 						</td>
-						<td data-label={m.heartbeats_table_state()}>
-							<HeartbeatStateBadge state={c.state} />
-						</td>
-						<td
-							data-label={m.heartbeats_table_period()}
-							class="font-mono text-xs text-[var(--color-fg-muted)]"
-						>
-							<span>
-								{fmtDuration(c.period_secs)}
-								<span class="text-[var(--color-fg-subtle)]">+ {fmtDuration(c.grace_secs)}</span>
-							</span>
-						</td>
-						<td
-							data-label={m.heartbeats_table_last_ping()}
-							class="text-xs text-[var(--color-fg-muted)]"
-						>
-							{c.last_ping_at ? fmtRelative(c.last_ping_at) : m.heartbeats_never_pinged()}
-						</td>
-						<td
-							data-label={m.heartbeats_table_deadline()}
-							class="text-xs text-[var(--color-fg-muted)]"
-						>
-							{deadlineText(c)}
-						</td>
-						<td class="hidden text-[var(--color-fg-subtle)] md:table-cell">
-							<IconChevronDown class={cn('size-4 transition-transform', isOpen && 'rotate-180')} />
-						</td>
 					</tr>
-					{#if isOpen}
-						{@const pings = pingsCache[c.id]}
-						<tr class="detail">
-							<td colspan="6" class="px-4 py-4">
-								<div class="flex flex-col gap-4">
-									<div
-										class="grid grid-cols-2 gap-x-6 gap-y-2 text-xs text-[var(--color-fg-muted)] sm:grid-cols-3 lg:grid-cols-4"
-									>
-										<div>
-											<span
-												class="text-3xs block tracking-wide text-[var(--color-fg-subtle)] uppercase"
-											>
-												{m.heartbeats_meta_last_fail()}
-											</span>
-											{c.last_fail_at ? fmtRelative(c.last_fail_at) : '—'}
-										</div>
-										<div>
-											<span
-												class="text-3xs block tracking-wide text-[var(--color-fg-subtle)] uppercase"
-											>
-												{m.heartbeats_meta_created()}
-											</span>
-											{fmtRelative(c.created_at)}
-										</div>
-										{#if c.paused}
-											<div>
-												<span
-													class="text-3xs block tracking-wide text-[var(--color-fg-subtle)] uppercase"
-												>
-													{m.heartbeats_meta_pause()}
-												</span>
-												{c.pause_origin ?? '—'}
-												{#if c.pause_reason}
-													· {c.pause_reason}
-												{/if}
-											</div>
-										{/if}
-									</div>
+				{/if}
+			{/each}
+		</DataTable>
+	{/if}
+</div>
 
-									<div class="flex flex-wrap items-center gap-2">
-										{#if c.paused}
-											<Button variant="secondary" size="sm" onclick={() => resume(c)}>
-												{m.heartbeats_action_resume()}
-											</Button>
-										{:else}
-											<Button variant="secondary" size="sm" onclick={() => openPause(c)}>
-												{m.heartbeats_action_pause()}
-											</Button>
-										{/if}
-										<Button variant="secondary" size="sm" onclick={() => openEdit(c)}>
-											{m.heartbeats_action_edit()}
-										</Button>
-										<Button variant="secondary" size="sm" onclick={() => rotateSlug(c)}>
-											{m.heartbeats_action_rotate()}
-										</Button>
-										<Button variant="ghost" size="sm" onclick={() => remove(c)}>
-											<span class="text-[var(--color-danger)]">{m.heartbeats_delete()}</span>
-										</Button>
-									</div>
-
-									<div>
-										<h3
-											class="text-2xs mb-2 font-medium tracking-wide text-[var(--color-fg-subtle)] uppercase"
-										>
-											{m.heartbeats_pings_title()}
-										</h3>
-										{#if pingsLoading[c.id]}
-											<p class="text-xs text-[var(--color-fg-subtle)]">…</p>
-										{:else if pings && 'error' in pings}
-											<p class="text-xs text-[var(--color-danger)]">{pings.error}</p>
-										{:else if pings && pings.length === 0}
-											<p class="text-xs text-[var(--color-fg-subtle)]">
-												{m.heartbeats_pings_empty()}
-											</p>
-										{:else if pings}
-											<div class="overflow-x-auto">
-												<table class="w-full text-xs">
-													<thead
-														class="text-3xs text-left tracking-wide text-[var(--color-fg-subtle)] uppercase"
-													>
-														<tr>
-															<th class="py-1 pr-4 font-medium">{m.heartbeats_ping_kind()}</th>
-															<th class="py-1 pr-4 font-medium">{m.heartbeats_ping_time()}</th>
-															<th class="py-1 pr-4 font-medium">{m.heartbeats_ping_exit()}</th>
-															<th class="py-1 pr-4 font-medium">{m.heartbeats_ping_source()}</th>
-															<th class="py-1 font-medium">{m.heartbeats_ping_body()}</th>
-														</tr>
-													</thead>
-													<tbody class="text-[var(--color-fg-muted)]">
-														{#each pings as p, i (i)}
-															<tr class="border-t border-[var(--color-border)]/60">
-																<td class="py-1.5 pr-4">
-																	<span
-																		class={cn(
-																			'text-2xs font-mono',
-																			p.kind === 'success' && 'text-[var(--color-success)]',
-																			p.kind === 'fail' && 'text-[var(--color-danger)]',
-																			(p.kind === 'pause' || p.kind === 'resume') &&
-																				'text-[var(--color-info)]'
-																		)}
-																	>
-																		{p.kind}
-																	</span>
-																</td>
-																<td class="py-1.5 pr-4 whitespace-nowrap">
-																	{fmtRelative(p.received_at)}
-																</td>
-																<td class="py-1.5 pr-4 font-mono">
-																	{p.exit_code ?? '—'}
-																</td>
-																<td class="text-2xs py-1.5 pr-4 font-mono">
-																	{p.source_ip ?? '—'}
-																</td>
-																<td
-																	class="text-2xs max-w-[36ch] truncate py-1.5 font-mono"
-																	title={p.body ?? ''}
-																>
-																	{p.body ?? '—'}
-																</td>
-															</tr>
-														{/each}
-													</tbody>
-												</table>
-											</div>
-										{/if}
-									</div>
-								</div>
-							</td>
-						</tr>
-					{/if}
-				{/each}
-			</DataTable>
+<Modal
+	open={editorOpen}
+	onClose={() => (editorOpen = false)}
+	title={editing ? m.heartbeats_edit_title() : m.heartbeats_create_title()}
+	width="md"
+>
+	<div class="flex flex-col gap-4">
+		<Field label={m.heartbeats_field_name()} required hint={m.heartbeats_field_name_hint()}>
+			<Input bind:value={fName} placeholder="db-backup" disabled={saving} />
+		</Field>
+		<Field label={m.heartbeats_field_description()}>
+			<Input bind:value={fDescription} disabled={saving} />
+		</Field>
+		<div class="grid grid-cols-2 gap-3">
+			<Field
+				label={m.heartbeats_field_period()}
+				required
+				hint={periodSecs !== null ? fmtDuration(periodSecs) : undefined}
+				error={fPeriod && (periodSecs === null || periodSecs < 10)
+					? m.heartbeats_field_period_error()
+					: null}
+			>
+				<Input bind:value={fPeriod} inputmode="numeric" disabled={saving} />
+			</Field>
+			<Field
+				label={m.heartbeats_field_grace()}
+				hint={graceSecs !== null ? fmtDuration(graceSecs) : undefined}
+			>
+				<Input bind:value={fGrace} inputmode="numeric" disabled={saving} />
+			</Field>
+		</div>
+		{#if editing}
+			<label class="text-md flex items-center gap-2 text-[var(--color-fg-muted)]">
+				<input
+					type="checkbox"
+					bind:checked={fEnabled}
+					disabled={saving}
+					class="accent-[var(--color-accent)]"
+				/>
+				{m.heartbeats_field_enabled()}
+			</label>
+		{:else}
+			<label class="text-md flex items-start gap-2 text-[var(--color-fg-muted)]">
+				<input
+					type="checkbox"
+					bind:checked={fCreatePaused}
+					disabled={saving}
+					class="mt-0.5 accent-[var(--color-accent)]"
+				/>
+				<span>
+					{m.heartbeats_field_create_paused()}
+					<span class="text-2xs block text-[var(--color-fg-subtle)]">
+						{m.heartbeats_field_create_paused_hint()}
+					</span>
+				</span>
+			</label>
 		{/if}
 	</div>
-
-	<Modal
-		open={editorOpen}
-		onClose={() => (editorOpen = false)}
-		title={editing ? m.heartbeats_edit_title() : m.heartbeats_create_title()}
-		width="md"
-	>
-		<div class="flex flex-col gap-4">
-			<Field label={m.heartbeats_field_name()} required hint={m.heartbeats_field_name_hint()}>
-				<Input bind:value={fName} placeholder="db-backup" disabled={saving} />
-			</Field>
-			<Field label={m.heartbeats_field_description()}>
-				<Input bind:value={fDescription} disabled={saving} />
-			</Field>
-			<div class="grid grid-cols-2 gap-3">
-				<Field
-					label={m.heartbeats_field_period()}
-					required
-					hint={periodSecs !== null ? fmtDuration(periodSecs) : undefined}
-					error={fPeriod && (periodSecs === null || periodSecs < 10)
-						? m.heartbeats_field_period_error()
-						: null}
-				>
-					<Input bind:value={fPeriod} inputmode="numeric" disabled={saving} />
-				</Field>
-				<Field
-					label={m.heartbeats_field_grace()}
-					hint={graceSecs !== null ? fmtDuration(graceSecs) : undefined}
-				>
-					<Input bind:value={fGrace} inputmode="numeric" disabled={saving} />
-				</Field>
-			</div>
-			{#if editing}
-				<label class="text-md flex items-center gap-2 text-[var(--color-fg-muted)]">
-					<input
-						type="checkbox"
-						bind:checked={fEnabled}
-						disabled={saving}
-						class="accent-[var(--color-accent)]"
-					/>
-					{m.heartbeats_field_enabled()}
-				</label>
-			{:else}
-				<label class="text-md flex items-start gap-2 text-[var(--color-fg-muted)]">
-					<input
-						type="checkbox"
-						bind:checked={fCreatePaused}
-						disabled={saving}
-						class="mt-0.5 accent-[var(--color-accent)]"
-					/>
-					<span>
-						{m.heartbeats_field_create_paused()}
-						<span class="text-2xs block text-[var(--color-fg-subtle)]">
-							{m.heartbeats_field_create_paused_hint()}
-						</span>
-					</span>
-				</label>
-			{/if}
+	{#snippet footer()}
+		<div class="flex justify-end gap-2">
+			<Button variant="secondary" size="sm" onclick={() => (editorOpen = false)}>
+				{m.heartbeats_cancel()}
+			</Button>
+			<Button
+				variant="primary"
+				size="sm"
+				onclick={saveEditor}
+				loading={saving}
+				disabled={!editorValid}
+			>
+				{editing ? m.heartbeats_save() : m.heartbeats_create()}
+			</Button>
 		</div>
-		{#snippet footer()}
-			<div class="flex justify-end gap-2">
-				<Button variant="secondary" size="sm" onclick={() => (editorOpen = false)}>
-					{m.heartbeats_cancel()}
-				</Button>
-				<Button
-					variant="primary"
-					size="sm"
-					onclick={saveEditor}
-					loading={saving}
-					disabled={!editorValid}
+	{/snippet}
+</Modal>
+
+<Modal
+	open={slugOpen}
+	onClose={() => (slugOpen = false)}
+	title={m.heartbeats_slug_title()}
+	width="lg"
+	closeOnBackdrop={false}
+>
+	<div class="flex flex-col gap-4">
+		<Banner variant="warning" title={m.heartbeats_slug_warning_title()}>
+			{m.heartbeats_slug_warning()}
+		</Banner>
+		<Field label={m.heartbeats_slug_ping_url()}>
+			<div class="flex items-center gap-2">
+				<code
+					class="min-w-0 flex-1 truncate rounded-[var(--radius-input)] bg-[var(--color-surface-2)] px-3 py-2 font-mono text-xs shadow-[inset_0_0_0_1px_var(--color-border)]"
 				>
-					{editing ? m.heartbeats_save() : m.heartbeats_create()}
+					{slugUrl}
+				</code>
+				<Button variant="secondary" size="sm" onclick={() => copyText(slugUrl)}>
+					<IconCopy class="size-[13px]" />
+					{m.heartbeats_copy()}
 				</Button>
 			</div>
-		{/snippet}
-	</Modal>
-
-	<Modal
-		open={slugOpen}
-		onClose={() => (slugOpen = false)}
-		title={m.heartbeats_slug_title()}
-		width="lg"
-		closeOnBackdrop={false}
-	>
-		<div class="flex flex-col gap-4">
-			<Banner variant="warning" title={m.heartbeats_slug_warning_title()}>
-				{m.heartbeats_slug_warning()}
-			</Banner>
-			<Field label={m.heartbeats_slug_ping_url()}>
-				<div class="flex items-center gap-2">
-					<code
-						class="min-w-0 flex-1 truncate rounded-[var(--radius-input)] bg-[var(--color-surface-2)] px-3 py-2 font-mono text-xs shadow-[inset_0_0_0_1px_var(--color-border)]"
-					>
-						{slugUrl}
-					</code>
-					<Button variant="secondary" size="sm" onclick={() => copyText(slugUrl)}>
-						<IconCopy class="size-[13px]" />
-						{m.heartbeats_copy()}
-					</Button>
-				</div>
-			</Field>
-			<Field label={m.heartbeats_slug_curl_label()} hint={m.heartbeats_slug_curl_hint()}>
-				<div class="flex items-center gap-2">
-					<code
-						class="min-w-0 flex-1 truncate rounded-[var(--radius-input)] bg-[var(--color-surface-2)] px-3 py-2 font-mono text-xs text-[var(--color-fg-muted)] shadow-[inset_0_0_0_1px_var(--color-border)]"
-					>
-						curl -fsS {slugUrl}
-					</code>
-					<Button variant="secondary" size="sm" onclick={() => copyText(`curl -fsS ${slugUrl}`)}>
-						<IconCopy class="size-[13px]" />
-						{m.heartbeats_copy()}
-					</Button>
-				</div>
-			</Field>
+		</Field>
+		<Field label={m.heartbeats_slug_curl_label()} hint={m.heartbeats_slug_curl_hint()}>
+			<div class="flex items-center gap-2">
+				<code
+					class="min-w-0 flex-1 truncate rounded-[var(--radius-input)] bg-[var(--color-surface-2)] px-3 py-2 font-mono text-xs text-[var(--color-fg-muted)] shadow-[inset_0_0_0_1px_var(--color-border)]"
+				>
+					curl -fsS {slugUrl}
+				</code>
+				<Button variant="secondary" size="sm" onclick={() => copyText(`curl -fsS ${slugUrl}`)}>
+					<IconCopy class="size-[13px]" />
+					{m.heartbeats_copy()}
+				</Button>
+			</div>
+		</Field>
+	</div>
+	{#snippet footer()}
+		<div class="flex justify-end">
+			<Button variant="primary" size="sm" onclick={() => (slugOpen = false)}>
+				{m.heartbeats_slug_done()}
+			</Button>
 		</div>
-		{#snippet footer()}
-			<div class="flex justify-end">
-				<Button variant="primary" size="sm" onclick={() => (slugOpen = false)}>
-					{m.heartbeats_slug_done()}
-				</Button>
-			</div>
-		{/snippet}
-	</Modal>
+	{/snippet}
+</Modal>
 
-	<Modal
-		open={pauseOpen}
-		onClose={() => (pauseOpen = false)}
-		title={m.heartbeats_pause_title({ name: pauseTarget?.name ?? '' })}
-		description={m.heartbeats_pause_description()}
-		width="md"
-	>
-		<div class="flex flex-col gap-4">
-			<Field label={m.heartbeats_pause_for()}>
-				<SegmentedControl
-					value={pausePreset}
-					options={[
-						{ value: '1h', label: '1h' },
-						{ value: '3h', label: '3h' },
-						{ value: '24h', label: '24h' },
-						{ value: '7d', label: '7d' },
-						{ value: 'inf', label: m.heartbeats_pause_indefinite() }
-					]}
-					onSelect={(v) => (pausePreset = v)}
-					ariaLabel={m.heartbeats_pause_for()}
-				/>
-			</Field>
-			<Field label={m.heartbeats_pause_reason()}>
-				<Input
-					bind:value={pauseReason}
-					placeholder={m.heartbeats_pause_reason_placeholder()}
-					disabled={pausing}
-				/>
-			</Field>
+<Modal
+	open={pauseOpen}
+	onClose={() => (pauseOpen = false)}
+	title={m.heartbeats_pause_title({ name: pauseTarget?.name ?? '' })}
+	description={m.heartbeats_pause_description()}
+	width="md"
+>
+	<div class="flex flex-col gap-4">
+		<Field label={m.heartbeats_pause_for()}>
+			<SegmentedControl
+				value={pausePreset}
+				options={[
+					{ value: '1h', label: '1h' },
+					{ value: '3h', label: '3h' },
+					{ value: '24h', label: '24h' },
+					{ value: '7d', label: '7d' },
+					{ value: 'inf', label: m.heartbeats_pause_indefinite() }
+				]}
+				onSelect={(v) => (pausePreset = v)}
+				ariaLabel={m.heartbeats_pause_for()}
+			/>
+		</Field>
+		<Field label={m.heartbeats_pause_reason()}>
+			<Input
+				bind:value={pauseReason}
+				placeholder={m.heartbeats_pause_reason_placeholder()}
+				disabled={pausing}
+			/>
+		</Field>
+	</div>
+	{#snippet footer()}
+		<div class="flex justify-end gap-2">
+			<Button variant="secondary" size="sm" onclick={() => (pauseOpen = false)}>
+				{m.heartbeats_cancel()}
+			</Button>
+			<Button variant="primary" size="sm" onclick={submitPause} loading={pausing}>
+				{m.heartbeats_pause_confirm()}
+			</Button>
 		</div>
-		{#snippet footer()}
-			<div class="flex justify-end gap-2">
-				<Button variant="secondary" size="sm" onclick={() => (pauseOpen = false)}>
-					{m.heartbeats_cancel()}
-				</Button>
-				<Button variant="primary" size="sm" onclick={submitPause} loading={pausing}>
-					{m.heartbeats_pause_confirm()}
-				</Button>
-			</div>
-		{/snippet}
-	</Modal>
-{/if}
+	{/snippet}
+</Modal>

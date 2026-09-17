@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { page } from '$app/state';
+	import { useServer } from '$lib/server-scope';
 	import Button from '$lib/components/ui/Button.svelte';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
@@ -55,9 +55,7 @@
 	import IconBellOff from '~icons/lucide/bell-off';
 	import IconPower from '~icons/lucide/power';
 
-	let id = $derived(page.params.id ?? '');
-	let profile = $derived(id ? profiles.byId(id) : undefined);
-	let conn = $derived(profile ? connections.connect(profile) : null);
+	let { id, profile, conn } = $derived(useServer());
 	let now = $state(Date.now());
 
 	$effect(() => {
@@ -107,7 +105,7 @@
 			variant: 'danger'
 		});
 		if (!ok) return;
-		await conn?.logout();
+		await conn.logout();
 		await profiles.remove(profile.id);
 		toast.success(m.servers_remove_toast_success());
 		goto('/servers', { replaceState: true });
@@ -133,7 +131,7 @@
 		changeLocale(next); // reloads
 	}
 
-	let serverDesc = $derived(conn?.systemInfo?.data?.description);
+	let serverDesc = $derived(conn.systemInfo?.data?.description);
 	let serverVersion = $derived(serverDesc?.version);
 	let serverMode = $derived(serverDesc?.build_mode);
 	let serverBuiltAt = $derived(serverDesc?.built_at);
@@ -163,7 +161,7 @@
 	let editingName = $state('');
 
 	async function fetchSessions() {
-		if (!conn?.isAuthenticated) return;
+		if (!conn.isAuthenticated) return;
 		sessionsLoading = true;
 		sessionsError = null;
 		try {
@@ -177,7 +175,7 @@
 	}
 
 	$effect(() => {
-		if (conn?.isAuthenticated) void fetchSessions();
+		if (conn.isAuthenticated) void fetchSessions();
 	});
 
 	function startRename(s: SessionInfo) {
@@ -193,7 +191,7 @@
 			return;
 		}
 		try {
-			await conn!.client.renameSession(id, next);
+			await conn.client.renameSession(id, next);
 			editingId = null;
 			toast.success(m.settings_toast_renamed());
 			await fetchSessions();
@@ -243,7 +241,7 @@
 	});
 
 	async function enablePush() {
-		if (!conn?.isAuthenticated) return;
+		if (!conn.isAuthenticated) return;
 		pushBusy = true;
 		try {
 			// Best-effort: tell the previous owner to drop its row. Unreachable is
@@ -279,7 +277,7 @@
 	}
 
 	async function disablePush() {
-		if (!conn?.isAuthenticated) return;
+		if (!conn.isAuthenticated) return;
 		pushBusy = true;
 		try {
 			// Both steps needed: skipping either leaves a stale subscription on relay or server.
@@ -424,11 +422,11 @@
 		});
 		if (!ok) return;
 		try {
-			await conn!.client.revokeSession(s.id);
+			await conn.client.revokeSession(s.id);
 			toast.success(m.settings_toast_revoked());
 			if (s.is_current) {
 				// jti gone server-side; local logout so the layout guard redirects cleanly.
-				await conn?.logout();
+				await conn.logout();
 				goto('/servers', { replaceState: true });
 			} else {
 				await fetchSessions();
@@ -441,467 +439,457 @@
 	}
 </script>
 
-{#if profile}
-	<div class="mx-auto max-w-3xl px-4 py-8 md:px-8 md:py-10">
-		<PageHeader
-			title={m.section_settings()}
-			subtitle={m.settings_page_description()}
-			class="mb-8"
-		/>
+<div class="mx-auto max-w-3xl px-4 py-8 md:px-8 md:py-10">
+	<PageHeader title={m.section_settings()} subtitle={m.settings_page_description()} class="mb-8" />
 
-		<Card class="mb-5">
-			<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-				<div class="min-w-0">
-					<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">
-						{m.settings_session_eyebrow()}
-					</p>
-					<div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-						{#if conn && conn.isAuthenticated}
-							<StatusDot status="connected" label={m.settings_session_authenticated()} />
-							<span class="text-sm text-[var(--color-fg-muted)]">
-								{m.settings_session_expires_in()}
-								<span class="font-mono text-[var(--color-fg)]">{fmtSeconds(secondsToExpiry)}</span>
-							</span>
-						{:else if conn?.status === 'authenticating'}
-							<StatusDot status="unknown" label={m.settings_session_signing_in()} />
-						{:else if conn?.status === 'error'}
-							<StatusDot status="offline" label={m.settings_session_signed_out()} />
-							{#if conn.error}
-								<span class="text-sm text-[var(--color-danger)]">{conn.error.userMessage}</span>
-							{/if}
-						{:else}
-							<StatusDot status="unknown" label={m.settings_session_idle()} />
+	<Card class="mb-5">
+		<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+			<div class="min-w-0">
+				<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">
+					{m.settings_session_eyebrow()}
+				</p>
+				<div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+					{#if conn.isAuthenticated}
+						<StatusDot status="connected" label={m.settings_session_authenticated()} />
+						<span class="text-sm text-[var(--color-fg-muted)]">
+							{m.settings_session_expires_in()}
+							<span class="font-mono text-[var(--color-fg)]">{fmtSeconds(secondsToExpiry)}</span>
+						</span>
+					{:else if conn.status === 'authenticating'}
+						<StatusDot status="unknown" label={m.settings_session_signing_in()} />
+					{:else if conn.status === 'error'}
+						<StatusDot status="offline" label={m.settings_session_signed_out()} />
+						{#if conn.error}
+							<span class="text-sm text-[var(--color-danger)]">{conn.error.userMessage}</span>
 						{/if}
-					</div>
-				</div>
-				<div class="flex items-center gap-2 sm:shrink-0">
-					{#if conn?.isAuthenticated}
-						<Button variant="secondary" size="sm" onclick={refreshNow}
-							>{m.settings_action_refresh()}</Button
-						>
-						<Button variant="ghost" size="sm" onclick={signOut}
-							>{m.settings_action_signout()}</Button
-						>
 					{:else}
-						<Button size="sm" onclick={signIn} loading={conn?.status === 'authenticating'}>
-							{m.settings_action_signin()}
-						</Button>
+						<StatusDot status="unknown" label={m.settings_session_idle()} />
 					{/if}
 				</div>
 			</div>
-		</Card>
+			<div class="flex items-center gap-2 sm:shrink-0">
+				{#if conn.isAuthenticated}
+					<Button variant="secondary" size="sm" onclick={refreshNow}
+						>{m.settings_action_refresh()}</Button
+					>
+					<Button variant="ghost" size="sm" onclick={signOut}>{m.settings_action_signout()}</Button>
+				{:else}
+					<Button size="sm" onclick={signIn} loading={conn.status === 'authenticating'}>
+						{m.settings_action_signin()}
+					</Button>
+				{/if}
+			</div>
+		</div>
+	</Card>
 
-		<Card padding="md" class="mb-5">
-			<p class="mb-3 text-xs tracking-wide text-[var(--color-fg-muted)]">
-				{m.settings_pairing_eyebrow()}
+	<Card padding="md" class="mb-5">
+		<p class="mb-3 text-xs tracking-wide text-[var(--color-fg-muted)]">
+			{m.settings_pairing_eyebrow()}
+		</p>
+		<dl class="grid gap-3 text-sm sm:grid-cols-[140px_1fr]">
+			<dt class="text-[var(--color-fg-muted)]">{m.settings_pairing_display_name()}</dt>
+			<dd class="text-[var(--color-fg)]">{profile.name}</dd>
+			<dt class="text-[var(--color-fg-muted)]">{m.settings_pairing_base_url()}</dt>
+			<dd class="font-mono break-all text-[var(--color-fg)]">{profile.baseUrl}</dd>
+			<dt class="text-[var(--color-fg-muted)]">{m.settings_pairing_device_id()}</dt>
+			<dd class="font-mono break-all text-[var(--color-fg)]">{profile.deviceId}</dd>
+			<dt class="text-[var(--color-fg-muted)]">{m.settings_pairing_paired_at()}</dt>
+			<dd class="text-[var(--color-fg)]">{new Date(profile.createdAt).toLocaleString()}</dd>
+		</dl>
+	</Card>
+
+	<Card padding="md" class="mb-5">
+		<div class="mb-3 flex items-baseline justify-between gap-3">
+			<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">
+				{m.settings_devices_eyebrow()}
 			</p>
-			<dl class="grid gap-3 text-sm sm:grid-cols-[140px_1fr]">
-				<dt class="text-[var(--color-fg-muted)]">{m.settings_pairing_display_name()}</dt>
-				<dd class="text-[var(--color-fg)]">{profile.name}</dd>
-				<dt class="text-[var(--color-fg-muted)]">{m.settings_pairing_base_url()}</dt>
-				<dd class="font-mono break-all text-[var(--color-fg)]">{profile.baseUrl}</dd>
-				<dt class="text-[var(--color-fg-muted)]">{m.settings_pairing_device_id()}</dt>
-				<dd class="font-mono break-all text-[var(--color-fg)]">{profile.deviceId}</dd>
-				<dt class="text-[var(--color-fg-muted)]">{m.settings_pairing_paired_at()}</dt>
-				<dd class="text-[var(--color-fg)]">{new Date(profile.createdAt).toLocaleString()}</dd>
-			</dl>
-		</Card>
+			<button
+				type="button"
+				onclick={fetchSessions}
+				disabled={sessionsLoading}
+				class="text-2xs inline-flex items-center gap-1 text-[var(--color-fg-subtle)] transition hover:text-[var(--color-fg)] disabled:opacity-50"
+				title={m.settings_devices_refresh_title()}
+			>
+				<IconRefreshCw
+					class={cn('size-[11px]', sessionsLoading && 'animate-spin')}
+					stroke-width="2.25"
+				/>
+				{m.settings_devices_refresh()}
+			</button>
+		</div>
+		<p class="mb-3 max-w-md text-xs text-[var(--color-fg-muted)]">
+			{m.settings_devices_description()}
+		</p>
 
-		<Card padding="md" class="mb-5">
-			<div class="mb-3 flex items-baseline justify-between gap-3">
-				<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">
-					{m.settings_devices_eyebrow()}
+		{#if sessionsError}
+			<p class="text-xs text-[var(--color-danger)]">{sessionsError}</p>
+		{:else if sessionsLoading && sessions.length === 0}
+			<p class="text-xs text-[var(--color-fg-subtle)]">{m.settings_devices_loading()}</p>
+		{:else if sessions.length === 0}
+			<p class="text-xs text-[var(--color-fg-subtle)]">{m.settings_devices_empty()}</p>
+		{:else}
+			<ul class="-mx-2 flex flex-col">
+				{#each sessions as s (s.id)}
+					<li
+						class={cn(
+							'group flex items-center gap-3 rounded-md px-2 py-2.5 transition-colors',
+							'hover:bg-[var(--color-surface-2)]/40',
+							s.is_current && 'bg-[var(--color-accent)]/5'
+						)}
+					>
+						<div class="min-w-0 flex-1">
+							<div class="flex items-center gap-2">
+								{#if editingId === s.id}
+									<Input
+										bind:value={editingName}
+										onblur={() => commitRename(s.id)}
+										onkeydown={(e: KeyboardEvent) => {
+											if (e.key === 'Enter') {
+												e.preventDefault();
+												void commitRename(s.id);
+											} else if (e.key === 'Escape') {
+												editingId = null;
+											}
+										}}
+										class="text-md h-7 w-48"
+									/>
+								{:else}
+									<button
+										type="button"
+										onclick={() => startRename(s)}
+										class="truncate text-sm font-medium text-[var(--color-fg)] transition hover:text-[var(--color-accent)]"
+										title={m.settings_devices_rename_title()}
+									>
+										{s.name}
+									</button>
+								{/if}
+								{#if s.is_current}
+									<span
+										class="text-3xs rounded bg-[var(--color-accent)]/15 px-1.5 py-0.5 font-mono tracking-wide text-[var(--color-accent)]"
+									>
+										{m.settings_devices_this_device()}
+									</span>
+								{/if}
+								{#if !s.is_active}
+									<span
+										class="text-3xs rounded bg-[var(--color-fg-subtle)]/15 px-1.5 py-0.5 font-mono tracking-wide text-[var(--color-fg-subtle)]"
+									>
+										{m.settings_devices_inactive()}
+									</span>
+								{/if}
+							</div>
+							<p
+								class="text-2xs mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[var(--color-fg-subtle)]"
+							>
+								<span>{m.settings_devices_last_seen({ time: fmtRelative(s.last_seen) })}</span>
+								{#if s.last_ip}
+									<span class="text-[var(--color-fg-faint)]" aria-hidden="true">·</span>
+									<span class="font-mono">{s.last_ip}</span>
+								{/if}
+								<span class="text-[var(--color-fg-faint)]" aria-hidden="true">·</span>
+								<span>
+									{s.active_sessions === 1
+										? m.settings_devices_live_sessions_one()
+										: m.settings_devices_live_sessions_other({ count: s.active_sessions })}
+								</span>
+							</p>
+						</div>
+						<button
+							type="button"
+							onclick={() => revokeSession(s)}
+							class="shrink-0 rounded-md px-2 py-1 text-xs text-[var(--color-fg-subtle)] opacity-60 transition group-hover:opacity-100 hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger)] hover:opacity-100"
+						>
+							{m.settings_devices_revoke()}
+						</button>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</Card>
+
+	<Card padding="md" class="mb-5">
+		<div class="mb-3 flex items-baseline justify-between gap-3">
+			<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">
+				{m.settings_push_eyebrow()}
+			</p>
+			{#if pushSupported}
+				<span
+					class={cn(
+						'text-2xs',
+						pushState === 'this'
+							? 'text-[var(--color-success)]'
+							: pushState === 'other'
+								? 'text-[var(--color-warning)]'
+								: 'text-[var(--color-fg-subtle)]'
+					)}
+				>
+					{pushState === 'this'
+						? m.settings_push_status_enabled()
+						: pushState === 'other'
+							? m.settings_push_status_other()
+							: m.settings_push_status_disabled()}
+				</span>
+			{/if}
+		</div>
+		<p class="mb-3 max-w-md text-xs text-[var(--color-fg-muted)]">
+			{m.settings_push_description()}
+		</p>
+
+		{#if !pushSupported}
+			<p class="text-xs text-[var(--color-fg-subtle)]">
+				{m.settings_push_unsupported()}
+			</p>
+		{:else if pushPermission === 'denied'}
+			<p class="text-xs text-[var(--color-warning)]">
+				{m.settings_push_blocked()}
+			</p>
+		{:else}
+			{#if pushState === 'other'}
+				<p class="mb-3 max-w-md text-xs text-[var(--color-warning)]">
+					{pushOtherName
+						? m.settings_push_other_body_named({ name: pushOtherName })
+						: m.settings_push_other_body_unknown()}
 				</p>
+			{/if}
+			<Button
+				variant={pushState === 'this' ? 'secondary' : 'primary'}
+				size="sm"
+				onclick={pushState === 'this' ? disablePush : enablePush}
+				loading={pushBusy}
+			>
+				{#if pushState === 'this'}
+					<IconBellOff class="size-[13px]" stroke-width="2" />
+					{m.settings_push_disable()}
+				{:else if pushState === 'other'}
+					<IconBellRing class="size-[13px]" stroke-width="2" />
+					{m.settings_push_action_switch()}
+				{:else}
+					<IconBellRing class="size-[13px]" stroke-width="2" />
+					{m.settings_push_enable()}
+				{/if}
+			</Button>
+		{/if}
+	</Card>
+
+	<Card padding="md" class="mb-5">
+		<div class="mb-3 flex items-baseline justify-between gap-3">
+			<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">
+				{m.settings_autounlock_eyebrow()}
+			</p>
+			<div class="flex items-center gap-2">
+				<span
+					class={cn(
+						'text-2xs',
+						vault.isTrusted ? 'text-[var(--color-success)]' : 'text-[var(--color-fg-subtle)]'
+					)}
+				>
+					{vault.isTrusted ? m.settings_autounlock_status_on() : m.settings_autounlock_status_off()}
+				</span>
+				<span class="text-2xs text-[var(--color-fg-faint)]" aria-hidden="true">·</span>
+				<span class="text-2xs text-[var(--color-fg-subtle)]">
+					{m.settings_applies_to_all()}
+				</span>
+			</div>
+		</div>
+		<p class="mb-3 max-w-md text-xs text-[var(--color-fg-muted)]">
+			{m.settings_autounlock_description()}
+		</p>
+		{#if vault.isTrusted}
+			<Button variant="secondary" size="sm" onclick={disableAutoUnlock}>
+				{m.settings_autounlock_disable()}
+			</Button>
+		{:else}
+			<Button variant="primary" size="sm" onclick={openAutoUnlockModal}>
+				{m.settings_autounlock_enable()}
+			</Button>
+		{/if}
+	</Card>
+
+	<Card padding="md" class="mb-5">
+		<div class="mb-3 flex items-baseline justify-between">
+			<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">
+				{m.settings_appearance_eyebrow()}
+			</p>
+			<span class="text-2xs text-[var(--color-fg-subtle)]">
+				{m.settings_applies_to_all()}
+			</span>
+		</div>
+		<p class="mb-3 max-w-md text-xs text-[var(--color-fg-muted)]">
+			{m.settings_appearance_description_prefix()}
+			<span class="font-mono">{m.settings_theme_auto()}</span>
+			{m.settings_appearance_description_suffix()}
+		</p>
+		<div
+			class="inline-flex items-center rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-0.5"
+		>
+			{@render themeBtn('auto', m.settings_theme_auto(), IconMonitor)}
+			{@render themeBtn('light', m.settings_theme_light(), IconSun)}
+			{@render themeBtn('dark', m.settings_theme_dark(), IconMoon)}
+		</div>
+	</Card>
+
+	<Card padding="md" class="mb-5">
+		<div class="mb-3 flex items-baseline justify-between">
+			<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">
+				{m.settings_accent_eyebrow()}
+			</p>
+			{#if profile.accent}
 				<button
 					type="button"
-					onclick={fetchSessions}
-					disabled={sessionsLoading}
-					class="text-2xs inline-flex items-center gap-1 text-[var(--color-fg-subtle)] transition hover:text-[var(--color-fg)] disabled:opacity-50"
-					title={m.settings_devices_refresh_title()}
+					onclick={() => setAccent(null)}
+					class="text-2xs inline-flex items-center gap-1 text-[var(--color-fg-subtle)] transition hover:text-[var(--color-fg)]"
+					title={m.settings_accent_reset_title()}
 				>
-					<IconRefreshCw
-						class={cn('size-[11px]', sessionsLoading && 'animate-spin')}
-						stroke-width="2.25"
-					/>
-					{m.settings_devices_refresh()}
+					<IconRotateCcw class="size-[11px]" stroke-width="2.25" />
+					{m.settings_accent_reset()}
 				</button>
-			</div>
-			<p class="mb-3 max-w-md text-xs text-[var(--color-fg-muted)]">
-				{m.settings_devices_description()}
-			</p>
-
-			{#if sessionsError}
-				<p class="text-xs text-[var(--color-danger)]">{sessionsError}</p>
-			{:else if sessionsLoading && sessions.length === 0}
-				<p class="text-xs text-[var(--color-fg-subtle)]">{m.settings_devices_loading()}</p>
-			{:else if sessions.length === 0}
-				<p class="text-xs text-[var(--color-fg-subtle)]">{m.settings_devices_empty()}</p>
-			{:else}
-				<ul class="-mx-2 flex flex-col">
-					{#each sessions as s (s.id)}
-						<li
-							class={cn(
-								'group flex items-center gap-3 rounded-md px-2 py-2.5 transition-colors',
-								'hover:bg-[var(--color-surface-2)]/40',
-								s.is_current && 'bg-[var(--color-accent)]/5'
-							)}
-						>
-							<div class="min-w-0 flex-1">
-								<div class="flex items-center gap-2">
-									{#if editingId === s.id}
-										<Input
-											bind:value={editingName}
-											onblur={() => commitRename(s.id)}
-											onkeydown={(e: KeyboardEvent) => {
-												if (e.key === 'Enter') {
-													e.preventDefault();
-													void commitRename(s.id);
-												} else if (e.key === 'Escape') {
-													editingId = null;
-												}
-											}}
-											class="text-md h-7 w-48"
-										/>
-									{:else}
-										<button
-											type="button"
-											onclick={() => startRename(s)}
-											class="truncate text-sm font-medium text-[var(--color-fg)] transition hover:text-[var(--color-accent)]"
-											title={m.settings_devices_rename_title()}
-										>
-											{s.name}
-										</button>
-									{/if}
-									{#if s.is_current}
-										<span
-											class="text-3xs rounded bg-[var(--color-accent)]/15 px-1.5 py-0.5 font-mono tracking-wide text-[var(--color-accent)]"
-										>
-											{m.settings_devices_this_device()}
-										</span>
-									{/if}
-									{#if !s.is_active}
-										<span
-											class="text-3xs rounded bg-[var(--color-fg-subtle)]/15 px-1.5 py-0.5 font-mono tracking-wide text-[var(--color-fg-subtle)]"
-										>
-											{m.settings_devices_inactive()}
-										</span>
-									{/if}
-								</div>
-								<p
-									class="text-2xs mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[var(--color-fg-subtle)]"
-								>
-									<span>{m.settings_devices_last_seen({ time: fmtRelative(s.last_seen) })}</span>
-									{#if s.last_ip}
-										<span class="text-[var(--color-fg-faint)]" aria-hidden="true">·</span>
-										<span class="font-mono">{s.last_ip}</span>
-									{/if}
-									<span class="text-[var(--color-fg-faint)]" aria-hidden="true">·</span>
-									<span>
-										{s.active_sessions === 1
-											? m.settings_devices_live_sessions_one()
-											: m.settings_devices_live_sessions_other({ count: s.active_sessions })}
-									</span>
-								</p>
-							</div>
-							<button
-								type="button"
-								onclick={() => revokeSession(s)}
-								class="shrink-0 rounded-md px-2 py-1 text-xs text-[var(--color-fg-subtle)] opacity-60 transition group-hover:opacity-100 hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger)] hover:opacity-100"
-							>
-								{m.settings_devices_revoke()}
-							</button>
-						</li>
-					{/each}
-				</ul>
 			{/if}
-		</Card>
+		</div>
+		<p class="mb-3 max-w-md text-xs text-[var(--color-fg-muted)]">
+			{m.settings_accent_description()}
+		</p>
 
-		<Card padding="md" class="mb-5">
-			<div class="mb-3 flex items-baseline justify-between gap-3">
-				<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">
-					{m.settings_push_eyebrow()}
-				</p>
-				{#if pushSupported}
-					<span
-						class={cn(
-							'text-2xs',
-							pushState === 'this'
-								? 'text-[var(--color-success)]'
-								: pushState === 'other'
-									? 'text-[var(--color-warning)]'
-									: 'text-[var(--color-fg-subtle)]'
-						)}
-					>
-						{pushState === 'this'
-							? m.settings_push_status_enabled()
-							: pushState === 'other'
-								? m.settings_push_status_other()
-								: m.settings_push_status_disabled()}
-					</span>
-				{/if}
-			</div>
-			<p class="mb-3 max-w-md text-xs text-[var(--color-fg-muted)]">
-				{m.settings_push_description()}
-			</p>
-
-			{#if !pushSupported}
-				<p class="text-xs text-[var(--color-fg-subtle)]">
-					{m.settings_push_unsupported()}
-				</p>
-			{:else if pushPermission === 'denied'}
-				<p class="text-xs text-[var(--color-warning)]">
-					{m.settings_push_blocked()}
-				</p>
-			{:else}
-				{#if pushState === 'other'}
-					<p class="mb-3 max-w-md text-xs text-[var(--color-warning)]">
-						{pushOtherName
-							? m.settings_push_other_body_named({ name: pushOtherName })
-							: m.settings_push_other_body_unknown()}
-					</p>
-				{/if}
-				<Button
-					variant={pushState === 'this' ? 'secondary' : 'primary'}
-					size="sm"
-					onclick={pushState === 'this' ? disablePush : enablePush}
-					loading={pushBusy}
+		<div class="flex flex-wrap gap-2">
+			{#each ACCENT_PRESETS as p (p.hex)}
+				{@const active = (profile.accent ?? DEFAULT_ACCENT).toLowerCase() === p.hex.toLowerCase()}
+				<button
+					type="button"
+					onclick={() => setAccent(p.hex)}
+					class={cn(
+						'group relative grid size-8 place-items-center rounded-full transition',
+						active && 'ring-2 ring-offset-2 ring-offset-[var(--color-surface)]'
+					)}
+					style="background: {p.hex}; --tw-ring-color: {p.hex}"
+					title={p.name}
+					aria-label={p.name}
 				>
-					{#if pushState === 'this'}
-						<IconBellOff class="size-[13px]" stroke-width="2" />
-						{m.settings_push_disable()}
-					{:else if pushState === 'other'}
-						<IconBellRing class="size-[13px]" stroke-width="2" />
-						{m.settings_push_action_switch()}
-					{:else}
-						<IconBellRing class="size-[13px]" stroke-width="2" />
-						{m.settings_push_enable()}
+					{#if active}
+						<IconCheck class="size-4 text-white drop-shadow" stroke-width="3" />
 					{/if}
-				</Button>
-			{/if}
-		</Card>
+				</button>
+			{/each}
+		</div>
 
-		<Card padding="md" class="mb-5">
-			<div class="mb-3 flex items-baseline justify-between gap-3">
-				<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">
-					{m.settings_autounlock_eyebrow()}
-				</p>
-				<div class="flex items-center gap-2">
-					<span
-						class={cn(
-							'text-2xs',
-							vault.isTrusted ? 'text-[var(--color-success)]' : 'text-[var(--color-fg-subtle)]'
-						)}
-					>
-						{vault.isTrusted
-							? m.settings_autounlock_status_on()
-							: m.settings_autounlock_status_off()}
-					</span>
-					<span class="text-2xs text-[var(--color-fg-faint)]" aria-hidden="true">·</span>
-					<span class="text-2xs text-[var(--color-fg-subtle)]">
-						{m.settings_applies_to_all()}
-					</span>
-				</div>
-			</div>
-			<p class="mb-3 max-w-md text-xs text-[var(--color-fg-muted)]">
-				{m.settings_autounlock_description()}
-			</p>
-			{#if vault.isTrusted}
-				<Button variant="secondary" size="sm" onclick={disableAutoUnlock}>
-					{m.settings_autounlock_disable()}
-				</Button>
-			{:else}
-				<Button variant="primary" size="sm" onclick={openAutoUnlockModal}>
-					{m.settings_autounlock_enable()}
-				</Button>
-			{/if}
-		</Card>
-
-		<Card padding="md" class="mb-5">
-			<div class="mb-3 flex items-baseline justify-between">
-				<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">
-					{m.settings_appearance_eyebrow()}
-				</p>
-				<span class="text-2xs text-[var(--color-fg-subtle)]">
-					{m.settings_applies_to_all()}
-				</span>
-			</div>
-			<p class="mb-3 max-w-md text-xs text-[var(--color-fg-muted)]">
-				{m.settings_appearance_description_prefix()}
-				<span class="font-mono">{m.settings_theme_auto()}</span>
-				{m.settings_appearance_description_suffix()}
-			</p>
-			<div
-				class="inline-flex items-center rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-0.5"
+		<div class="mt-4 flex items-end gap-2">
+			<label class="text-2xs flex-1 font-medium tracking-wide text-[var(--color-fg-muted)]">
+				{m.settings_accent_custom_hex_label()}
+				<Input bind:value={customHex} placeholder="#38bdf8" class="mt-1 font-mono" />
+			</label>
+			<Button variant="secondary" size="sm" onclick={applyCustom}
+				>{m.settings_action_apply()}</Button
 			>
-				{@render themeBtn('auto', m.settings_theme_auto(), IconMonitor)}
-				{@render themeBtn('light', m.settings_theme_light(), IconSun)}
-				{@render themeBtn('dark', m.settings_theme_dark(), IconMoon)}
-			</div>
-		</Card>
+		</div>
+	</Card>
 
-		<Card padding="md" class="mb-5">
-			<div class="mb-3 flex items-baseline justify-between">
-				<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">
-					{m.settings_accent_eyebrow()}
-				</p>
-				{#if profile.accent}
-					<button
-						type="button"
-						onclick={() => setAccent(null)}
-						class="text-2xs inline-flex items-center gap-1 text-[var(--color-fg-subtle)] transition hover:text-[var(--color-fg)]"
-						title={m.settings_accent_reset_title()}
-					>
-						<IconRotateCcw class="size-[11px]" stroke-width="2.25" />
-						{m.settings_accent_reset()}
-					</button>
-				{/if}
-			</div>
-			<p class="mb-3 max-w-md text-xs text-[var(--color-fg-muted)]">
-				{m.settings_accent_description()}
+	<Card padding="md" class="mb-5">
+		<div class="mb-3 flex items-baseline justify-between">
+			<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">
+				{m.settings_language_eyebrow()}
 			</p>
+			<span class="text-2xs text-[var(--color-fg-subtle)]">
+				{m.settings_applies_to_all()}
+			</span>
+		</div>
+		<p class="mb-3 max-w-md text-xs text-[var(--color-fg-muted)]">
+			{m.settings_language_description()}
+		</p>
+		<div
+			class="inline-flex items-center rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-0.5"
+		>
+			{#each SUPPORTED_LOCALES as code (code)}
+				{@render langBtn(code, LOCALE_LABELS[code])}
+			{/each}
+		</div>
+	</Card>
 
-			<div class="flex flex-wrap gap-2">
-				{#each ACCENT_PRESETS as p (p.hex)}
-					{@const active = (profile.accent ?? DEFAULT_ACCENT).toLowerCase() === p.hex.toLowerCase()}
-					<button
-						type="button"
-						onclick={() => setAccent(p.hex)}
-						class={cn(
-							'group relative grid size-8 place-items-center rounded-full transition',
-							active && 'ring-2 ring-offset-2 ring-offset-[var(--color-surface)]'
-						)}
-						style="background: {p.hex}; --tw-ring-color: {p.hex}"
-						title={p.name}
-						aria-label={p.name}
-					>
-						{#if active}
-							<IconCheck class="size-4 text-white drop-shadow" stroke-width="3" />
-						{/if}
-					</button>
-				{/each}
-			</div>
-
-			<div class="mt-4 flex items-end gap-2">
-				<label class="text-2xs flex-1 font-medium tracking-wide text-[var(--color-fg-muted)]">
-					{m.settings_accent_custom_hex_label()}
-					<Input bind:value={customHex} placeholder="#38bdf8" class="mt-1 font-mono" />
-				</label>
-				<Button variant="secondary" size="sm" onclick={applyCustom}
-					>{m.settings_action_apply()}</Button
-				>
-			</div>
-		</Card>
-
-		<Card padding="md" class="mb-5">
-			<div class="mb-3 flex items-baseline justify-between">
-				<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">
-					{m.settings_language_eyebrow()}
-				</p>
-				<span class="text-2xs text-[var(--color-fg-subtle)]">
-					{m.settings_applies_to_all()}
-				</span>
-			</div>
-			<p class="mb-3 max-w-md text-xs text-[var(--color-fg-muted)]">
-				{m.settings_language_description()}
-			</p>
-			<div
-				class="inline-flex items-center rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-0.5"
-			>
-				{#each SUPPORTED_LOCALES as code (code)}
-					{@render langBtn(code, LOCALE_LABELS[code])}
-				{/each}
-			</div>
-		</Card>
-
-		<Card padding="md" class="mb-5">
-			<p class="mb-3 text-xs tracking-wide text-[var(--color-fg-muted)]">
-				{m.settings_versions_eyebrow()}
-			</p>
-			<dl class="grid gap-y-2 text-sm sm:grid-cols-[140px_1fr]">
-				<dt class="text-[var(--color-fg-muted)]">remon-server</dt>
-				<dd class="flex flex-wrap items-baseline gap-x-2 font-mono text-[var(--color-fg)]">
-					<span>{serverVersion ? `v${serverVersion}` : '—'}</span>
-					{#if serverMode}
-						<span class="text-2xs tracking-wide text-[var(--color-fg-muted)]">
-							{serverMode}
-						</span>
-					{/if}
-					{#if serverBuiltAt}
-						<span
-							class="text-2xs text-[var(--color-fg-subtle)]"
-							title={new Date(serverBuiltAt * 1000).toLocaleString()}
-						>
-							{m.settings_versions_built({ time: fmtRelative(serverBuiltAt) })}
-						</span>
-					{/if}
-				</dd>
-
-				<dt class="text-[var(--color-fg-muted)]">remon-web</dt>
-				<dd class="flex flex-wrap items-baseline gap-x-2 font-mono text-[var(--color-fg)]">
-					<span>v{WEB_VERSION}</span>
+	<Card padding="md" class="mb-5">
+		<p class="mb-3 text-xs tracking-wide text-[var(--color-fg-muted)]">
+			{m.settings_versions_eyebrow()}
+		</p>
+		<dl class="grid gap-y-2 text-sm sm:grid-cols-[140px_1fr]">
+			<dt class="text-[var(--color-fg-muted)]">remon-server</dt>
+			<dd class="flex flex-wrap items-baseline gap-x-2 font-mono text-[var(--color-fg)]">
+				<span>{serverVersion ? `v${serverVersion}` : '—'}</span>
+				{#if serverMode}
 					<span class="text-2xs tracking-wide text-[var(--color-fg-muted)]">
-						{WEB_BUILD_MODE}
+						{serverMode}
 					</span>
-					{#if WEB_BUILT_AT > 0}
-						<span
-							class="text-2xs text-[var(--color-fg-subtle)]"
-							title={new Date(WEB_BUILT_AT * 1000).toLocaleString()}
-						>
-							{m.settings_versions_built({ time: fmtRelative(WEB_BUILT_AT) })}
-						</span>
-					{/if}
-				</dd>
-			</dl>
-		</Card>
+				{/if}
+				{#if serverBuiltAt}
+					<span
+						class="text-2xs text-[var(--color-fg-subtle)]"
+						title={new Date(serverBuiltAt * 1000).toLocaleString()}
+					>
+						{m.settings_versions_built({ time: fmtRelative(serverBuiltAt) })}
+					</span>
+				{/if}
+			</dd>
 
-		<Card padding="md" class="mb-5 border-[var(--color-danger)]/30">
-			<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-				<div class="min-w-0">
-					<p class="font-medium text-[var(--color-fg)]">{m.settings_lifecycle_eyebrow()}</p>
-					<p class="mt-1 text-sm text-[var(--color-fg-muted)]">
-						{m.settings_lifecycle_description()}
-					</p>
-				</div>
-				<div class="flex shrink-0 flex-wrap gap-2">
-					<Button
-						variant="secondary"
-						size="sm"
-						onclick={() => runLifecycle('restart')}
-						disabled={!conn?.isAuthenticated || lifecycleBusy !== null}
-						loading={lifecycleBusy === 'restart'}
+			<dt class="text-[var(--color-fg-muted)]">remon-web</dt>
+			<dd class="flex flex-wrap items-baseline gap-x-2 font-mono text-[var(--color-fg)]">
+				<span>v{WEB_VERSION}</span>
+				<span class="text-2xs tracking-wide text-[var(--color-fg-muted)]">
+					{WEB_BUILD_MODE}
+				</span>
+				{#if WEB_BUILT_AT > 0}
+					<span
+						class="text-2xs text-[var(--color-fg-subtle)]"
+						title={new Date(WEB_BUILT_AT * 1000).toLocaleString()}
 					>
-						<IconRefreshCw class="size-[13px]" stroke-width="2" />
-						{m.settings_lifecycle_restart()}
-					</Button>
-					<Button
-						variant="danger"
-						size="sm"
-						onclick={() => runLifecycle('shutdown')}
-						disabled={!conn?.isAuthenticated || lifecycleBusy !== null}
-						loading={lifecycleBusy === 'shutdown'}
-					>
-						<IconPower class="size-[13px]" stroke-width="2" />
-						{m.settings_lifecycle_shutdown()}
-					</Button>
-				</div>
+						{m.settings_versions_built({ time: fmtRelative(WEB_BUILT_AT) })}
+					</span>
+				{/if}
+			</dd>
+		</dl>
+	</Card>
+
+	<Card padding="md" class="mb-5 border-[var(--color-danger)]/30">
+		<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+			<div class="min-w-0">
+				<p class="font-medium text-[var(--color-fg)]">{m.settings_lifecycle_eyebrow()}</p>
+				<p class="mt-1 text-sm text-[var(--color-fg-muted)]">
+					{m.settings_lifecycle_description()}
+				</p>
 			</div>
-		</Card>
-
-		<Card padding="md" class="border-[var(--color-danger)]/30">
-			<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-				<div class="min-w-0">
-					<p class="font-medium text-[var(--color-fg)]">{m.settings_remove_title()}</p>
-					<p class="mt-1 text-sm text-[var(--color-fg-muted)]">
-						{m.settings_remove_description()}
-					</p>
-				</div>
-				<Button variant="danger" size="sm" onclick={remove} class="sm:shrink-0">
-					{m.servers_remove_dialog_confirm()}
+			<div class="flex shrink-0 flex-wrap gap-2">
+				<Button
+					variant="secondary"
+					size="sm"
+					onclick={() => runLifecycle('restart')}
+					disabled={!conn.isAuthenticated || lifecycleBusy !== null}
+					loading={lifecycleBusy === 'restart'}
+				>
+					<IconRefreshCw class="size-[13px]" stroke-width="2" />
+					{m.settings_lifecycle_restart()}
+				</Button>
+				<Button
+					variant="danger"
+					size="sm"
+					onclick={() => runLifecycle('shutdown')}
+					disabled={!conn.isAuthenticated || lifecycleBusy !== null}
+					loading={lifecycleBusy === 'shutdown'}
+				>
+					<IconPower class="size-[13px]" stroke-width="2" />
+					{m.settings_lifecycle_shutdown()}
 				</Button>
 			</div>
-		</Card>
-	</div>
-{/if}
+		</div>
+	</Card>
+
+	<Card padding="md" class="border-[var(--color-danger)]/30">
+		<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+			<div class="min-w-0">
+				<p class="font-medium text-[var(--color-fg)]">{m.settings_remove_title()}</p>
+				<p class="mt-1 text-sm text-[var(--color-fg-muted)]">
+					{m.settings_remove_description()}
+				</p>
+			</div>
+			<Button variant="danger" size="sm" onclick={remove} class="sm:shrink-0">
+				{m.servers_remove_dialog_confirm()}
+			</Button>
+		</div>
+	</Card>
+</div>
 
 {#snippet themeBtn(mode: ThemeMode, label: string, Icon: typeof IconSun)}
 	{@const active = theme === mode}

@@ -1,19 +1,15 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
-	import { page } from '$app/state';
+	import { useServer } from '$lib/server-scope';
 	import Button from '$lib/components/ui/Button.svelte';
 	import DataTable from '$lib/components/ui/DataTable.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 	import ErrorState from '$lib/components/ui/ErrorState.svelte';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
-	import Banner from '$lib/components/ui/Banner.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
 	import RefreshButton from '$lib/components/ui/RefreshButton.svelte';
 	import ProbeStatusBadge from '$lib/components/probes/ProbeStatusBadge.svelte';
 	import HistoryChart, { type Series } from '$lib/components/charts/HistoryChart.svelte';
-	import { profiles } from '$lib/stores/profiles.svelte';
-	import { connections } from '$lib/stores/connections.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { ApiError } from '$lib/api/error';
 	import { fmtBytes, fmtPercent, fmtRelative, fmtScalar } from '$lib/utils/format';
@@ -30,19 +26,7 @@
 		ProbeRunDto
 	} from '$lib/types/api';
 
-	let id = $derived(page.params.id ?? '');
-	let profile = $derived(id ? profiles.byId(id) : undefined);
-	let conn = $derived(profile ? connections.connect(profile) : null);
-
-	$effect(() => {
-		if (!conn) return;
-		untrack(() => {
-			conn.ensureSignedIn().catch((e) => {
-				if (e instanceof ApiError)
-					toast.error(m.probes_toast_signin_failed(), { description: e.userMessage });
-			});
-		});
-	});
+	let { conn } = $derived(useServer());
 
 	let probes = $state<ProbeListEntry[]>([]);
 	let loading = $state(false);
@@ -80,7 +64,7 @@
 	});
 
 	async function fetchList() {
-		if (!conn?.isAuthenticated) return;
+		if (!conn.isAuthenticated) return;
 		loading = true;
 		error = null;
 		try {
@@ -95,11 +79,11 @@
 	}
 
 	$effect(() => {
-		if (conn?.isAuthenticated) fetchList();
+		if (conn.isAuthenticated) fetchList();
 	});
 
 	$effect(() => {
-		if (!autoRefresh || !conn?.isAuthenticated) return;
+		if (!autoRefresh || !conn.isAuthenticated) return;
 		const t = setInterval(fetchList, 10_000);
 		return () => clearInterval(t);
 	});
@@ -108,7 +92,7 @@
 		if (detailCache[name]) return;
 		detailLoading[name] = true;
 		try {
-			const res = await conn!.client.getProbe(name);
+			const res = await conn.client.getProbe(name);
 			detailCache[name] = res;
 		} catch (e) {
 			detailCache[name] = { error: e instanceof ApiError ? e.userMessage : String(e) };
@@ -121,7 +105,7 @@
 		if (historyCache[name]) return;
 		historyLoading[name] = true;
 		try {
-			const res = await conn!.client.getProbeHistory(name, HISTORY_PAGE);
+			const res = await conn.client.getProbeHistory(name, HISTORY_PAGE);
 			historyCache[name] = res.runs;
 			historyHasMore[name] = res.runs.length === HISTORY_PAGE;
 		} catch (e) {
@@ -136,7 +120,7 @@
 		if (!current || isError(current) || historyLoadingMoreMap[name]) return;
 		historyLoadingMoreMap[name] = true;
 		try {
-			const res = await conn!.client.getProbeHistory(name, HISTORY_PAGE, current.length);
+			const res = await conn.client.getProbeHistory(name, HISTORY_PAGE, current.length);
 			historyCache[name] = [...current, ...res.runs];
 			historyHasMore[name] = res.runs.length === HISTORY_PAGE;
 		} catch (e) {
@@ -151,7 +135,7 @@
 		if (metricHistoryCache[key] || metricHistoryLoading[key]) return;
 		metricHistoryLoading[key] = true;
 		try {
-			const res = await conn!.client.getProbeMetricHistory(probe, metric, { limit: 500 });
+			const res = await conn.client.getProbeMetricHistory(probe, metric, { limit: 500 });
 			metricHistoryCache[key] = res;
 		} catch {
 			metricHistoryCache[key] = { error: m.probes_metric_unavailable() };
@@ -172,7 +156,7 @@
 	async function reload() {
 		reloading = true;
 		try {
-			const res = await conn!.client.reloadProbes();
+			const res = await conn.client.reloadProbes();
 			toast.success(
 				m.probes_toast_reload_summary({
 					loaded: res.loaded.length,
@@ -302,146 +286,138 @@
 	}
 </script>
 
-{#if profile}
-	<div class="px-4 py-6 md:px-8 md:py-8">
-		<PageHeader title={m.section_probes()} count={probes.length}>
-			{#snippet meta()}
-				{m.probes_page_description()}
-				{#if lastFetched}
-					<span class="ml-2 text-xs text-[var(--color-fg-subtle)]">
-						{m.probes_updated_at({ time: new Date(lastFetched).toLocaleTimeString() })}
-					</span>
-				{/if}
-			{/snippet}
-			<Select
-				value={autoRefresh ? '10s' : 'off'}
-				onchange={(e) => (autoRefresh = e.currentTarget.value !== 'off')}
-				class="w-28"
-			>
-				<option value="off">{m.chart_autorefresh_off()}</option>
-				<option value="10s">10s</option>
-			</Select>
-			<RefreshButton onclick={fetchList} {loading} label={m.probes_refresh()} />
-			<Button variant="primary" size="sm" onclick={reload} loading={reloading}>
-				{m.probes_reload_manifests()}
-			</Button>
-		</PageHeader>
+<div class="px-4 py-6 md:px-8 md:py-8">
+	<PageHeader title={m.section_probes()} count={probes.length}>
+		{#snippet meta()}
+			{m.probes_page_description()}
+			{#if lastFetched}
+				<span class="ml-2 text-xs text-[var(--color-fg-subtle)]">
+					{m.probes_updated_at({ time: new Date(lastFetched).toLocaleTimeString() })}
+				</span>
+			{/if}
+		{/snippet}
+		<Select
+			value={autoRefresh ? '10s' : 'off'}
+			onchange={(e) => (autoRefresh = e.currentTarget.value !== 'off')}
+			class="w-28"
+		>
+			<option value="off">{m.chart_autorefresh_off()}</option>
+			<option value="10s">10s</option>
+		</Select>
+		<RefreshButton onclick={fetchList} {loading} label={m.probes_refresh()} />
+		<Button variant="primary" size="sm" onclick={reload} loading={reloading}>
+			{m.probes_reload_manifests()}
+		</Button>
+	</PageHeader>
 
-		{#if !conn?.isAuthenticated}
-			<Banner variant="warning">{m.probes_signin_required()}</Banner>
-		{:else if error}
-			<ErrorState {error} onRetry={fetchList} />
-		{:else if probes.length === 0 && !loading}
-			<EmptyState
-				description={`${m.probes_empty_prefix()} configs/probes/ ${m.probes_empty_suffix()}`}
+	{#if error}
+		<ErrorState {error} onRetry={fetchList} />
+	{:else if probes.length === 0 && !loading}
+		<EmptyState
+			description={`${m.probes_empty_prefix()} configs/probes/ ${m.probes_empty_suffix()}`}
+		/>
+	{:else}
+		<div class="mb-3 flex">
+			<Input
+				placeholder={m.probes_filter_placeholder()}
+				bind:value={q}
+				class="w-full sm:max-w-xs"
 			/>
-		{:else}
-			<div class="mb-3 flex">
-				<Input
-					placeholder={m.probes_filter_placeholder()}
-					bind:value={q}
-					class="w-full sm:max-w-xs"
-				/>
-			</div>
+		</div>
 
-			<DataTable
-				loading={loading && probes.length === 0}
-				empty={filteredProbes.length === 0 ? m.probes_empty_filter() : undefined}
-			>
-				{#snippet head()}
-					<th>{m.probes_table_name()}</th>
-					<th>{m.probes_table_status()}</th>
-					<th>{m.probes_table_schedule()}</th>
-					<th>{m.probes_table_last_run()}</th>
-					<th>{m.probes_table_message()}</th>
-					<th class="text-right">{m.probes_table_boot()}</th>
-					<th class="w-8" aria-hidden="true"></th>
-				{/snippet}
-				{#each filteredProbes as p (p.name)}
-					{@const isOpen = expanded === p.name}
-					{@const detail = detailCache[p.name]}
-					<tr
-						class={cn(
-							'cursor-pointer',
-							p.last_parse_ok === false && 'danger',
-							!p.enabled && 'muted'
-						)}
-						onclick={() => toggleExpand(p.name)}
+		<DataTable
+			loading={loading && probes.length === 0}
+			empty={filteredProbes.length === 0 ? m.probes_empty_filter() : undefined}
+		>
+			{#snippet head()}
+				<th>{m.probes_table_name()}</th>
+				<th>{m.probes_table_status()}</th>
+				<th>{m.probes_table_schedule()}</th>
+				<th>{m.probes_table_last_run()}</th>
+				<th>{m.probes_table_message()}</th>
+				<th class="text-right">{m.probes_table_boot()}</th>
+				<th class="w-8" aria-hidden="true"></th>
+			{/snippet}
+			{#each filteredProbes as p (p.name)}
+				{@const isOpen = expanded === p.name}
+				{@const detail = detailCache[p.name]}
+				<tr
+					class={cn('cursor-pointer', p.last_parse_ok === false && 'danger', !p.enabled && 'muted')}
+					onclick={() => toggleExpand(p.name)}
+				>
+					<td>
+						<div class="flex flex-col">
+							<span class="font-mono text-xs font-medium break-all text-[var(--color-fg)]">
+								{p.name}
+							</span>
+							{#if p.description}
+								<span class="text-2xs mt-0.5 text-[var(--color-fg-muted)] md:truncate">
+									{p.description}
+								</span>
+							{/if}
+						</div>
+					</td>
+					<td data-label={m.probes_table_status()}>
+						<ProbeStatusBadge parseOk={p.last_parse_ok} />
+					</td>
+					<td
+						data-label={m.probes_table_schedule()}
+						class="text-2xs font-mono break-all text-[var(--color-fg-muted)]"
 					>
-						<td>
-							<div class="flex flex-col">
-								<span class="font-mono text-xs font-medium break-all text-[var(--color-fg)]">
-									{p.name}
-								</span>
-								{#if p.description}
-									<span class="text-2xs mt-0.5 text-[var(--color-fg-muted)] md:truncate">
-										{p.description}
-									</span>
-								{/if}
-							</div>
-						</td>
-						<td data-label={m.probes_table_status()}>
-							<ProbeStatusBadge parseOk={p.last_parse_ok} />
-						</td>
-						<td
-							data-label={m.probes_table_schedule()}
-							class="text-2xs font-mono break-all text-[var(--color-fg-muted)]"
-						>
-							{p.schedule}
-						</td>
-						<td
-							data-label={m.probes_table_last_run()}
-							class="text-2xs font-mono text-[var(--color-fg-muted)]"
-						>
-							{p.last_run_at ? fmtRelative(p.last_run_at) : '—'}
-						</td>
-						<td data-label={m.probes_table_message()}>
-							{#if p.last_message}
-								<span
-									class="block text-xs break-words text-[var(--color-fg-muted)] md:max-w-[40ch] md:truncate"
-									title={p.last_message}
-								>
-									{p.last_message}
-								</span>
-							{:else}
-								<span class="text-[var(--color-fg-faint)]">—</span>
+						{p.schedule}
+					</td>
+					<td
+						data-label={m.probes_table_last_run()}
+						class="text-2xs font-mono text-[var(--color-fg-muted)]"
+					>
+						{p.last_run_at ? fmtRelative(p.last_run_at) : '—'}
+					</td>
+					<td data-label={m.probes_table_message()}>
+						{#if p.last_message}
+							<span
+								class="block text-xs break-words text-[var(--color-fg-muted)] md:max-w-[40ch] md:truncate"
+								title={p.last_message}
+							>
+								{p.last_message}
+							</span>
+						{:else}
+							<span class="text-[var(--color-fg-faint)]">—</span>
+						{/if}
+					</td>
+					<td data-label={m.probes_table_boot()} class="text-2xs tracking-wide md:text-right">
+						{#if p.enabled}
+							<span class="text-[var(--color-success)]">{m.probes_enabled()}</span>
+						{:else}
+							<span class="text-[var(--color-fg-subtle)]">{m.probes_disabled()}</span>
+						{/if}
+					</td>
+					<td class="hidden text-right md:table-cell">
+						<IconChevronDown
+							class={cn(
+								'inline size-3.5 text-[var(--color-fg-subtle)] transition-transform duration-[var(--dur-fast)]',
+								isOpen && 'rotate-180'
+							)}
+							stroke-width="2"
+						/>
+					</td>
+				</tr>
+				{#if isOpen}
+					<tr class="detail">
+						<td colspan="7" class="px-4 py-4 md:px-5">
+							{#if detailLoading[p.name]}
+								<p class="text-xs text-[var(--color-fg-subtle)]">{m.probes_loading_detail()}</p>
+							{:else if detail && isError(detail)}
+								<p class="text-xs text-[var(--color-danger)]">{detail.error}</p>
+							{:else if detail}
+								{@render detailPanel(detail, p.name)}
 							{/if}
-						</td>
-						<td data-label={m.probes_table_boot()} class="text-2xs tracking-wide md:text-right">
-							{#if p.enabled}
-								<span class="text-[var(--color-success)]">{m.probes_enabled()}</span>
-							{:else}
-								<span class="text-[var(--color-fg-subtle)]">{m.probes_disabled()}</span>
-							{/if}
-						</td>
-						<td class="hidden text-right md:table-cell">
-							<IconChevronDown
-								class={cn(
-									'inline size-3.5 text-[var(--color-fg-subtle)] transition-transform duration-[var(--dur-fast)]',
-									isOpen && 'rotate-180'
-								)}
-								stroke-width="2"
-							/>
 						</td>
 					</tr>
-					{#if isOpen}
-						<tr class="detail">
-							<td colspan="7" class="px-4 py-4 md:px-5">
-								{#if detailLoading[p.name]}
-									<p class="text-xs text-[var(--color-fg-subtle)]">{m.probes_loading_detail()}</p>
-								{:else if detail && isError(detail)}
-									<p class="text-xs text-[var(--color-danger)]">{detail.error}</p>
-								{:else if detail}
-									{@render detailPanel(detail, p.name)}
-								{/if}
-							</td>
-						</tr>
-					{/if}
-				{/each}
-			</DataTable>
-		{/if}
-	</div>
-{/if}
+				{/if}
+			{/each}
+		</DataTable>
+	{/if}
+</div>
 
 {#snippet detailPanel(d: ProbeDetail, name: string)}
 	<div class="grid grid-cols-1 gap-5 lg:grid-cols-[280px_1fr]">

@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
-	import { page } from '$app/state';
+	import { useServer } from '$lib/server-scope';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
@@ -8,28 +7,13 @@
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import SegmentedControl, { type SegmentOption } from '$lib/components/ui/SegmentedControl.svelte';
 	import EventRow from '$lib/components/events/EventRow.svelte';
-	import { profiles } from '$lib/stores/profiles.svelte';
-	import { connections } from '$lib/stores/connections.svelte';
-	import { toast } from '$lib/stores/toast.svelte';
 	import { ApiError } from '$lib/api/error';
 	import { serverKey } from '$lib/api/query';
 	import { createInfiniteQuery, type InfiniteData } from '@tanstack/svelte-query';
 	import { m } from '$lib/paraglide/messages';
 	import type { EventDto, EventSource, ListEventsResponse } from '$lib/types/api';
 
-	let id = $derived(page.params.id ?? '');
-	let profile = $derived(id ? profiles.byId(id) : undefined);
-	let conn = $derived(profile ? connections.connect(profile) : null);
-
-	$effect(() => {
-		if (!conn) return;
-		untrack(() => {
-			conn.ensureSignedIn().catch((e) => {
-				if (e instanceof ApiError)
-					toast.error(m.events_load_failed(), { description: e.userMessage });
-			});
-		});
-	});
+	let { id, conn } = $derived(useServer());
 
 	type SourceFilter = 'all' | EventSource;
 	type RangeKey = '1h' | '24h' | '7d' | '30d';
@@ -49,14 +33,14 @@
 	const query = createInfiniteQuery<ListEventsResponse, ApiError, InfiniteData<ListEventsResponse>>(
 		() => ({
 			queryKey: serverKey(id, 'events', source, range),
-			enabled: !!conn?.isAuthenticated,
+			enabled: !!conn.isAuthenticated,
 			initialPageParam: undefined,
 			getNextPageParam: (last: ListEventsResponse) => last.next_cursor,
 			// Read per fetch, not frozen: only page 1 is bounded by `end`, so the
 			// poll can surface new events without later pages skipping a row.
 			queryFn: async ({ pageParam, signal }) => {
 				const now = Math.floor(Date.now() / 1000);
-				return conn!.client.events(
+				return conn.client.events(
 					{
 						start: now - RANGE_SECS[range],
 						end: now,
@@ -118,73 +102,67 @@
 		</Button>
 	</PageHeader>
 
-	{#if !conn?.isAuthenticated}
-		<Banner variant="warning" title={m.alerts_banner_not_signed_in_title()}>
-			{m.alerts_banner_not_signed_in_body()}
-		</Banner>
-	{:else}
-		<div class="mb-4 flex flex-wrap items-center gap-2">
-			<SegmentedControl
-				value={source}
-				options={sourceOpts}
-				onSelect={(v) => (source = v)}
-				ariaLabel={m.events_source_all()}
-			/>
-			<SegmentedControl
-				value={range}
-				options={rangeOpts}
-				onSelect={(v) => (range = v)}
-				ariaLabel={m.events_range_24h()}
-			/>
-			{#if events && events.length > 0}
-				<span class="text-2xs ml-auto text-[var(--color-fg-subtle)] tabular-nums">
-					{m.events_count({ count: events.length })}
-				</span>
-			{/if}
-		</div>
+	<div class="mb-4 flex flex-wrap items-center gap-2">
+		<SegmentedControl
+			value={source}
+			options={sourceOpts}
+			onSelect={(v) => (source = v)}
+			ariaLabel={m.events_source_all()}
+		/>
+		<SegmentedControl
+			value={range}
+			options={rangeOpts}
+			onSelect={(v) => (range = v)}
+			ariaLabel={m.events_range_24h()}
+		/>
+		{#if events && events.length > 0}
+			<span class="text-2xs ml-auto text-[var(--color-fg-subtle)] tabular-nums">
+				{m.events_count({ count: events.length })}
+			</span>
+		{/if}
+	</div>
 
-		{#if loadFailed}
-			{#if events === null}
-				<Banner variant="danger" title={m.events_load_failed()} class="mb-4" />
-			{:else}
-				<!-- A list is on screen but no longer current — say so, otherwise
+	{#if loadFailed}
+		{#if events === null}
+			<Banner variant="danger" title={m.events_load_failed()} class="mb-4" />
+		{:else}
+			<!-- A list is on screen but no longer current — say so, otherwise
 				     the poll fails silently and stale rows read as live. -->
-				<Banner variant="warning" title={m.events_refresh_failed()} class="mb-4" />
+			<Banner variant="warning" title={m.events_refresh_failed()} class="mb-4" />
+		{/if}
+	{/if}
+
+	<Card padding="none" class="overflow-hidden">
+		{#if events === null}
+			<div class="space-y-2 p-4">
+				<Skeleton class="h-4 w-full" />
+				<Skeleton class="h-4 w-4/5" />
+				<Skeleton class="h-4 w-5/6" />
+				<Skeleton class="h-4 w-2/3" />
+			</div>
+		{:else if events.length === 0}
+			<div class="flex flex-col items-center justify-center gap-2 px-4 py-14 text-center">
+				<span class="inline-flex size-2 rounded-full bg-[var(--color-success)]"></span>
+				<p class="text-md text-[var(--color-fg-muted)]">{m.events_empty()}</p>
+			</div>
+		{:else}
+			<ol class="px-4 py-3">
+				{#each events as ev, i (ev.ts + '-' + ev.kind + '-' + i)}
+					<EventRow event={ev} now={nowMs} serverId={id} />
+				{/each}
+			</ol>
+			{#if query.hasNextPage}
+				<div class="border-t border-[var(--color-border)] px-4 py-3 text-center">
+					<Button
+						variant="ghost"
+						size="sm"
+						onclick={() => query.fetchNextPage()}
+						loading={query.isFetchingNextPage}
+					>
+						{m.events_load_more()}
+					</Button>
+				</div>
 			{/if}
 		{/if}
-
-		<Card padding="none" class="overflow-hidden">
-			{#if events === null}
-				<div class="space-y-2 p-4">
-					<Skeleton class="h-4 w-full" />
-					<Skeleton class="h-4 w-4/5" />
-					<Skeleton class="h-4 w-5/6" />
-					<Skeleton class="h-4 w-2/3" />
-				</div>
-			{:else if events.length === 0}
-				<div class="flex flex-col items-center justify-center gap-2 px-4 py-14 text-center">
-					<span class="inline-flex size-2 rounded-full bg-[var(--color-success)]"></span>
-					<p class="text-md text-[var(--color-fg-muted)]">{m.events_empty()}</p>
-				</div>
-			{:else}
-				<ol class="px-4 py-3">
-					{#each events as ev, i (ev.ts + '-' + ev.kind + '-' + i)}
-						<EventRow event={ev} now={nowMs} serverId={id} />
-					{/each}
-				</ol>
-				{#if query.hasNextPage}
-					<div class="border-t border-[var(--color-border)] px-4 py-3 text-center">
-						<Button
-							variant="ghost"
-							size="sm"
-							onclick={() => query.fetchNextPage()}
-							loading={query.isFetchingNextPage}
-						>
-							{m.events_load_more()}
-						</Button>
-					</div>
-				{/if}
-			{/if}
-		</Card>
-	{/if}
+	</Card>
 </div>

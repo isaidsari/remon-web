@@ -4,52 +4,13 @@
 	import { vault } from '$lib/vault/store.svelte';
 	import { profiles } from '$lib/stores/profiles.svelte';
 	import { sidebar } from '$lib/stores/sidebar.svelte';
+	import { sectionLabel } from '$lib/nav';
 	import { WEB_VERSION } from '$lib/version';
 	import { m } from '$lib/paraglide/messages';
 	import Button from '$lib/components/ui/Button.svelte';
 	import IconLock from '~icons/lucide/lock';
 	import IconChevronRight from '~icons/lucide/chevron-right';
 	import IconPanelLeft from '~icons/lucide/panel-left';
-
-	// Static switch: paraglide messages are tree-shaken, so dynamic key lookup would include all messages.
-	function sectionLabel(name: string): string {
-		switch (name) {
-			case 'overview':
-				return m.section_overview();
-			case 'assistant':
-				return m.section_assistant();
-			case 'metrics':
-				return m.section_metrics();
-			case 'services':
-				return m.section_services();
-			case 'probes':
-				return m.section_probes();
-			case 'heartbeats':
-				return m.section_heartbeats();
-			case 'docker':
-				return m.section_containers();
-			case 'settings':
-				return m.section_settings();
-			case 'notifications':
-				return m.section_notifications();
-			case 'config':
-				return m.section_config();
-			case 'actions':
-				return m.section_actions();
-			case 'alerts':
-				return m.section_alerts();
-			case 'processes':
-				return m.section_processes();
-			case 'events':
-				return m.section_events();
-			case 'logs':
-				return m.section_logs();
-			case 'incidents':
-				return m.section_incidents();
-			default:
-				return name;
-		}
-	}
 
 	function lock() {
 		vault.lock();

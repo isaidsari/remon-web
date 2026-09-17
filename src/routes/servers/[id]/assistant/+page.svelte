@@ -1,12 +1,11 @@
 <script lang="ts">
 	import { untrack, tick } from 'svelte';
+	import { useServer } from '$lib/server-scope';
 	import { page } from '$app/state';
 	import { replaceState } from '$app/navigation';
 	import Banner from '$lib/components/ui/Banner.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
-	import { profiles } from '$lib/stores/profiles.svelte';
-	import { connections } from '$lib/stores/connections.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { confirm as confirmDialog } from '$lib/stores/confirm.svelte';
 	import { ApiError } from '$lib/api/error';
@@ -34,19 +33,7 @@
 	import IconMemoryStick from '~icons/lucide/memory-stick';
 	import IconTriangleAlert from '~icons/lucide/triangle-alert';
 
-	let id = $derived(page.params.id ?? '');
-	let profile = $derived(id ? profiles.byId(id) : undefined);
-	let conn = $derived(profile ? connections.connect(profile) : null);
-
-	$effect(() => {
-		if (!conn) return;
-		untrack(() => {
-			conn.ensureSignedIn().catch((e) => {
-				if (e instanceof ApiError)
-					toast.error(m.assistant_toast_signin_failed(), { description: e.userMessage });
-			});
-		});
-	});
+	let { id, conn } = $derived(useServer());
 
 	type ProposalState = 'pending' | 'applying' | 'done' | 'failed' | 'dismissed';
 	interface Proposal extends ProposedAction {
@@ -240,7 +227,7 @@
 
 	$effect(() => {
 		const text = page.url.searchParams.get('ask');
-		if (!text || seeded || !conn?.isAuthenticated || !vault.isOpen) return;
+		if (!text || seeded || !conn.isAuthenticated || !vault.isOpen) return;
 		untrack(() => {
 			seeded = true;
 			const url = new URL(page.url);
@@ -279,7 +266,7 @@
 		await refreshHistory(id);
 	}
 
-	let canSend = $derived(!!conn?.isAuthenticated && !busy && question.trim().length > 0);
+	let canSend = $derived(!!conn.isAuthenticated && !busy && question.trim().length > 0);
 
 	// Starter prompts shown on the empty state to make the first ask effortless.
 	let examples = $derived([
@@ -290,7 +277,7 @@
 
 	async function ask(raw: string) {
 		const text = raw.trim();
-		if (!text || busy || !conn?.isAuthenticated) return;
+		if (!text || busy || !conn.isAuthenticated) return;
 		question = '';
 		resizeTextarea();
 
@@ -384,7 +371,7 @@
 	// The daemon never acts on its own; a proposal is applied only on confirm.
 	async function applyProposal(entryIdx: number, propIdx: number) {
 		const p = entries[entryIdx].proposals[propIdx];
-		if (!conn?.isAuthenticated || p.state === 'applying' || p.state === 'done') return;
+		if (!conn.isAuthenticated || p.state === 'applying' || p.state === 'done') return;
 		// An absolute URL would override baseUrl and leak the bearer token.
 		if (!PROPOSAL_METHODS.has(p.method) || !p.path.startsWith('/') || p.path.startsWith('//')) {
 			p.state = 'failed';
@@ -539,7 +526,7 @@
 							<button
 								type="button"
 								onclick={() => ask(ex.label)}
-								disabled={!conn?.isAuthenticated}
+								disabled={!conn.isAuthenticated}
 								class={cn(
 									'group text-md flex items-center gap-2.5 rounded-xl bg-[var(--color-surface)] px-3.5 py-2.5 text-left text-[var(--color-fg-muted)]',
 									'shadow-[var(--shadow-flat)] transition-all duration-[var(--dur-fast)]',
@@ -801,7 +788,7 @@
 					bind:value={question}
 					oninput={resizeTextarea}
 					onkeydown={onKeydown}
-					disabled={!conn?.isAuthenticated}
+					disabled={!conn.isAuthenticated}
 					rows="1"
 					enterkeyhint="send"
 					placeholder={m.assistant_placeholder()}

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { useServer } from '$lib/server-scope';
 	import { tabVisible } from '$lib/utils/visibility.svelte';
-	import { page } from '$app/state';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
@@ -11,8 +11,6 @@
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import SegmentedControl, { type SegmentOption } from '$lib/components/ui/SegmentedControl.svelte';
-	import { profiles } from '$lib/stores/profiles.svelte';
-	import { connections } from '$lib/stores/connections.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { ApiError } from '$lib/api/error';
 	import { cn } from '$lib/utils/cn';
@@ -23,19 +21,7 @@
 	import IconChevronRight from '~icons/lucide/chevron-right';
 	import type { IncidentCategory, IncidentSummaryDto } from '$lib/types/api';
 
-	let id = $derived(page.params.id ?? '');
-	let profile = $derived(id ? profiles.byId(id) : undefined);
-	let conn = $derived(profile ? connections.connect(profile) : null);
-
-	$effect(() => {
-		if (!conn) return;
-		untrack(() => {
-			conn.ensureSignedIn().catch((e) => {
-				if (e instanceof ApiError)
-					toast.error(m.incidents_load_failed(), { description: e.userMessage });
-			});
-		});
-	});
+	let { id, conn } = $derived(useServer());
 
 	// The server caps at 200 and takes no filter but `limit`, so the whole page
 	// is fetched once and the trigger filter is applied here.
@@ -44,7 +30,7 @@
 	let incidents = $state<IncidentSummaryDto[] | null>(null);
 	let error = $state<ApiError | null>(null);
 	let busy = $state(false);
-	let listConnection: typeof conn = null;
+	let listConnection: typeof conn | null = null;
 
 	async function fetchList(bust = false, quiet = false) {
 		const c = conn;
@@ -178,158 +164,152 @@
 		<Button variant="secondary" size="sm" onclick={() => fetchList(true)} loading={busy}>
 			{m.alerts_action_refresh()}
 		</Button>
-		<Button variant="primary" size="sm" onclick={openCapture} disabled={!conn?.isAuthenticated}>
+		<Button variant="primary" size="sm" onclick={openCapture} disabled={!conn.isAuthenticated}>
 			<IconCamera class="size-4" stroke-width="2" />
 			{m.incidents_capture()}
 		</Button>
 	</PageHeader>
 
-	{#if !conn?.isAuthenticated}
-		<Banner variant="warning" title={m.alerts_banner_not_signed_in_title()}>
-			{m.alerts_banner_not_signed_in_body()}
-		</Banner>
-	{:else}
-		<div class="mb-4 flex flex-wrap items-center gap-2">
-			<SegmentedControl
-				value={trigger}
-				options={triggerOpts}
-				onSelect={(v) => (trigger = v)}
-				ariaLabel={m.incidents_filter_all()}
-			/>
-			{#if shown && shown.length > 0}
-				<span class="text-2xs ml-auto text-[var(--color-fg-subtle)] tabular-nums">
-					{m.incidents_count({ count: shown.length })}
-				</span>
-			{/if}
-		</div>
-
-		{#if error}
-			<!-- Rows already on screen stay put; the banner says they are stale. -->
-			<Banner
-				variant={incidents === null ? 'danger' : 'warning'}
-				title={incidents === null ? m.incidents_load_failed() : m.incidents_refresh_failed()}
-				class="mb-4"
-			>
-				{error.userMessage}
-			</Banner>
+	<div class="mb-4 flex flex-wrap items-center gap-2">
+		<SegmentedControl
+			value={trigger}
+			options={triggerOpts}
+			onSelect={(v) => (trigger = v)}
+			ariaLabel={m.incidents_filter_all()}
+		/>
+		{#if shown && shown.length > 0}
+			<span class="text-2xs ml-auto text-[var(--color-fg-subtle)] tabular-nums">
+				{m.incidents_count({ count: shown.length })}
+			</span>
 		{/if}
+	</div>
 
-		<Card padding="none" class="overflow-hidden">
-			{#if shown === null}
-				<div class="space-y-3 p-4">
-					<Skeleton class="h-5 w-full" />
-					<Skeleton class="h-5 w-4/5" />
-					<Skeleton class="h-5 w-5/6" />
-				</div>
-			{:else if shown.length === 0}
-				<div class="flex flex-col items-center justify-center gap-2 px-4 py-14 text-center">
-					<IconCamera class="size-5 text-[var(--color-fg-faint)]" stroke-width="1.75" />
-					<p class="text-md text-[var(--color-fg-muted)]">{m.incidents_empty()}</p>
-				</div>
-			{:else}
-				<ul>
-					{#each shown as i (i.id)}
-						<li class="border-b border-[var(--color-border)] last:border-b-0">
-							<a
-								href={`/servers/${id}/incidents/${i.id}`}
-								class="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--color-surface-2)]/60"
-							>
-								<!-- Trigger is the row's first question: did a rule catch this,
+	{#if error}
+		<!-- Rows already on screen stay put; the banner says they are stale. -->
+		<Banner
+			variant={incidents === null ? 'danger' : 'warning'}
+			title={incidents === null ? m.incidents_load_failed() : m.incidents_refresh_failed()}
+			class="mb-4"
+		>
+			{error.userMessage}
+		</Banner>
+	{/if}
+
+	<Card padding="none" class="overflow-hidden">
+		{#if shown === null}
+			<div class="space-y-3 p-4">
+				<Skeleton class="h-5 w-full" />
+				<Skeleton class="h-5 w-4/5" />
+				<Skeleton class="h-5 w-5/6" />
+			</div>
+		{:else if shown.length === 0}
+			<div class="flex flex-col items-center justify-center gap-2 px-4 py-14 text-center">
+				<IconCamera class="size-5 text-[var(--color-fg-faint)]" stroke-width="1.75" />
+				<p class="text-md text-[var(--color-fg-muted)]">{m.incidents_empty()}</p>
+			</div>
+		{:else}
+			<ul>
+				{#each shown as i (i.id)}
+					<li class="border-b border-[var(--color-border)] last:border-b-0">
+						<a
+							href={`/servers/${id}/incidents/${i.id}`}
+							class="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--color-surface-2)]/60"
+						>
+							<!-- Trigger is the row's first question: did a rule catch this,
 								     or did someone stand here and press the button. -->
-								{#if i.trigger_kind === 'alert'}
-									<IconFlame
-										class="size-[15px] shrink-0 text-[var(--color-warning)]"
-										stroke-width="2"
-									/>
-								{:else}
-									<IconCamera
-										class="size-[15px] shrink-0 text-[var(--color-fg-subtle)]"
-										stroke-width="2"
-									/>
-								{/if}
-
-								<span class="min-w-0 flex-1">
-									<span class="text-md block truncate text-[var(--color-fg)]">
-										{titleOf(i)}
-									</span>
-									<span
-										class="text-2xs mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[var(--color-fg-subtle)]"
-									>
-										<span>{categoryLabel(i.category)}</span>
-										{#if i.label_set}
-											<span class="truncate font-mono">{i.label_set}</span>
-										{/if}
-										{#if i.trigger_value != null}
-											<!-- Crossed at, and the worst it reached. The pair says more
-											     than either number: "81 → 99" is a different incident
-											     from "81 → 82". -->
-											<span class="font-mono tabular-nums">
-												{fmtNumber(i.trigger_value, 2)}
-												{#if i.worst_value != null && i.worst_value !== i.trigger_value}
-													<span class="text-[var(--color-warning)]">
-														→ {fmtNumber(i.worst_value, 2)}
-													</span>
-												{/if}
-											</span>
-										{/if}
-										{#if i.trigger_kind === 'alert' && i.violation_count > 1}
-											<span
-												>{m.incident_excursions({
-													violations: i.violation_count,
-													confirmations: i.confirmation_count
-												})}</span
-											>
-										{/if}
-										{#if i.closed_at == null && i.recovery_started_at != null}
-											<span
-												class="rounded-full bg-[var(--color-warning)]/15 px-1.5 py-px text-[var(--color-warning)]"
-												>{m.incident_recovering()}</span
-											>
-										{:else if i.closed_at == null}
-											<span
-												class="rounded-full bg-[var(--color-danger)]/15 px-1.5 py-px font-mono tracking-wide text-[var(--color-danger)]"
-											>
-												{m.incidents_live()}
-											</span>
-										{:else}
-											<span class="font-mono tabular-nums">
-												{fmtDuration(
-													(i.close_reason === 'resolved'
-														? (i.recovery_started_at ?? i.closed_at)
-														: i.closed_at) - i.opened_at
-												)}
-											</span>
-										{/if}
-										{#if i.frame_count > 1}
-											<span
-												class="rounded-full bg-[var(--color-surface-2)] px-1.5 py-px font-mono tracking-wide"
-											>
-												{m.incidents_frames({ count: i.frame_count })}
-											</span>
-										{/if}
-									</span>
-								</span>
-
-								<span
-									class="text-3xs shrink-0 font-mono text-[var(--color-fg-faint)] tabular-nums"
-									title={new Date(i.opened_at * 1000).toLocaleString()}
-								>
-									{fmtRelative(i.opened_at, nowMs)}
-								</span>
-								<IconChevronRight
-									class={cn(
-										'size-3.5 shrink-0 text-[var(--color-fg-faint)] transition-transform',
-										'group-hover:translate-x-0.5 group-hover:text-[var(--color-fg-muted)]'
-									)}
+							{#if i.trigger_kind === 'alert'}
+								<IconFlame
+									class="size-[15px] shrink-0 text-[var(--color-warning)]"
 									stroke-width="2"
 								/>
-							</a>
-						</li>
-					{/each}
-				</ul>
-			{/if}
-		</Card>
-	{/if}
+							{:else}
+								<IconCamera
+									class="size-[15px] shrink-0 text-[var(--color-fg-subtle)]"
+									stroke-width="2"
+								/>
+							{/if}
+
+							<span class="min-w-0 flex-1">
+								<span class="text-md block truncate text-[var(--color-fg)]">
+									{titleOf(i)}
+								</span>
+								<span
+									class="text-2xs mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[var(--color-fg-subtle)]"
+								>
+									<span>{categoryLabel(i.category)}</span>
+									{#if i.label_set}
+										<span class="truncate font-mono">{i.label_set}</span>
+									{/if}
+									{#if i.trigger_value != null}
+										<!-- Crossed at, and the worst it reached. The pair says more
+											     than either number: "81 → 99" is a different incident
+											     from "81 → 82". -->
+										<span class="font-mono tabular-nums">
+											{fmtNumber(i.trigger_value, 2)}
+											{#if i.worst_value != null && i.worst_value !== i.trigger_value}
+												<span class="text-[var(--color-warning)]">
+													→ {fmtNumber(i.worst_value, 2)}
+												</span>
+											{/if}
+										</span>
+									{/if}
+									{#if i.trigger_kind === 'alert' && i.violation_count > 1}
+										<span
+											>{m.incident_excursions({
+												violations: i.violation_count,
+												confirmations: i.confirmation_count
+											})}</span
+										>
+									{/if}
+									{#if i.closed_at == null && i.recovery_started_at != null}
+										<span
+											class="rounded-full bg-[var(--color-warning)]/15 px-1.5 py-px text-[var(--color-warning)]"
+											>{m.incident_recovering()}</span
+										>
+									{:else if i.closed_at == null}
+										<span
+											class="rounded-full bg-[var(--color-danger)]/15 px-1.5 py-px font-mono tracking-wide text-[var(--color-danger)]"
+										>
+											{m.incidents_live()}
+										</span>
+									{:else}
+										<span class="font-mono tabular-nums">
+											{fmtDuration(
+												(i.close_reason === 'resolved'
+													? (i.recovery_started_at ?? i.closed_at)
+													: i.closed_at) - i.opened_at
+											)}
+										</span>
+									{/if}
+									{#if i.frame_count > 1}
+										<span
+											class="rounded-full bg-[var(--color-surface-2)] px-1.5 py-px font-mono tracking-wide"
+										>
+											{m.incidents_frames({ count: i.frame_count })}
+										</span>
+									{/if}
+								</span>
+							</span>
+
+							<span
+								class="text-3xs shrink-0 font-mono text-[var(--color-fg-faint)] tabular-nums"
+								title={new Date(i.opened_at * 1000).toLocaleString()}
+							>
+								{fmtRelative(i.opened_at, nowMs)}
+							</span>
+							<IconChevronRight
+								class={cn(
+									'size-3.5 shrink-0 text-[var(--color-fg-faint)] transition-transform',
+									'group-hover:translate-x-0.5 group-hover:text-[var(--color-fg-muted)]'
+								)}
+								stroke-width="2"
+							/>
+						</a>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</Card>
 </div>
 
 <Modal

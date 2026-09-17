@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
-	import { page } from '$app/state';
+	import { useServer } from '$lib/server-scope';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
@@ -8,27 +7,11 @@
 	import Input from '$lib/components/ui/Input.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import SegmentedControl, { type SegmentOption } from '$lib/components/ui/SegmentedControl.svelte';
-	import { profiles } from '$lib/stores/profiles.svelte';
-	import { connections } from '$lib/stores/connections.svelte';
-	import { toast } from '$lib/stores/toast.svelte';
-	import { ApiError } from '$lib/api/error';
 	import { cn } from '$lib/utils/cn';
 	import { m } from '$lib/paraglide/messages';
 	import type { LogEntry, LogLevel } from '$lib/types/api';
 
-	let id = $derived(page.params.id ?? '');
-	let profile = $derived(id ? profiles.byId(id) : undefined);
-	let conn = $derived(profile ? connections.connect(profile) : null);
-
-	$effect(() => {
-		if (!conn) return;
-		untrack(() => {
-			conn.ensureSignedIn().catch((e) => {
-				if (e instanceof ApiError)
-					toast.error(m.logs_load_failed(), { description: e.userMessage });
-			});
-		});
-	});
+	let { conn } = $derived(useServer());
 
 	type RangeKey = '1h' | '24h' | '7d' | '30d';
 	const RANGE_SECS: Record<RangeKey, number> = {
@@ -53,7 +36,7 @@
 
 	/** `background` = the 30s poll; it must not spin the Refresh button. */
 	async function fetchData(background = false) {
-		if (!conn?.isAuthenticated) return;
+		if (!conn.isAuthenticated) return;
 		if (!background) busy = true;
 		const gen = ++generation;
 		const now = Math.floor(Date.now() / 1000);
@@ -80,7 +63,7 @@
 	$effect(() => {
 		void level;
 		void range;
-		if (!conn?.isAuthenticated) return;
+		if (!conn.isAuthenticated) return;
 		void fetchData();
 		const t = setInterval(() => void fetchData(true), 30_000);
 		return () => clearInterval(t);
@@ -135,91 +118,85 @@
 		</Button>
 	</PageHeader>
 
-	{#if !conn?.isAuthenticated}
-		<Banner variant="warning" title={m.alerts_banner_not_signed_in_title()}>
-			{m.alerts_banner_not_signed_in_body()}
-		</Banner>
-	{:else}
-		<div class="mb-4 flex flex-wrap items-center gap-2">
-			<SegmentedControl
-				value={level}
-				options={levelOpts}
-				onSelect={(v) => (level = v)}
-				ariaLabel={m.logs_level_aria()}
-			/>
-			<SegmentedControl
-				value={range}
-				options={rangeOpts}
-				onSelect={(v) => (range = v)}
-				ariaLabel={m.events_range_24h()}
-			/>
-			<Input
-				bind:value={filter}
-				placeholder={m.logs_filter_placeholder()}
-				class="h-8 w-full sm:w-56"
-				aria-label={m.logs_filter_placeholder()}
-			/>
-			{#if entries && entries.length > 0}
-				<span class="text-2xs ml-auto text-[var(--color-fg-subtle)] tabular-nums">
-					{filter.trim()
-						? m.logs_count_filtered({ shown: shown.length, total: entries.length })
-						: m.logs_count({ count: entries.length })}
-				</span>
-			{/if}
-		</div>
+	<div class="mb-4 flex flex-wrap items-center gap-2">
+		<SegmentedControl
+			value={level}
+			options={levelOpts}
+			onSelect={(v) => (level = v)}
+			ariaLabel={m.logs_level_aria()}
+		/>
+		<SegmentedControl
+			value={range}
+			options={rangeOpts}
+			onSelect={(v) => (range = v)}
+			ariaLabel={m.events_range_24h()}
+		/>
+		<Input
+			bind:value={filter}
+			placeholder={m.logs_filter_placeholder()}
+			class="h-8 w-full sm:w-56"
+			aria-label={m.logs_filter_placeholder()}
+		/>
+		{#if entries && entries.length > 0}
+			<span class="text-2xs ml-auto text-[var(--color-fg-subtle)] tabular-nums">
+				{filter.trim()
+					? m.logs_count_filtered({ shown: shown.length, total: entries.length })
+					: m.logs_count({ count: entries.length })}
+			</span>
+		{/if}
+	</div>
 
-		{#if loadFailed}
-			{#if entries === null}
-				<Banner variant="danger" title={m.logs_load_failed()} class="mb-4" />
-			{:else}
-				<!-- A list is on screen but no longer current — say so, otherwise
+	{#if loadFailed}
+		{#if entries === null}
+			<Banner variant="danger" title={m.logs_load_failed()} class="mb-4" />
+		{:else}
+			<!-- A list is on screen but no longer current — say so, otherwise
 				     the poll fails silently and stale rows read as live. -->
-				<Banner variant="warning" title={m.logs_refresh_failed()} class="mb-4" />
-			{/if}
+			<Banner variant="warning" title={m.logs_refresh_failed()} class="mb-4" />
 		{/if}
-
-		{#if truncated}
-			<Banner variant="info" title={m.logs_truncated({ count: LIMIT })} class="mb-4" />
-		{/if}
-
-		<Card padding="none" class="overflow-hidden">
-			{#if entries === null}
-				<div class="space-y-2 p-4">
-					<Skeleton class="h-4 w-full" />
-					<Skeleton class="h-4 w-4/5" />
-					<Skeleton class="h-4 w-5/6" />
-					<Skeleton class="h-4 w-2/3" />
-				</div>
-			{:else if shown.length === 0}
-				<div class="flex flex-col items-center justify-center gap-2 px-4 py-14 text-center">
-					<span class="inline-flex size-2 rounded-full bg-[var(--color-success)]"></span>
-					<p class="text-md text-[var(--color-fg-muted)]">
-						{entries.length === 0 ? m.logs_empty() : m.logs_empty_filtered()}
-					</p>
-				</div>
-			{:else}
-				<!-- Long messages (panics, stack-ish payloads) would otherwise widen
-				     the page; the list scrolls on its own axis instead. -->
-				<div class="overflow-x-auto">
-					<ol class="min-w-max divide-y divide-[var(--color-border)]/60">
-						{#each shown as e (e.id)}
-							<li class="flex items-baseline gap-3 px-4 py-1.5 font-mono text-xs leading-snug">
-								<span
-									class="text-3xs shrink-0 text-[var(--color-fg-faint)] tabular-nums"
-									title={new Date(e.timestamp * 1000).toLocaleString()}
-								>
-									{new Date(e.timestamp * 1000).toLocaleTimeString()}
-								</span>
-								<span class={cn('text-3xs w-[3.25rem] shrink-0 uppercase', levelTone(e.level))}>
-									{e.level}
-								</span>
-								<span class="text-3xs shrink-0 text-[var(--color-fg-subtle)]">{e.target}</span>
-								<span class="text-[var(--color-fg)]">{e.message}</span>
-							</li>
-						{/each}
-					</ol>
-				</div>
-			{/if}
-		</Card>
 	{/if}
+
+	{#if truncated}
+		<Banner variant="info" title={m.logs_truncated({ count: LIMIT })} class="mb-4" />
+	{/if}
+
+	<Card padding="none" class="overflow-hidden">
+		{#if entries === null}
+			<div class="space-y-2 p-4">
+				<Skeleton class="h-4 w-full" />
+				<Skeleton class="h-4 w-4/5" />
+				<Skeleton class="h-4 w-5/6" />
+				<Skeleton class="h-4 w-2/3" />
+			</div>
+		{:else if shown.length === 0}
+			<div class="flex flex-col items-center justify-center gap-2 px-4 py-14 text-center">
+				<span class="inline-flex size-2 rounded-full bg-[var(--color-success)]"></span>
+				<p class="text-md text-[var(--color-fg-muted)]">
+					{entries.length === 0 ? m.logs_empty() : m.logs_empty_filtered()}
+				</p>
+			</div>
+		{:else}
+			<!-- Long messages (panics, stack-ish payloads) would otherwise widen
+				     the page; the list scrolls on its own axis instead. -->
+			<div class="overflow-x-auto">
+				<ol class="min-w-max divide-y divide-[var(--color-border)]/60">
+					{#each shown as e (e.id)}
+						<li class="flex items-baseline gap-3 px-4 py-1.5 font-mono text-xs leading-snug">
+							<span
+								class="text-3xs shrink-0 text-[var(--color-fg-faint)] tabular-nums"
+								title={new Date(e.timestamp * 1000).toLocaleString()}
+							>
+								{new Date(e.timestamp * 1000).toLocaleTimeString()}
+							</span>
+							<span class={cn('text-3xs w-[3.25rem] shrink-0 uppercase', levelTone(e.level))}>
+								{e.level}
+							</span>
+							<span class="text-3xs shrink-0 text-[var(--color-fg-subtle)]">{e.target}</span>
+							<span class="text-[var(--color-fg)]">{e.message}</span>
+						</li>
+					{/each}
+				</ol>
+			</div>
+		{/if}
+	</Card>
 </div>

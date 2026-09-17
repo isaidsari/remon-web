@@ -1,33 +1,22 @@
 <script lang="ts">
-	import type { Component } from 'svelte';
+	import { untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { profiles } from '$lib/stores/profiles.svelte';
 	import { connections } from '$lib/stores/connections.svelte';
+	import { sidebar } from '$lib/stores/sidebar.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
+	import { provideServer } from '$lib/server-scope';
+	import { NAV_GROUPS } from '$lib/nav';
+	import { ApiError } from '$lib/api/error';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
+	import EmptyState from '$lib/components/ui/EmptyState.svelte';
+	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import { cn } from '$lib/utils/cn';
 	import { applyAccent, clearAccent } from '$lib/utils/accent';
 	import { sessionTone, type LiveTone } from '$lib/utils/connTone';
-
-	import { sidebar } from '$lib/stores/sidebar.svelte';
 	import IconChevronLeft from '~icons/lucide/chevron-left';
-	import IconBotMessageSquare from '~icons/lucide/bot-message-square';
-	import IconLayoutDashboard from '~icons/lucide/layout-dashboard';
-	import IconLineChart from '~icons/lucide/line-chart';
-	import IconList from '~icons/lucide/list';
-	import IconActivity from '~icons/lucide/activity';
-	import IconStethoscope from '~icons/lucide/stethoscope';
-	import IconHeartPulse from '~icons/lucide/heart-pulse';
-	import IconContainer from '~icons/lucide/container';
-	import IconTriangleAlert from '~icons/lucide/triangle-alert';
-	import IconZap from '~icons/lucide/zap';
-	import IconScrollText from '~icons/lucide/scroll-text';
-	import IconCamera from '~icons/lucide/camera';
-	import IconFileText from '~icons/lucide/file-text';
-	import IconBell from '~icons/lucide/bell';
-	import IconSettings from '~icons/lucide/settings';
-	import IconSlidersHorizontal from '~icons/lucide/sliders-horizontal';
 	import { m } from '$lib/paraglide/messages';
 
 	let { children } = $props();
@@ -38,9 +27,28 @@
 	let basePath = $derived(`/servers/${id}`);
 	let currentPath = $derived(page.url.pathname);
 
+	// Children only render once the profile exists, so the getters can assert.
+	provideServer({
+		get id() {
+			return id;
+		},
+		get profile() {
+			return profile!;
+		},
+		get conn() {
+			return conn!;
+		}
+	});
+
 	// The server-side name (`server_config.server_name`) is canonical; the
 	// profile name is only a local alias used until the first fetch lands.
 	let displayName = $derived(conn?.systemInfo?.data?.server_name ?? profile?.name ?? '');
+
+	// One sign-in per server, not one per page; the gate below reports failure.
+	$effect(() => {
+		if (!conn) return;
+		untrack(() => void conn.ensureSignedIn().catch(() => {}));
+	});
 
 	$effect(() => {
 		if (conn?.isAuthenticated) void conn.fetchSystemInfo().catch(() => {});
@@ -57,44 +65,34 @@
 		return () => clearAccent();
 	});
 
-	type NavItem = {
-		href: string;
-		label: string;
-		icon: Component;
-		enabled: boolean;
-		badge?: string;
-	};
+	// Settings stays reachable while signed out: that is where a rejected
+	// credential gets repaired and where a server gets removed.
+	let gated = $derived(currentPath !== basePath + '/settings');
+	let needsRepair = $derived(conn?.error?.needsRepair === true);
 
-	let nav = $derived<NavItem[]>([
-		{ href: '', label: m.section_overview(), icon: IconLayoutDashboard, enabled: true },
-		{ href: '/assistant', label: m.section_assistant(), icon: IconBotMessageSquare, enabled: true },
-		{ href: '/metrics', label: m.section_metrics(), icon: IconLineChart, enabled: true },
-		{ href: '/processes', label: m.section_processes(), icon: IconList, enabled: true },
-		{ href: '/services', label: m.section_services(), icon: IconActivity, enabled: true },
-		{ href: '/probes', label: m.section_probes(), icon: IconStethoscope, enabled: true },
-		{ href: '/heartbeats', label: m.section_heartbeats(), icon: IconHeartPulse, enabled: true },
-		{ href: '/docker', label: m.section_containers(), icon: IconContainer, enabled: true },
-		{ href: '/alerts', label: m.section_alerts(), icon: IconTriangleAlert, enabled: true },
-		{ href: '/actions', label: m.section_actions(), icon: IconZap, enabled: true },
-		{ href: '/events', label: m.section_events(), icon: IconScrollText, enabled: true },
-		{ href: '/incidents', label: m.section_incidents(), icon: IconCamera, enabled: true },
-		{ href: '/logs', label: m.section_logs(), icon: IconFileText, enabled: true },
-		{ href: '/notifications', label: m.section_notifications(), icon: IconBell, enabled: true },
-		{ href: '/config', label: m.section_config(), icon: IconSettings, enabled: true },
-		{ href: '/settings', label: m.section_settings(), icon: IconSlidersHorizontal, enabled: true }
-	]);
+	async function signIn() {
+		if (!conn) return;
+		try {
+			await conn.login();
+			toast.success(m.overview_toast_signed_in());
+		} catch (e) {
+			if (e instanceof ApiError) {
+				toast.error(m.overview_toast_signin_failed(), { description: e.userMessage });
+			}
+		}
+	}
 
-	function isActive(item: NavItem): boolean {
-		const target = basePath + item.href;
-		if (item.href === '') return currentPath === basePath;
+	function isActive(path: string): boolean {
+		const target = basePath + path;
+		if (path === '') return currentPath === basePath;
 		return currentPath === target || currentPath.startsWith(target + '/');
 	}
 
 	// Prefetch on hover/focus: client has 5 s GET cache so the destination page renders without an extra round-trip.
-	function prefetch(item: NavItem) {
-		if (!conn?.isAuthenticated || !item.enabled) return;
+	function prefetch(path: string) {
+		if (!conn?.isAuthenticated) return;
 		const c = conn.client;
-		switch (item.href) {
+		switch (path) {
 			case '/processes':
 				void c.processes().catch(() => {});
 				break;
@@ -146,8 +144,6 @@
 	// a live stream happens to be open is the current page's business.
 	let connectionTone = $derived<LiveTone>(conn ? sessionTone(conn) : 'offline');
 
-	// The dot is the only cue here, so its tooltip and label have to carry the
-	// word; LiveBadge already owns the translated vocabulary for these.
 	let connectionLabel = $derived(
 		connectionTone === 'online'
 			? m.livebadge_online()
@@ -158,6 +154,14 @@
 					: m.livebadge_idle()
 	);
 
+	const toneDot: Record<LiveTone, string> = {
+		online: 'bg-[var(--color-success)] shadow-[0_0_6px_rgba(52,211,153,0.55)]',
+		connecting: 'bg-[var(--color-warning)]',
+		warning: 'bg-[var(--color-warning)]',
+		offline: 'bg-[var(--color-danger)]',
+		idle: 'bg-[var(--color-fg-faint)]'
+	};
+
 	// Auto-close on route change so the drawer doesn't linger after a nav item tap.
 	$effect(() => {
 		void currentPath;
@@ -167,15 +171,9 @@
 
 {#if !profile}
 	<div class="mx-auto max-w-3xl px-6 py-12">
-		<Card padding="lg" class="text-center">
-			<h2 class="text-lg font-medium">{m.detail_not_found_title()}</h2>
-			<p class="mt-2 text-sm text-[var(--color-fg-muted)]">
-				{m.detail_not_found_description()}
-			</p>
-			<div class="mt-6">
-				<Button onclick={() => goto('/servers')}>{m.detail_back_to_list()}</Button>
-			</div>
-		</Card>
+		<EmptyState title={m.detail_not_found_title()} description={m.detail_not_found_description()}>
+			<Button onclick={() => goto('/servers')}>{m.detail_back_to_list()}</Button>
+		</EmptyState>
 	</div>
 {:else}
 	<div class="relative grid min-h-[calc(100dvh-3rem)] grid-cols-1 md:grid-cols-[256px_1fr]">
@@ -216,16 +214,7 @@
 						{displayName}
 					</h2>
 					<span
-						class={cn(
-							'size-2 shrink-0 rounded-full',
-							connectionTone === 'online'
-								? 'bg-[var(--color-success)] shadow-[0_0_6px_rgba(52,211,153,0.55)]'
-								: connectionTone === 'connecting'
-									? 'bg-[var(--color-warning)]'
-									: connectionTone === 'offline'
-										? 'bg-[var(--color-danger)]'
-										: 'bg-[var(--color-fg-faint)]'
-						)}
+						class={cn('size-2 shrink-0 rounded-full', toneDot[connectionTone])}
 						title={connectionLabel}
 						aria-label={connectionLabel}
 					></span>
@@ -235,61 +224,97 @@
 				</p>
 			</div>
 
-			<nav class="flex flex-1 flex-col gap-0.5" aria-label={m.detail_aria_server_sections()}>
-				{#each nav as item (item.href)}
-					{@const active = isActive(item)}
-					{@const Icon = item.icon}
-					{#if item.enabled}
-						<a
-							href={basePath + item.href}
-							onmouseenter={() => prefetch(item)}
-							onfocus={() => prefetch(item)}
-							class={cn(
-								'group text-md relative flex items-center gap-3 rounded-[var(--radius-input)] px-3 py-2.5 transition-all duration-[var(--dur-fast)] ease-[var(--ease-snap)]',
-								active
-									? 'bg-[var(--color-surface)] text-[var(--color-fg)]'
-									: 'text-[var(--color-fg-muted)] hover:bg-[var(--color-surface)]/60 hover:text-[var(--color-fg)]'
-							)}
-						>
-							{#if active}
-								<span
-									class="absolute inset-y-1.5 left-0 w-[2.5px] rounded-r-full bg-[var(--color-accent)]"
-									aria-hidden="true"
-								></span>
-							{/if}
-							<Icon
+			<nav class="flex flex-1 flex-col gap-5" aria-label={m.detail_aria_server_sections()}>
+				{#each NAV_GROUPS as group, gi (gi)}
+					<div class="flex flex-col gap-0.5">
+						{#if group.label}
+							<p
+								class="text-3xs mb-1 px-3 font-medium tracking-[0.12em] text-[var(--color-fg-faint)] uppercase"
+							>
+								{group.label()}
+							</p>
+						{/if}
+						{#each group.items as item (item.path)}
+							{@const active = isActive(item.path)}
+							{@const Icon = item.icon}
+							<a
+								href={basePath + item.path}
+								onmouseenter={() => prefetch(item.path)}
+								onfocus={() => prefetch(item.path)}
 								class={cn(
-									'size-[17px] shrink-0 transition-colors',
+									'group text-md relative flex items-center gap-3 rounded-[var(--radius-input)] px-3 py-2 transition-all duration-[var(--dur-fast)] ease-[var(--ease-snap)]',
 									active
-										? 'text-[var(--color-accent)]'
-										: 'text-[var(--color-fg-subtle)] group-hover:text-[var(--color-fg-muted)]'
+										? 'bg-[var(--color-surface)] text-[var(--color-fg)]'
+										: 'text-[var(--color-fg-muted)] hover:bg-[var(--color-surface)]/60 hover:text-[var(--color-fg)]'
 								)}
-								stroke-width="2"
-							/>
-							<span class="flex-1 font-medium">{item.label}</span>
-						</a>
-					{:else}
-						<div
-							class="text-md flex cursor-not-allowed items-center gap-3 rounded-[var(--radius-input)] px-3 py-2.5 text-[var(--color-fg-subtle)]/60"
-							title={m.detail_disabled_tooltip()}
-						>
-							<Icon class="size-[17px] shrink-0" stroke-width="2" />
-							<span class="flex-1">{item.label}</span>
-							{#if item.badge}
-								<span
-									class="text-3xs rounded-full bg-[var(--color-surface-2)] px-2 py-0.5 font-mono tracking-wide"
-									>{item.badge}</span
-								>
-							{/if}
-						</div>
-					{/if}
+							>
+								{#if active}
+									<span
+										class="absolute inset-y-1.5 left-0 w-[2.5px] rounded-r-full bg-[var(--color-accent)]"
+										aria-hidden="true"
+									></span>
+								{/if}
+								<Icon
+									class={cn(
+										'size-[17px] shrink-0 transition-colors',
+										active
+											? 'text-[var(--color-accent)]'
+											: 'text-[var(--color-fg-subtle)] group-hover:text-[var(--color-fg-muted)]'
+									)}
+									stroke-width="2"
+								/>
+								<span class="flex-1 font-medium">{item.label()}</span>
+							</a>
+						{/each}
+					</div>
 				{/each}
 			</nav>
 		</aside>
 
 		<!-- clip, not hidden: hidden makes this a scroll container and breaks sticky. -->
 		<main class="min-w-0 overflow-x-clip">
-			{@render children()}
+			{#if !gated || conn?.isAuthenticated}
+				{@render children()}
+			{:else if conn?.status === 'error'}
+				<div class="px-4 py-6 md:px-8 md:py-8">
+					<Card padding="lg">
+						<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+							<div>
+								<p class="font-medium">
+									{needsRepair
+										? m.overview_auth_credential_rejected()
+										: m.overview_auth_not_signed_in()}
+								</p>
+								<p class="mt-1 text-sm text-[var(--color-fg-muted)]">
+									{needsRepair
+										? m.overview_auth_needs_repair_body()
+										: m.overview_auth_signin_prompt()}
+								</p>
+								{#if conn.error}
+									<p class="mt-1 text-sm text-[var(--color-danger)]">{conn.error.userMessage}</p>
+								{/if}
+							</div>
+							<div class="flex shrink-0 items-center gap-2">
+								{#if needsRepair}
+									<Button variant="primary" onclick={() => goto(`/servers/new?replace=${id}`)}>
+										{m.overview_auth_repair_button()}
+									</Button>
+									<Button variant="ghost" onclick={signIn}>{m.overview_auth_retry_button()}</Button>
+								{:else}
+									<Button onclick={signIn}>{m.overview_auth_signin_button()}</Button>
+								{/if}
+							</div>
+						</div>
+					</Card>
+				</div>
+			{:else}
+				<div
+					class="flex items-center justify-center gap-2 px-4 py-24 text-sm text-[var(--color-fg-subtle)]"
+				>
+					<Spinner />
+					{m.overview_auth_signing_in()}
+				</div>
+			{/if}
 		</main>
 	</div>
 {/if}
