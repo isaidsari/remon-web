@@ -2,8 +2,12 @@
 	import { untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import DataTable from '$lib/components/ui/DataTable.svelte';
+	import EmptyState from '$lib/components/ui/EmptyState.svelte';
+	import IconButton from '$lib/components/ui/IconButton.svelte';
+	import PageHeader from '$lib/components/ui/PageHeader.svelte';
+	import Switch from '$lib/components/ui/Switch.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import Banner from '$lib/components/ui/Banner.svelte';
@@ -327,80 +331,37 @@
 	}
 </script>
 
-<!-- Shared by the desktop table's trailing column and the mobile card's action
-     row. aria-label mirrors title so the icon-only controls are announced. -->
 {#snippet ruleActions(rule: AlertRuleDto)}
-	<button
-		type="button"
-		onclick={() => toggleEnabled(rule)}
+	<Switch
+		checked={rule.enabled}
+		onchange={() => toggleEnabled(rule)}
 		disabled={acting !== null}
-		role="switch"
-		aria-checked={rule.enabled}
-		title={rule.enabled ? m.alerts_action_disable() : m.alerts_action_enable()}
-		aria-label={rule.enabled ? m.alerts_action_disable() : m.alerts_action_enable()}
-		class={cn(
-			'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50',
-			rule.enabled ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-border)]'
-		)}
-	>
-		<span
-			class={cn(
-				'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
-				rule.enabled ? 'translate-x-4' : 'translate-x-0'
-			)}
-		></span>
-	</button>
-	<button
-		type="button"
-		onclick={() => openEdit(rule)}
-		title={m.alerts_action_edit()}
-		aria-label={m.alerts_action_edit()}
-		class="grid h-8 w-8 place-items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-fg-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-fg)]"
-	>
+		label={rule.enabled ? m.alerts_action_disable() : m.alerts_action_enable()}
+	/>
+	<IconButton label={m.alerts_action_edit()} onclick={() => openEdit(rule)}>
 		<IconPencil class="size-[13px]" stroke-width="2" />
-	</button>
+	</IconButton>
 	{#if isSilenced(rule)}
-		<button
-			type="button"
+		<IconButton
+			label={m.alerts_action_unsilence()}
 			onclick={() => unsilenceRule(rule)}
-			disabled={acting === `unsilence:${rule.id}`}
-			title={m.alerts_action_unsilence()}
-			aria-label={m.alerts_action_unsilence()}
-			class="grid h-8 w-8 place-items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-fg-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-fg)] disabled:cursor-not-allowed disabled:opacity-30"
+			loading={acting === `unsilence:${rule.id}`}
 		>
-			{#if acting === `unsilence:${rule.id}`}
-				<span class="h-3 w-3 animate-spin rounded-full border-2 border-current border-r-transparent"
-				></span>
-			{:else}
-				<IconBell class="size-[13px]" stroke-width="2" />
-			{/if}
-		</button>
+			<IconBell class="size-[13px]" stroke-width="2" />
+		</IconButton>
 	{:else}
-		<button
-			type="button"
-			onclick={() => openSilence(rule)}
-			title={m.alerts_action_silence()}
-			aria-label={m.alerts_action_silence()}
-			class="grid h-8 w-8 place-items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-fg-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-fg)]"
-		>
+		<IconButton label={m.alerts_action_silence()} onclick={() => openSilence(rule)}>
 			<IconBellOff class="size-[13px]" stroke-width="2" />
-		</button>
+		</IconButton>
 	{/if}
-	<button
-		type="button"
+	<IconButton
+		tone="danger"
+		label={m.alerts_action_delete()}
 		onclick={() => deleteRule(rule)}
-		disabled={acting === `delete:${rule.id}`}
-		title={m.alerts_action_delete()}
-		aria-label={m.alerts_action_delete()}
-		class="grid h-8 w-8 place-items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-fg-muted)] transition hover:border-[var(--color-danger)]/50 hover:text-[var(--color-danger)] disabled:cursor-not-allowed disabled:opacity-30"
+		loading={acting === `delete:${rule.id}`}
 	>
-		{#if acting === `delete:${rule.id}`}
-			<span class="h-3 w-3 animate-spin rounded-full border-2 border-current border-r-transparent"
-			></span>
-		{:else}
-			<IconTrash class="size-[13px]" stroke-width="2" />
-		{/if}
-	</button>
+		<IconTrash class="size-[13px]" stroke-width="2" />
+	</IconButton>
 {/snippet}
 
 {#snippet severityBadge(sev: AlertSeverity)}
@@ -437,481 +398,230 @@
 	</span>
 {/snippet}
 
+{#snippet silencedPill(rule: AlertRuleDto)}
+	<span
+		class="text-3xs inline-flex items-center gap-1 rounded-full bg-[var(--color-fg-subtle)]/15 px-2 py-0.5 font-mono tracking-wide text-[var(--color-fg-muted)]"
+		title={m.alerts_silenced_until({
+			time: new Date((rule.silenced_until ?? 0) * 1000).toLocaleString()
+		})}
+	>
+		<IconBellOff class="size-[10px]" stroke-width="2.25" />
+		{m.alerts_silenced_for({ duration: fmtDuration((rule.silenced_until ?? 0) - now) })}
+	</span>
+{/snippet}
+
+{#snippet labelSet(labels: string)}
+	{#if labels === '{}'}
+		<span class="text-[var(--color-fg-subtle)]">—</span>
+	{:else}
+		<code
+			class="text-3xs rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono break-all text-[var(--color-fg-muted)]"
+		>
+			{labels}
+		</code>
+	{/if}
+{/snippet}
+
+{#snippet loadMore()}
+	<Button variant="ghost" size="sm" onclick={loadMoreEvents} loading={eventsLoadingMore}>
+		{m.alerts_events_load_more()}
+	</Button>
+{/snippet}
+
 {#if profile}
 	<div class="px-4 py-6 md:px-8 md:py-8">
-		<header class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-			<div>
-				<h1 class="text-2xl font-semibold tracking-tight">{m.alerts_page_title()}</h1>
-				<p class="mt-1.5 text-sm text-[var(--color-fg-muted)]">
-					{m.alerts_page_subtitle()}
-				</p>
-			</div>
-			<div class="flex flex-wrap items-center gap-2">
-				<Button variant="secondary" size="sm" onclick={fetchAll} loading={busy}
-					>{m.alerts_action_refresh()}</Button
-				>
-				<Button size="sm" onclick={openCreate}>{m.alerts_action_new_rule()}</Button>
-			</div>
-		</header>
+		<PageHeader title={m.alerts_page_title()} subtitle={m.alerts_page_subtitle()}>
+			<Button variant="secondary" size="sm" onclick={fetchAll} loading={busy}>
+				{m.alerts_action_refresh()}
+			</Button>
+			<Button size="sm" onclick={openCreate}>{m.alerts_action_new_rule()}</Button>
+		</PageHeader>
 
 		{#if !conn?.isAuthenticated}
-			<Banner variant="warning" title={m.alerts_banner_not_signed_in_title()}
-				>{m.alerts_banner_not_signed_in_body()}</Banner
-			>
+			<Banner variant="warning" title={m.alerts_banner_not_signed_in_title()}>
+				{m.alerts_banner_not_signed_in_body()}
+			</Banner>
 		{:else}
-			<div class="mb-4 flex items-center justify-between gap-4">
+			<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<Tabs tabs={tabsConfig} value={tab} onSelect={setTab} />
 				{#if tab === 'rules'}
 					<Input
 						placeholder={m.alerts_filter_rules_placeholder()}
 						bind:value={q}
-						class="w-64 text-sm"
+						class="w-full sm:w-64"
 					/>
 				{/if}
 			</div>
 
 			{#if tab === 'rules'}
-				<Card padding="none" class="hidden overflow-hidden md:block">
-					<div class="max-h-[max(18rem,calc(100dvh-22rem))] overflow-auto">
-						<table class="w-full text-sm">
-							<thead
-								class="sticky top-0 z-10 bg-[var(--color-surface-2)] text-xs tracking-wide text-[var(--color-fg-muted)]"
-							>
-								<tr>
-									<th class="px-3 py-2.5 text-left font-medium">{m.alerts_table_name()}</th>
-									<th class="px-3 py-2.5 text-left font-medium">{m.alerts_table_expression()}</th>
-									<th class="px-3 py-2.5 text-left font-medium">{m.alerts_table_severity()}</th>
-									<th class="px-3 py-2.5 text-left font-medium">{m.alerts_table_for()}</th>
-									<th class="px-3 py-2.5 text-left font-medium">{m.alerts_table_cooldown()}</th>
-									<th class="px-3 py-2.5 text-right font-medium">{m.alerts_table_actions()}</th>
-								</tr>
-							</thead>
-							<tbody>
-								{#each filteredRules as rule (rule.id)}
-									<tr
-										class={cn(
-											'border-t border-[var(--color-border)] transition',
-											!rule.enabled && 'opacity-50'
-										)}
-									>
-										<td class="px-3 py-2.5">
-											<div class="flex flex-col">
-												<div class="flex items-center gap-2">
-													<span class="font-medium text-[var(--color-fg)]">{rule.name}</span>
-													{#if isSilenced(rule)}
-														<span
-															class="text-3xs inline-flex items-center gap-1 rounded-full bg-[var(--color-fg-subtle)]/15 px-2 py-0.5 font-mono tracking-wide text-[var(--color-fg-muted)]"
-															title={m.alerts_silenced_until({
-																time: new Date((rule.silenced_until ?? 0) * 1000).toLocaleString()
-															})}
-														>
-															<IconBellOff class="size-[10px]" stroke-width="2.25" />
-															{m.alerts_silenced_for({
-																duration: fmtDuration((rule.silenced_until ?? 0) - now)
-															})}
-														</span>
-													{/if}
-												</div>
-												{#if rule.description}
-													<span class="text-xs text-[var(--color-fg-muted)]"
-														>{rule.description}</span
-													>
-												{/if}
-											</div>
-										</td>
-										<!-- w-full + max-w-0: a rule expression is arbitrary-length text, and
-										     in auto table layout the cell's max-content would set the column
-										     width — pushing severity/for/cooldown/actions off-screen. -->
-										<td class="w-full max-w-0 px-3 py-2.5">
-											<div class="flex flex-col gap-0.5" title={rule.expression}>
-												<span class="text-md truncate text-[var(--color-fg)]">
-													{describeExpression(rule.expression, schema)}
-												</span>
-												<code class="text-3xs truncate font-mono text-[var(--color-fg-subtle)]"
-													>{rule.expression}</code
-												>
-											</div>
-										</td>
-										<td class="px-3 py-2.5">{@render severityBadge(rule.severity)}</td>
-										<td class="px-3 py-2.5 font-mono text-xs text-[var(--color-fg-muted)]"
-											>{rule.for_duration_secs}s</td
-										>
-										<td class="px-3 py-2.5 font-mono text-xs text-[var(--color-fg-muted)]"
-											>{rule.cooldown_secs}s</td
-										>
-										<td class="px-3 py-2.5">
-											<div class="flex items-center justify-end gap-2">
-												{@render ruleActions(rule)}
-											</div>
-										</td>
-									</tr>
-								{/each}
-								{#if filteredRules.length === 0}
-									<tr>
-										<td
-											colspan="6"
-											class="px-3 py-10 text-center text-sm text-[var(--color-fg-subtle)]"
-										>
-											{rules.length === 0 ? m.alerts_empty_rules() : m.alerts_empty_rules_filter()}
-										</td>
-									</tr>
-								{/if}
-							</tbody>
-						</table>
-					</div>
-				</Card>
-
-				<!-- Below md the rules become cards: six columns, one of them a
-				     free-text expression, cannot survive a phone width. The
-				     expression keeps its plain-language line and the raw form
-				     wraps instead of truncating — on a card there is room. -->
-				<div class="flex flex-col gap-2 md:hidden">
-					{#if filteredRules.length === 0}
-						<Card padding="lg" class="text-center text-sm text-[var(--color-fg-subtle)]">
-							{rules.length === 0 ? m.alerts_empty_rules() : m.alerts_empty_rules_filter()}
-						</Card>
-					{:else}
-						{#each filteredRules as rule (rule.id)}
-							<Card padding="none" class={cn('overflow-hidden', !rule.enabled && 'opacity-60')}>
-								<div class="flex flex-col gap-2 px-3.5 py-3">
-									<div class="flex items-start justify-between gap-2">
-										<div class="flex min-w-0 flex-1 flex-col">
-											<span class="font-medium break-words text-[var(--color-fg)]">
-												{rule.name}
-											</span>
-											{#if rule.description}
-												<span class="text-2xs mt-0.5 leading-snug text-[var(--color-fg-muted)]">
-													{rule.description}
-												</span>
-											{/if}
-										</div>
-										{@render severityBadge(rule.severity)}
+				<DataTable
+					empty={filteredRules.length === 0
+						? rules.length === 0
+							? m.alerts_empty_rules()
+							: m.alerts_empty_rules_filter()
+						: undefined}
+				>
+					{#snippet head()}
+						<th>{m.alerts_table_name()}</th>
+						<th>{m.alerts_table_expression()}</th>
+						<th>{m.alerts_table_severity()}</th>
+						<th>{m.alerts_table_for()}</th>
+						<th>{m.alerts_table_cooldown()}</th>
+						<th class="text-right">{m.alerts_table_actions()}</th>
+					{/snippet}
+					{#each filteredRules as rule (rule.id)}
+						<tr class={cn(!rule.enabled && 'muted')}>
+							<td>
+								<div class="flex flex-col">
+									<div class="flex flex-wrap items-center gap-2">
+										<span class="font-medium break-words text-[var(--color-fg)]">{rule.name}</span>
+										{#if isSilenced(rule)}{@render silencedPill(rule)}{/if}
 									</div>
-
-									{#if isSilenced(rule)}
-										<span
-											class="text-3xs inline-flex w-fit items-center gap-1 rounded-full bg-[var(--color-fg-subtle)]/15 px-2 py-0.5 font-mono tracking-wide text-[var(--color-fg-muted)]"
-										>
-											<IconBellOff class="size-[10px]" stroke-width="2.25" />
-											{m.alerts_silenced_for({
-												duration: fmtDuration((rule.silenced_until ?? 0) - now)
-											})}
-										</span>
+									{#if rule.description}
+										<span class="text-xs text-[var(--color-fg-muted)]">{rule.description}</span>
 									{/if}
-
-									<div class="flex flex-col gap-0.5">
-										<span class="text-xs text-[var(--color-fg)]">
-											{describeExpression(rule.expression, schema)}
-										</span>
-										<code class="text-3xs font-mono break-all text-[var(--color-fg-subtle)]">
-											{rule.expression}
-										</code>
-									</div>
-
-									<dl class="text-2xs grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-										<dt class="text-[var(--color-fg-subtle)]">{m.alerts_table_for()}</dt>
-										<dd class="font-mono text-[var(--color-fg-muted)]">
-											{rule.for_duration_secs}s
-										</dd>
-										<dt class="text-[var(--color-fg-subtle)]">{m.alerts_table_cooldown()}</dt>
-										<dd class="font-mono text-[var(--color-fg-muted)]">{rule.cooldown_secs}s</dd>
-									</dl>
 								</div>
-								<div
-									class="flex items-center gap-2 border-t border-[var(--color-border)] px-3.5 py-2.5"
-								>
+							</td>
+							<!-- md:max-w-0: a rule expression is arbitrary-length text, and in
+							     auto table layout its max-content would set the column width. -->
+							<td class="md:w-full md:max-w-0">
+								<div class="flex flex-col gap-0.5" title={rule.expression}>
+									<span class="text-md break-words text-[var(--color-fg)] md:truncate">
+										{describeExpression(rule.expression, schema)}
+									</span>
+									<code
+										class="text-3xs font-mono break-all text-[var(--color-fg-subtle)] md:truncate"
+									>
+										{rule.expression}
+									</code>
+								</div>
+							</td>
+							<td data-label={m.alerts_table_severity()}>{@render severityBadge(rule.severity)}</td>
+							<td
+								data-label={m.alerts_table_for()}
+								class="font-mono text-xs text-[var(--color-fg-muted)]"
+							>
+								{rule.for_duration_secs}s
+							</td>
+							<td
+								data-label={m.alerts_table_cooldown()}
+								class="font-mono text-xs text-[var(--color-fg-muted)]"
+							>
+								{rule.cooldown_secs}s
+							</td>
+							<td class="actions">
+								<div class="flex items-center gap-2 md:justify-end">
 									{@render ruleActions(rule)}
 								</div>
-							</Card>
-						{/each}
-					{/if}
-				</div>
+							</td>
+						</tr>
+					{/each}
+				</DataTable>
 			{:else if tab === 'active'}
 				{#if activeStates.length === 0}
-					<Card padding="lg" class="text-center">
-						<div
-							class="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-success)]/10"
-						>
-							<IconCheck class="size-5 text-[var(--color-success)]" stroke-width="2" />
-						</div>
-						<p class="font-medium">{m.alerts_empty_active_title()}</p>
-						<p class="mt-1 text-sm text-[var(--color-fg-muted)]">{m.alerts_empty_active_body()}</p>
-					</Card>
+					<EmptyState
+						icon={IconCheck}
+						tone="success"
+						title={m.alerts_empty_active_title()}
+						description={m.alerts_empty_active_body()}
+					/>
 				{:else}
-					<Card padding="none" class="hidden overflow-hidden md:block">
-						<div class="max-h-[max(18rem,calc(100dvh-22rem))] overflow-auto">
-							<table class="w-full text-sm">
-								<thead
-									class="sticky top-0 z-10 bg-[var(--color-surface-2)] text-xs tracking-wide text-[var(--color-fg-muted)]"
-								>
-									<tr>
-										<th class="px-3 py-2.5 text-left font-medium">{m.alerts_table_rule()}</th>
-										<th class="px-3 py-2.5 text-left font-medium">{m.alerts_table_state()}</th>
-										<th class="px-3 py-2.5 text-left font-medium">{m.alerts_table_severity()}</th>
-										<th class="px-3 py-2.5 text-left font-medium">{m.alerts_table_labels()}</th>
-										<th class="px-3 py-2.5 text-right font-medium">{m.alerts_table_last_value()}</th
-										>
-										<th class="px-3 py-2.5 text-right font-medium">{m.alerts_table_since()}</th>
-									</tr>
-								</thead>
-								<tbody>
-									{#each activeStates as s (s.rule_id + s.label_set)}
-										<tr class="border-t border-[var(--color-border)]">
-											<td class="px-3 py-2.5 font-medium">{s.rule_name}</td>
-											<td class="px-3 py-2.5">{@render stateBadge(s.state)}</td>
-											<td class="px-3 py-2.5">{@render severityBadge(s.severity)}</td>
-											<td class="px-3 py-2.5">
-												{#if s.label_set === '{}'}
-													<span class="text-[var(--color-fg-subtle)]">—</span>
-												{:else}
-													<code
-														class="text-3xs rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[var(--color-fg-muted)]"
-														>{s.label_set}</code
-													>
-												{/if}
-											</td>
-											<td class="px-3 py-2.5 text-right font-mono text-xs">
-												{s.last_value != null ? s.last_value.toFixed(2) : '—'}
-											</td>
-											<td class="px-3 py-2.5 text-right text-xs text-[var(--color-fg-muted)]">
-												{fmtRelative(s.state_since)}
-											</td>
-										</tr>
-									{/each}
-								</tbody>
-							</table>
-						</div>
-					</Card>
-
-					<div class="flex flex-col gap-2 md:hidden">
+					<DataTable>
+						{#snippet head()}
+							<th>{m.alerts_table_rule()}</th>
+							<th>{m.alerts_table_state()}</th>
+							<th>{m.alerts_table_severity()}</th>
+							<th>{m.alerts_table_labels()}</th>
+							<th class="text-right">{m.alerts_table_last_value()}</th>
+							<th class="text-right">{m.alerts_table_since()}</th>
+						{/snippet}
 						{#each activeStates as s (s.rule_id + s.label_set)}
-							<Card padding="none">
-								<div class="flex flex-col gap-2 px-3.5 py-3">
-									<div class="flex items-start justify-between gap-2">
-										<span class="min-w-0 flex-1 font-medium break-words text-[var(--color-fg)]">
-											{s.rule_name}
-										</span>
-										{@render severityBadge(s.severity)}
-									</div>
-									<div class="flex flex-wrap items-center gap-2">
-										{@render stateBadge(s.state)}
-										{#if s.label_set !== '{}'}
-											<code
-												class="text-3xs rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono break-all text-[var(--color-fg-muted)]"
-											>
-												{s.label_set}
-											</code>
-										{/if}
-									</div>
-									<dl class="text-2xs grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-										<dt class="text-[var(--color-fg-subtle)]">{m.alerts_table_last_value()}</dt>
-										<dd class="font-mono text-[var(--color-fg-muted)]">
-											{s.last_value != null ? s.last_value.toFixed(2) : '—'}
-										</dd>
-										<dt class="text-[var(--color-fg-subtle)]">{m.alerts_table_since()}</dt>
-										<dd class="text-[var(--color-fg-muted)]">{fmtRelative(s.state_since)}</dd>
-									</dl>
-								</div>
-							</Card>
+							<tr>
+								<td class="font-medium break-words">{s.rule_name}</td>
+								<td data-label={m.alerts_table_state()}>{@render stateBadge(s.state)}</td>
+								<td data-label={m.alerts_table_severity()}>{@render severityBadge(s.severity)}</td>
+								<td data-label={m.alerts_table_labels()}>{@render labelSet(s.label_set)}</td>
+								<td
+									data-label={m.alerts_table_last_value()}
+									class="font-mono text-xs md:text-right"
+								>
+									{s.last_value != null ? s.last_value.toFixed(2) : '—'}
+								</td>
+								<td
+									data-label={m.alerts_table_since()}
+									class="text-xs text-[var(--color-fg-muted)] md:text-right"
+								>
+									{fmtRelative(s.state_since)}
+								</td>
+							</tr>
 						{/each}
-					</div>
+					</DataTable>
 				{/if}
 			{:else if tab === 'events'}
-				<Card padding="none" class="hidden overflow-hidden md:block">
-					<div class="max-h-[max(18rem,calc(100dvh-22rem))] overflow-auto">
-						<table class="w-full text-sm">
-							<thead
-								class="sticky top-0 z-10 bg-[var(--color-surface-2)] text-xs tracking-wide text-[var(--color-fg-muted)]"
-							>
-								<tr>
-									<th class="px-3 py-2.5 text-left font-medium">{m.alerts_table_time()}</th>
-									<th class="px-3 py-2.5 text-left font-medium">{m.alerts_table_rule()}</th>
-									<th class="px-3 py-2.5 text-left font-medium">{m.alerts_table_severity()}</th>
-									<th class="px-3 py-2.5 text-left font-medium">{m.alerts_table_labels()}</th>
-									<th class="px-3 py-2.5 text-right font-medium">{m.alerts_table_value()}</th>
-									<th class="px-3 py-2.5 text-left font-medium">{m.alerts_table_status()}</th>
-									<th class="px-3 py-2.5 text-right font-medium">{m.alerts_table_notified()}</th>
-								</tr>
-							</thead>
-							<tbody>
-								{#each episodes as ep (ep.fired.id)}
-									{@const rule =
-										ep.fired.rule_id === null ? undefined : rulesById.get(ep.fired.rule_id)}
-									{@const duration = ep.resolved
-										? ep.resolved.occurred_at - ep.fired.occurred_at
-										: null}
-									<tr class="border-t border-[var(--color-border)]">
-										<td class="px-3 py-2.5 text-xs text-[var(--color-fg-muted)]">
-											{fmtRelative(ep.fired.occurred_at)}
-										</td>
-										<td class="px-3 py-2.5">
-											{#if rule}
-												<span class="font-medium text-[var(--color-fg)]">{rule.name}</span>
-											{:else}
-												<span class="text-[var(--color-fg-muted)]">{ep.fired.rule_name}</span>
-											{/if}
-										</td>
-										<td class="px-3 py-2.5">{@render severityBadge(ep.fired.severity)}</td>
-										<td class="px-3 py-2.5">
-											{#if ep.fired.label_set === '{}'}
-												<span class="text-[var(--color-fg-subtle)]">—</span>
-											{:else}
-												<code
-													class="text-3xs rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[var(--color-fg-muted)]"
-													>{ep.fired.label_set}</code
-												>
-											{/if}
-										</td>
-										<td class="px-3 py-2.5 text-right font-mono text-xs">
-											{ep.fired.metric_value != null ? ep.fired.metric_value.toFixed(2) : '—'}
-										</td>
-										<td class="px-3 py-2.5">
-											{#if ep.resolved}
-												<span
-													class="inline-flex items-center gap-1.5 text-xs text-[var(--color-success)]"
-												>
-													<IconCircleCheck class="size-[13px]" stroke-width="2" />
-													<span>{m.alerts_event_status_resolved()}</span>
-												</span>
-												{#if duration !== null}
-													<span class="text-3xs ml-1 text-[var(--color-fg-subtle)]"
-														>{m.alerts_event_resolved_in({ duration: fmtDuration(duration) })}</span
-													>
-												{/if}
-											{:else}
-												<span
-													class="inline-flex items-center gap-1.5 text-xs text-[var(--color-danger)]"
-												>
-													<IconFlame class="size-[13px]" stroke-width="2" />
-													<span>{m.alerts_event_status_ongoing()}</span>
-												</span>
-											{/if}
-										</td>
-										<td class="px-3 py-2.5 text-right">
-											{#if ep.fired.notified || ep.resolved?.notified}
-												<span class="text-[var(--color-success)]">✓</span>
-											{:else}
-												<span class="text-[var(--color-fg-subtle)]">—</span>
-											{/if}
-										</td>
-									</tr>
-								{/each}
-								{#if episodes.length === 0}
-									<tr>
-										<td
-											colspan="7"
-											class="px-3 py-10 text-center text-sm text-[var(--color-fg-subtle)]"
-											>{m.alerts_empty_events()}</td
-										>
-									</tr>
+				<DataTable
+					empty={episodes.length === 0 ? m.alerts_empty_events() : undefined}
+					footer={eventsHasMore ? loadMore : undefined}
+				>
+					{#snippet head()}
+						<th>{m.alerts_table_time()}</th>
+						<th>{m.alerts_table_rule()}</th>
+						<th>{m.alerts_table_severity()}</th>
+						<th>{m.alerts_table_labels()}</th>
+						<th class="text-right">{m.alerts_table_value()}</th>
+						<th>{m.alerts_table_status()}</th>
+						<th class="text-right">{m.alerts_table_notified()}</th>
+					{/snippet}
+					{#each episodes as ep (ep.fired.id)}
+						{@const rule = ep.fired.rule_id === null ? undefined : rulesById.get(ep.fired.rule_id)}
+						{@const duration = ep.resolved ? ep.resolved.occurred_at - ep.fired.occurred_at : null}
+						<tr>
+							<td data-label={m.alerts_table_time()} class="text-xs text-[var(--color-fg-muted)]">
+								{fmtRelative(ep.fired.occurred_at)}
+							</td>
+							<td class="break-words">
+								{#if rule}
+									<span class="font-medium text-[var(--color-fg)]">{rule.name}</span>
+								{:else}
+									<span class="text-[var(--color-fg-muted)]">{ep.fired.rule_name}</span>
 								{/if}
-							</tbody>
-						</table>
-					</div>
-					{#if eventsHasMore}
-						<div class="border-t border-[var(--color-border)] px-4 py-3 text-center">
-							<Button
-								variant="ghost"
-								size="sm"
-								onclick={loadMoreEvents}
-								loading={eventsLoadingMore}
-							>
-								{m.alerts_events_load_more()}
-							</Button>
-						</div>
-					{/if}
-				</Card>
-
-				<!-- Load-more lives inside the desktop Card, so the mobile list needs
-				     its own copy or paging would be unreachable below md. -->
-				<div class="flex flex-col gap-2 md:hidden">
-					{#if episodes.length === 0}
-						<Card padding="lg" class="text-center text-sm text-[var(--color-fg-subtle)]">
-							{m.alerts_empty_events()}
-						</Card>
-					{:else}
-						{#each episodes as ep (ep.fired.id)}
-							{@const rule =
-								ep.fired.rule_id === null ? undefined : rulesById.get(ep.fired.rule_id)}
-							{@const duration = ep.resolved
-								? ep.resolved.occurred_at - ep.fired.occurred_at
-								: null}
-							<Card padding="none">
-								<div class="flex flex-col gap-2 px-3.5 py-3">
-									<div class="flex items-start justify-between gap-2">
-										<span class="min-w-0 flex-1 font-medium break-words text-[var(--color-fg)]">
-											{#if rule}
-												{rule.name}
-											{:else}
-												<span class="text-[var(--color-fg-muted)]">{ep.fired.rule_name}</span>
-											{/if}
-										</span>
-										{@render severityBadge(ep.fired.severity)}
-									</div>
-
-									<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-										{#if ep.resolved}
-											<span
-												class="text-2xs inline-flex items-center gap-1.5 text-[var(--color-success)]"
-											>
-												<IconCircleCheck class="size-[13px]" stroke-width="2" />
-												{m.alerts_event_status_resolved()}
-											</span>
-											{#if duration !== null}
-												<span class="text-3xs text-[var(--color-fg-subtle)]">
-													{m.alerts_event_resolved_in({ duration: fmtDuration(duration) })}
-												</span>
-											{/if}
-										{:else}
-											<span
-												class="text-2xs inline-flex items-center gap-1.5 text-[var(--color-danger)]"
-											>
-												<IconFlame class="size-[13px]" stroke-width="2" />
-												{m.alerts_event_status_ongoing()}
+							</td>
+							<td data-label={m.alerts_table_severity()}>
+								{@render severityBadge(ep.fired.severity)}
+							</td>
+							<td data-label={m.alerts_table_labels()}>{@render labelSet(ep.fired.label_set)}</td>
+							<td data-label={m.alerts_table_value()} class="font-mono text-xs md:text-right">
+								{ep.fired.metric_value != null ? ep.fired.metric_value.toFixed(2) : '—'}
+							</td>
+							<td data-label={m.alerts_table_status()}>
+								{#if ep.resolved}
+									<span
+										class="inline-flex items-center gap-1.5 text-xs text-[var(--color-success)]"
+									>
+										<IconCircleCheck class="size-[13px]" stroke-width="2" />
+										<span>{m.alerts_event_status_resolved()}</span>
+										{#if duration !== null}
+											<span class="text-3xs text-[var(--color-fg-subtle)]">
+												{m.alerts_event_resolved_in({ duration: fmtDuration(duration) })}
 											</span>
 										{/if}
-										{#if ep.fired.label_set !== '{}'}
-											<code
-												class="text-3xs rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono break-all text-[var(--color-fg-muted)]"
-											>
-												{ep.fired.label_set}
-											</code>
-										{/if}
-									</div>
-
-									<dl class="text-2xs grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-										<dt class="text-[var(--color-fg-subtle)]">{m.alerts_table_time()}</dt>
-										<dd class="text-[var(--color-fg-muted)]">
-											{fmtRelative(ep.fired.occurred_at)}
-										</dd>
-										<dt class="text-[var(--color-fg-subtle)]">{m.alerts_table_value()}</dt>
-										<dd class="font-mono text-[var(--color-fg-muted)]">
-											{ep.fired.metric_value != null ? ep.fired.metric_value.toFixed(2) : '—'}
-										</dd>
-										<dt class="text-[var(--color-fg-subtle)]">{m.alerts_table_notified()}</dt>
-										<dd>
-											{#if ep.fired.notified || ep.resolved?.notified}
-												<span class="text-[var(--color-success)]">✓</span>
-											{:else}
-												<span class="text-[var(--color-fg-subtle)]">—</span>
-											{/if}
-										</dd>
-									</dl>
-								</div>
-							</Card>
-						{/each}
-						{#if eventsHasMore}
-							<Button
-								variant="ghost"
-								size="sm"
-								onclick={loadMoreEvents}
-								loading={eventsLoadingMore}
-							>
-								{m.alerts_events_load_more()}
-							</Button>
-						{/if}
-					{/if}
-				</div>
+									</span>
+								{:else}
+									<span class="inline-flex items-center gap-1.5 text-xs text-[var(--color-danger)]">
+										<IconFlame class="size-[13px]" stroke-width="2" />
+										<span>{m.alerts_event_status_ongoing()}</span>
+									</span>
+								{/if}
+							</td>
+							<td data-label={m.alerts_table_notified()} class="md:text-right">
+								{#if ep.fired.notified || ep.resolved?.notified}
+									<span class="text-[var(--color-success)]">✓</span>
+								{:else}
+									<span class="text-[var(--color-fg-subtle)]">—</span>
+								{/if}
+							</td>
+						</tr>
+					{/each}
+				</DataTable>
 			{/if}
 		{/if}
 	</div>
