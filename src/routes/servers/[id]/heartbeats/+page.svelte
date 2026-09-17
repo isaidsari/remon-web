@@ -1,8 +1,11 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { page } from '$app/state';
-	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import DataTable from '$lib/components/ui/DataTable.svelte';
+	import EmptyState from '$lib/components/ui/EmptyState.svelte';
+	import ErrorState from '$lib/components/ui/ErrorState.svelte';
+	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Field from '$lib/components/ui/Field.svelte';
 	import Banner from '$lib/components/ui/Banner.svelte';
@@ -321,304 +324,236 @@
 
 {#if profile}
 	<div class="px-4 py-6 md:px-8 md:py-8">
-		<header class="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
-			<div>
-				<h1
-					class="text-figure flex items-baseline gap-2.5 font-semibold tracking-tight sm:text-2xl"
-				>
-					{m.section_heartbeats()}
-					<span
-						class="rounded-md bg-[var(--color-surface-2)] px-2 py-0.5 font-mono text-xs font-medium text-[var(--color-fg-muted)] shadow-[inset_0_0_0_1px_var(--color-border)]"
-					>
-						{checks.length}
+		<PageHeader title={m.section_heartbeats()} count={checks.length}>
+			{#snippet meta()}
+				{m.heartbeats_page_description()}
+				{#if lastFetched}
+					<span class="ml-2 text-xs text-[var(--color-fg-subtle)]">
+						{m.heartbeats_updated_at({ time: new Date(lastFetched).toLocaleTimeString() })}
 					</span>
-				</h1>
-				<p class="text-md mt-1.5 max-w-md text-[var(--color-fg-muted)]">
-					{m.heartbeats_page_description()}
-					{#if lastFetched}
-						<span class="ml-2 text-xs text-[var(--color-fg-subtle)]">
-							{m.heartbeats_updated_at({ time: new Date(lastFetched).toLocaleTimeString() })}
-						</span>
-					{/if}
-				</p>
-			</div>
-			<div class="flex flex-wrap items-center gap-2">
-				<Select
-					value={autoRefresh ? '10s' : 'off'}
-					onchange={(e) => (autoRefresh = e.currentTarget.value !== 'off')}
-					class="w-28"
-				>
-					<option value="off">{m.chart_autorefresh_off()}</option>
-					<option value="10s">10s</option>
-				</Select>
-				<RefreshButton onclick={() => fetchList(true)} {loading} label={m.heartbeats_refresh()} />
-				<Button variant="primary" size="sm" onclick={openCreate}>
-					<IconPlus class="size-[14px]" stroke-width="2.25" />
-					{m.heartbeats_new_check()}
-				</Button>
-			</div>
-		</header>
+				{/if}
+			{/snippet}
+			<Select
+				value={autoRefresh ? '10s' : 'off'}
+				onchange={(e) => (autoRefresh = e.currentTarget.value !== 'off')}
+				class="w-28"
+			>
+				<option value="off">{m.chart_autorefresh_off()}</option>
+				<option value="10s">10s</option>
+			</Select>
+			<RefreshButton onclick={() => fetchList(true)} {loading} label={m.heartbeats_refresh()} />
+			<Button variant="primary" size="sm" onclick={openCreate}>
+				<IconPlus class="size-[14px]" stroke-width="2.25" />
+				{m.heartbeats_new_check()}
+			</Button>
+		</PageHeader>
 
 		{#if !conn?.isAuthenticated}
-			<Card padding="lg" class="border-[var(--color-warning)]/30">
-				<p class="text-sm text-[var(--color-fg-muted)]">{m.heartbeats_signin_required()}</p>
-			</Card>
+			<Banner variant="warning">{m.heartbeats_signin_required()}</Banner>
 		{:else if error}
-			<Banner variant="danger" title={m.heartbeats_fetch_failed_title()}>
-				{error.userMessage}
-				{#snippet actions()}
-					<Button variant="secondary" size="sm" onclick={() => fetchList(true)}>
-						{m.heartbeats_retry()}
-					</Button>
-				{/snippet}
-			</Banner>
+			<ErrorState {error} onRetry={() => fetchList(true)} />
 		{:else if checks.length === 0 && !loading}
-			<Card padding="lg">
-				<p class="text-sm text-[var(--color-fg-subtle)]">{m.heartbeats_empty()}</p>
-			</Card>
+			<EmptyState description={m.heartbeats_empty()} />
 		{:else}
-			{#if checks.length > 0}
-				<div class="mb-3 flex">
-					<Input
-						placeholder={m.heartbeats_filter_placeholder()}
-						bind:value={q}
-						class="w-full text-sm sm:max-w-xs"
-					/>
-				</div>
-			{/if}
+			<div class="mb-3 flex">
+				<Input
+					placeholder={m.heartbeats_filter_placeholder()}
+					bind:value={q}
+					class="w-full sm:max-w-xs"
+				/>
+			</div>
 
-			<Card padding="none" class="overflow-hidden">
-				<div class="max-h-[max(18rem,calc(100dvh-20rem))] overflow-auto">
-					<table class="w-full text-sm">
-						<thead
-							class="text-2xs sticky top-0 z-10 bg-[var(--color-surface-2)] font-medium tracking-[0.06em] text-[var(--color-fg-muted)]"
-						>
-							<tr>
-								<th class="px-3 py-2.5 text-left font-medium">{m.heartbeats_table_state()}</th>
-								<th class="px-3 py-2.5 text-left font-medium">{m.heartbeats_table_name()}</th>
-								<th class="hidden px-3 py-2.5 text-left font-medium md:table-cell">
-									{m.heartbeats_table_period()}
-								</th>
-								<th class="hidden px-3 py-2.5 text-left font-medium sm:table-cell">
-									{m.heartbeats_table_last_ping()}
-								</th>
-								<th class="hidden px-3 py-2.5 text-left font-medium md:table-cell">
-									{m.heartbeats_table_deadline()}
-								</th>
-								<th class="w-8 px-2 py-2.5" aria-hidden="true"></th>
-							</tr>
-						</thead>
-						<tbody>
-							{#each filtered as c (c.id)}
-								{@const isOpen = expanded === c.id}
-								<tr
-									class={cn(
-										'cursor-pointer border-t border-[var(--color-border)] transition-colors hover:bg-[var(--color-surface-2)]/50',
-										(c.state === 'down' || c.state === 'failed') &&
-											'bg-[var(--color-danger-bg)]/40',
-										!c.enabled && 'opacity-60'
-									)}
-									onclick={() => toggleExpand(c.id)}
-								>
-									<td class="px-3 py-2.5"><HeartbeatStateBadge state={c.state} /></td>
-									<td class="px-3 py-2.5">
-										<div class="flex flex-col">
-											<span class="font-mono text-xs font-medium text-[var(--color-fg)]">
-												{c.name}
-											</span>
-											{#if c.description}
-												<span class="text-2xs max-w-[28ch] truncate text-[var(--color-fg-subtle)]">
-													{c.description}
-												</span>
-											{/if}
-											<!-- Period / last ping / deadline are the operational numbers, but
-											     their columns hide below md-sm and the expanded panel never
-											     repeats them — on a phone they were unreachable. Restate each
-											     one at exactly the width where its own column disappears. -->
-											<dl
-												class="text-3xs mt-1.5 grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 md:hidden"
-											>
-												<dt class="text-[var(--color-fg-subtle)]">
-													{m.heartbeats_table_period()}
-												</dt>
-												<dd class="font-mono text-[var(--color-fg-muted)]">
-													{fmtDuration(c.period_secs)} + {fmtDuration(c.grace_secs)}
-												</dd>
-												<dt class="text-[var(--color-fg-subtle)] sm:hidden">
-													{m.heartbeats_table_last_ping()}
-												</dt>
-												<dd class="text-[var(--color-fg-muted)] sm:hidden">
-													{c.last_ping_at
-														? fmtRelative(c.last_ping_at)
-														: m.heartbeats_never_pinged()}
-												</dd>
-												<dt class="text-[var(--color-fg-subtle)]">
-													{m.heartbeats_table_deadline()}
-												</dt>
-												<dd class="text-[var(--color-fg-muted)]">{deadlineText(c)}</dd>
-											</dl>
-										</div>
-									</td>
-									<td
-										class="hidden px-3 py-2.5 font-mono text-xs text-[var(--color-fg-muted)] md:table-cell"
-									>
-										{fmtDuration(c.period_secs)}
-										<span class="text-[var(--color-fg-subtle)]">
-											+ {fmtDuration(c.grace_secs)}
-										</span>
-									</td>
-									<td class="hidden px-3 py-2.5 text-xs text-[var(--color-fg-muted)] sm:table-cell">
-										{c.last_ping_at ? fmtRelative(c.last_ping_at) : m.heartbeats_never_pinged()}
-									</td>
-									<td class="hidden px-3 py-2.5 text-xs text-[var(--color-fg-muted)] md:table-cell">
-										{deadlineText(c)}
-									</td>
-									<td class="px-2 py-2.5 text-[var(--color-fg-subtle)]">
-										<IconChevronDown
-											class={cn('size-4 transition-transform', isOpen && 'rotate-180')}
-										/>
-									</td>
-								</tr>
-								{#if isOpen}
-									{@const pings = pingsCache[c.id]}
-									<tr class="border-t border-[var(--color-border)] bg-[var(--color-surface)]/60">
-										<td colspan="6" class="px-4 py-4">
-											<div class="flex flex-col gap-4">
-												<div
-													class="grid grid-cols-2 gap-x-6 gap-y-2 text-xs text-[var(--color-fg-muted)] sm:grid-cols-3 lg:grid-cols-4"
-												>
-													<div>
-														<span
-															class="text-3xs block tracking-wide text-[var(--color-fg-subtle)] uppercase"
-														>
-															{m.heartbeats_meta_last_fail()}
-														</span>
-														{c.last_fail_at ? fmtRelative(c.last_fail_at) : '—'}
-													</div>
-													<div>
-														<span
-															class="text-3xs block tracking-wide text-[var(--color-fg-subtle)] uppercase"
-														>
-															{m.heartbeats_meta_created()}
-														</span>
-														{fmtRelative(c.created_at)}
-													</div>
-													{#if c.paused}
-														<div>
-															<span
-																class="text-3xs block tracking-wide text-[var(--color-fg-subtle)] uppercase"
-															>
-																{m.heartbeats_meta_pause()}
-															</span>
-															{c.pause_origin ?? '—'}
-															{#if c.pause_reason}
-																· {c.pause_reason}
-															{/if}
-														</div>
-													{/if}
-												</div>
-
-												<div class="flex flex-wrap items-center gap-2">
-													{#if c.paused}
-														<Button variant="secondary" size="sm" onclick={() => resume(c)}>
-															{m.heartbeats_action_resume()}
-														</Button>
-													{:else}
-														<Button variant="secondary" size="sm" onclick={() => openPause(c)}>
-															{m.heartbeats_action_pause()}
-														</Button>
-													{/if}
-													<Button variant="secondary" size="sm" onclick={() => openEdit(c)}>
-														{m.heartbeats_action_edit()}
-													</Button>
-													<Button variant="secondary" size="sm" onclick={() => rotateSlug(c)}>
-														{m.heartbeats_action_rotate()}
-													</Button>
-													<Button variant="ghost" size="sm" onclick={() => remove(c)}>
-														<span class="text-[var(--color-danger)]">{m.heartbeats_delete()}</span>
-													</Button>
-												</div>
-
-												<div>
-													<h3
-														class="text-2xs mb-2 font-medium tracking-wide text-[var(--color-fg-subtle)] uppercase"
-													>
-														{m.heartbeats_pings_title()}
-													</h3>
-													{#if pingsLoading[c.id]}
-														<p class="text-xs text-[var(--color-fg-subtle)]">…</p>
-													{:else if pings && 'error' in pings}
-														<p class="text-xs text-[var(--color-danger)]">{pings.error}</p>
-													{:else if pings && pings.length === 0}
-														<p class="text-xs text-[var(--color-fg-subtle)]">
-															{m.heartbeats_pings_empty()}
-														</p>
-													{:else if pings}
-														<div class="overflow-x-auto">
-															<table class="w-full text-xs">
-																<thead
-																	class="text-3xs text-left tracking-wide text-[var(--color-fg-subtle)] uppercase"
-																>
-																	<tr>
-																		<th class="py-1 pr-4 font-medium">{m.heartbeats_ping_kind()}</th
-																		>
-																		<th class="py-1 pr-4 font-medium">{m.heartbeats_ping_time()}</th
-																		>
-																		<th class="py-1 pr-4 font-medium">{m.heartbeats_ping_exit()}</th
-																		>
-																		<th class="py-1 pr-4 font-medium"
-																			>{m.heartbeats_ping_source()}</th
-																		>
-																		<th class="py-1 font-medium">{m.heartbeats_ping_body()}</th>
-																	</tr>
-																</thead>
-																<tbody class="text-[var(--color-fg-muted)]">
-																	{#each pings as p, i (i)}
-																		<tr class="border-t border-[var(--color-border)]/60">
-																			<td class="py-1.5 pr-4">
-																				<span
-																					class={cn(
-																						'text-2xs font-mono',
-																						p.kind === 'success' && 'text-[var(--color-success)]',
-																						p.kind === 'fail' && 'text-[var(--color-danger)]',
-																						(p.kind === 'pause' || p.kind === 'resume') &&
-																							'text-[var(--color-info)]'
-																					)}
-																				>
-																					{p.kind}
-																				</span>
-																			</td>
-																			<td class="py-1.5 pr-4 whitespace-nowrap">
-																				{fmtRelative(p.received_at)}
-																			</td>
-																			<td class="py-1.5 pr-4 font-mono">
-																				{p.exit_code ?? '—'}
-																			</td>
-																			<td class="text-2xs py-1.5 pr-4 font-mono">
-																				{p.source_ip ?? '—'}
-																			</td>
-																			<td
-																				class="text-2xs max-w-[36ch] truncate py-1.5 font-mono"
-																				title={p.body ?? ''}
-																			>
-																				{p.body ?? '—'}
-																			</td>
-																		</tr>
-																	{/each}
-																</tbody>
-															</table>
-														</div>
-													{/if}
-												</div>
-											</div>
-										</td>
-									</tr>
+			<DataTable loading={loading && checks.length === 0}>
+				{#snippet head()}
+					<th>{m.heartbeats_table_name()}</th>
+					<th>{m.heartbeats_table_state()}</th>
+					<th>{m.heartbeats_table_period()}</th>
+					<th>{m.heartbeats_table_last_ping()}</th>
+					<th>{m.heartbeats_table_deadline()}</th>
+					<th class="w-8" aria-hidden="true"></th>
+				{/snippet}
+				{#each filtered as c (c.id)}
+					{@const isOpen = expanded === c.id}
+					<tr
+						class={cn(
+							'cursor-pointer',
+							(c.state === 'down' || c.state === 'failed') && 'danger',
+							!c.enabled && 'muted'
+						)}
+						onclick={() => toggleExpand(c.id)}
+					>
+						<td>
+							<div class="flex flex-col">
+								<span class="font-mono text-xs font-medium break-all text-[var(--color-fg)]">
+									{c.name}
+								</span>
+								{#if c.description}
+									<span class="text-2xs text-[var(--color-fg-subtle)] md:max-w-[28ch] md:truncate">
+										{c.description}
+									</span>
 								{/if}
-							{/each}
-						</tbody>
-					</table>
-				</div>
-			</Card>
+							</div>
+						</td>
+						<td data-label={m.heartbeats_table_state()}>
+							<HeartbeatStateBadge state={c.state} />
+						</td>
+						<td
+							data-label={m.heartbeats_table_period()}
+							class="font-mono text-xs text-[var(--color-fg-muted)]"
+						>
+							<span>
+								{fmtDuration(c.period_secs)}
+								<span class="text-[var(--color-fg-subtle)]">+ {fmtDuration(c.grace_secs)}</span>
+							</span>
+						</td>
+						<td
+							data-label={m.heartbeats_table_last_ping()}
+							class="text-xs text-[var(--color-fg-muted)]"
+						>
+							{c.last_ping_at ? fmtRelative(c.last_ping_at) : m.heartbeats_never_pinged()}
+						</td>
+						<td
+							data-label={m.heartbeats_table_deadline()}
+							class="text-xs text-[var(--color-fg-muted)]"
+						>
+							{deadlineText(c)}
+						</td>
+						<td class="hidden text-[var(--color-fg-subtle)] md:table-cell">
+							<IconChevronDown class={cn('size-4 transition-transform', isOpen && 'rotate-180')} />
+						</td>
+					</tr>
+					{#if isOpen}
+						{@const pings = pingsCache[c.id]}
+						<tr class="detail">
+							<td colspan="6" class="px-4 py-4">
+								<div class="flex flex-col gap-4">
+									<div
+										class="grid grid-cols-2 gap-x-6 gap-y-2 text-xs text-[var(--color-fg-muted)] sm:grid-cols-3 lg:grid-cols-4"
+									>
+										<div>
+											<span
+												class="text-3xs block tracking-wide text-[var(--color-fg-subtle)] uppercase"
+											>
+												{m.heartbeats_meta_last_fail()}
+											</span>
+											{c.last_fail_at ? fmtRelative(c.last_fail_at) : '—'}
+										</div>
+										<div>
+											<span
+												class="text-3xs block tracking-wide text-[var(--color-fg-subtle)] uppercase"
+											>
+												{m.heartbeats_meta_created()}
+											</span>
+											{fmtRelative(c.created_at)}
+										</div>
+										{#if c.paused}
+											<div>
+												<span
+													class="text-3xs block tracking-wide text-[var(--color-fg-subtle)] uppercase"
+												>
+													{m.heartbeats_meta_pause()}
+												</span>
+												{c.pause_origin ?? '—'}
+												{#if c.pause_reason}
+													· {c.pause_reason}
+												{/if}
+											</div>
+										{/if}
+									</div>
+
+									<div class="flex flex-wrap items-center gap-2">
+										{#if c.paused}
+											<Button variant="secondary" size="sm" onclick={() => resume(c)}>
+												{m.heartbeats_action_resume()}
+											</Button>
+										{:else}
+											<Button variant="secondary" size="sm" onclick={() => openPause(c)}>
+												{m.heartbeats_action_pause()}
+											</Button>
+										{/if}
+										<Button variant="secondary" size="sm" onclick={() => openEdit(c)}>
+											{m.heartbeats_action_edit()}
+										</Button>
+										<Button variant="secondary" size="sm" onclick={() => rotateSlug(c)}>
+											{m.heartbeats_action_rotate()}
+										</Button>
+										<Button variant="ghost" size="sm" onclick={() => remove(c)}>
+											<span class="text-[var(--color-danger)]">{m.heartbeats_delete()}</span>
+										</Button>
+									</div>
+
+									<div>
+										<h3
+											class="text-2xs mb-2 font-medium tracking-wide text-[var(--color-fg-subtle)] uppercase"
+										>
+											{m.heartbeats_pings_title()}
+										</h3>
+										{#if pingsLoading[c.id]}
+											<p class="text-xs text-[var(--color-fg-subtle)]">…</p>
+										{:else if pings && 'error' in pings}
+											<p class="text-xs text-[var(--color-danger)]">{pings.error}</p>
+										{:else if pings && pings.length === 0}
+											<p class="text-xs text-[var(--color-fg-subtle)]">
+												{m.heartbeats_pings_empty()}
+											</p>
+										{:else if pings}
+											<div class="overflow-x-auto">
+												<table class="w-full text-xs">
+													<thead
+														class="text-3xs text-left tracking-wide text-[var(--color-fg-subtle)] uppercase"
+													>
+														<tr>
+															<th class="py-1 pr-4 font-medium">{m.heartbeats_ping_kind()}</th>
+															<th class="py-1 pr-4 font-medium">{m.heartbeats_ping_time()}</th>
+															<th class="py-1 pr-4 font-medium">{m.heartbeats_ping_exit()}</th>
+															<th class="py-1 pr-4 font-medium">{m.heartbeats_ping_source()}</th>
+															<th class="py-1 font-medium">{m.heartbeats_ping_body()}</th>
+														</tr>
+													</thead>
+													<tbody class="text-[var(--color-fg-muted)]">
+														{#each pings as p, i (i)}
+															<tr class="border-t border-[var(--color-border)]/60">
+																<td class="py-1.5 pr-4">
+																	<span
+																		class={cn(
+																			'text-2xs font-mono',
+																			p.kind === 'success' && 'text-[var(--color-success)]',
+																			p.kind === 'fail' && 'text-[var(--color-danger)]',
+																			(p.kind === 'pause' || p.kind === 'resume') &&
+																				'text-[var(--color-info)]'
+																		)}
+																	>
+																		{p.kind}
+																	</span>
+																</td>
+																<td class="py-1.5 pr-4 whitespace-nowrap">
+																	{fmtRelative(p.received_at)}
+																</td>
+																<td class="py-1.5 pr-4 font-mono">
+																	{p.exit_code ?? '—'}
+																</td>
+																<td class="text-2xs py-1.5 pr-4 font-mono">
+																	{p.source_ip ?? '—'}
+																</td>
+																<td
+																	class="text-2xs max-w-[36ch] truncate py-1.5 font-mono"
+																	title={p.body ?? ''}
+																>
+																	{p.body ?? '—'}
+																</td>
+															</tr>
+														{/each}
+													</tbody>
+												</table>
+											</div>
+										{/if}
+									</div>
+								</div>
+							</td>
+						</tr>
+					{/if}
+				{/each}
+			</DataTable>
 		{/if}
 	</div>
 

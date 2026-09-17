@@ -5,10 +5,15 @@
 	import { m } from '$lib/paraglide/messages';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import IconButton from '$lib/components/ui/IconButton.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import Banner from '$lib/components/ui/Banner.svelte';
+	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 	import Field from '$lib/components/ui/Field.svelte';
+	import PageHeader from '$lib/components/ui/PageHeader.svelte';
+	import Select from '$lib/components/ui/Select.svelte';
+	import Switch from '$lib/components/ui/Switch.svelte';
 	import { profiles } from '$lib/stores/profiles.svelte';
 	import IconBell from '~icons/lucide/bell';
 	import IconPencil from '~icons/lucide/pencil';
@@ -241,6 +246,21 @@
 		webhook: IconWebhook,
 		'web-push': IconBellRing
 	};
+
+	function target(ch: NotificationChannelResponse): string {
+		switch (ch.type) {
+			case 'telegram':
+				return `chat_id: ${(ch.config.chat_id as string) || '—'}`;
+			case 'ntfy':
+				return `${(ch.config.server as string) || 'https://ntfy.sh'} / ${(ch.config.topic as string) || '—'}`;
+			case 'webhook':
+				return (ch.config.url as string) || '—';
+			case 'fcm':
+				return m.notifications_target_fcm();
+			case 'web-push':
+				return m.notifications_target_web_push();
+		}
+	}
 </script>
 
 {#snippet typePill(type: NotificationChannelType)}
@@ -255,50 +275,37 @@
 
 {#if profile}
 	<div class="px-4 py-6 md:px-8 md:py-8">
-		<header class="mb-6 flex items-end justify-between gap-4">
-			<div>
-				<h1 class="text-2xl font-semibold tracking-tight">{m.notifications_page_title()}</h1>
-				<p class="mt-1.5 text-sm text-[var(--color-fg-muted)]">
-					{m.notifications_page_subtitle()}
-				</p>
-			</div>
-			<div class="flex items-center gap-2">
-				<Button variant="secondary" size="sm" onclick={fetchAll} loading={busy}
-					>{m.notifications_action_refresh()}</Button
-				>
-				<Button size="sm" onclick={openCreate}>{m.notifications_action_add_channel()}</Button>
-			</div>
-		</header>
+		<PageHeader title={m.notifications_page_title()} subtitle={m.notifications_page_subtitle()}>
+			<Button variant="secondary" size="sm" onclick={fetchAll} loading={busy}>
+				{m.notifications_action_refresh()}
+			</Button>
+			<Button size="sm" onclick={openCreate}>{m.notifications_action_add_channel()}</Button>
+		</PageHeader>
 
 		{#if !conn?.isAuthenticated}
-			<Banner variant="warning" title={m.notifications_banner_not_signed_in_title()}
-				>{m.notifications_banner_not_signed_in_body()}</Banner
-			>
+			<Banner variant="warning" title={m.notifications_banner_not_signed_in_title()}>
+				{m.notifications_banner_not_signed_in_body()}
+			</Banner>
 		{:else if channels.length === 0 && !busy}
-			<Card padding="lg" class="text-center">
-				<div
-					class="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-accent)]/10"
-				>
-					<IconBell class="size-5 text-[var(--color-accent)]" stroke-width="2" />
-				</div>
-				<p class="font-medium">{m.notifications_empty_title()}</p>
-				<p class="mt-1 text-sm text-[var(--color-fg-muted)]">
-					{m.notifications_empty_body()}
-				</p>
-				<div class="mt-4">
-					<Button onclick={openCreate}>{m.notifications_action_add_channel()}</Button>
-				</div>
-			</Card>
+			<EmptyState
+				icon={IconBell}
+				tone="accent"
+				title={m.notifications_empty_title()}
+				description={m.notifications_empty_body()}
+			>
+				<Button onclick={openCreate}>{m.notifications_action_add_channel()}</Button>
+			</EmptyState>
 		{:else}
 			<div class="flex flex-col gap-3">
 				{#each channels as ch (ch.id)}
+					{@const tr = testResults.get(ch.id)}
 					<Card
 						padding="none"
 						class={cn('overflow-hidden transition', !ch.enabled && 'opacity-60')}
 					>
-						<div class="flex items-center gap-4 px-4 py-3">
+						<div class="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
 							<div class="flex min-w-0 flex-1 flex-col gap-1">
-								<div class="flex items-center gap-2">
+								<div class="flex flex-wrap items-center gap-2">
 									<span class="truncate font-medium">{ch.name}</span>
 									{@render typePill(ch.type)}
 									{#if ch.min_severity}
@@ -308,29 +315,19 @@
 												ch.min_severity === 'crit'
 													? 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]'
 													: 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]'
-											)}>{m.notifications_min_severity_pill({ severity: ch.min_severity })}</span
+											)}
 										>
+											{m.notifications_min_severity_pill({ severity: ch.min_severity })}
+										</span>
 									{/if}
 								</div>
-								<p class="text-2xs font-mono text-[var(--color-fg-subtle)]">
-									{#if ch.type === 'telegram'}
-										chat_id: {(ch.config.chat_id as string) || '—'}
-									{:else if ch.type === 'ntfy'}
-										{(ch.config.server as string) || 'https://ntfy.sh'} / {(ch.config
-											.topic as string) || '—'}
-									{:else if ch.type === 'webhook'}
-										{(ch.config.url as string) || '—'}
-									{:else if ch.type === 'fcm'}
-										{m.notifications_target_fcm()}
-									{:else if ch.type === 'web-push'}
-										{m.notifications_target_web_push()}
-									{/if}
-									<span class="ml-2 text-[var(--color-fg-faint)]"
-										>{m.notifications_updated_suffix({ when: fmtRelative(ch.updated_at) })}</span
-									>
+								<p class="text-2xs font-mono break-all text-[var(--color-fg-subtle)]">
+									{target(ch)}
+									<span class="ml-2 text-[var(--color-fg-faint)]">
+										{m.notifications_updated_suffix({ when: fmtRelative(ch.updated_at) })}
+									</span>
 								</p>
-								{#if testResults.get(ch.id)}
-									{@const tr = testResults.get(ch.id)!}
+								{#if tr}
 									<p
 										class={cn(
 											'text-2xs mt-1',
@@ -345,58 +342,34 @@
 							</div>
 
 							<div class="flex shrink-0 items-center gap-2">
-								<button
-									type="button"
-									onclick={() => toggleEnabled(ch)}
+								<Switch
+									checked={ch.enabled}
+									onchange={() => toggleEnabled(ch)}
 									disabled={acting !== null}
-									title={ch.enabled
+									label={ch.enabled
 										? m.notifications_action_disable()
 										: m.notifications_action_enable()}
-									class={cn(
-										'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50',
-										ch.enabled ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-border)]'
-									)}
-								>
-									<span
-										class={cn(
-											'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
-											ch.enabled ? 'translate-x-4' : 'translate-x-0'
-										)}
-									></span>
-								</button>
-
+								/>
 								<Button
 									variant="secondary"
 									size="sm"
 									loading={testing === ch.id}
 									onclick={() => testChannel(ch)}
-									disabled={!ch.enabled || testing !== null}>{m.notifications_action_test()}</Button
+									disabled={!ch.enabled || testing !== null}
 								>
-
-								<button
-									type="button"
-									onclick={() => openEdit(ch)}
-									title={m.notifications_action_edit()}
-									class="grid h-8 w-8 place-items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-fg-muted)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-fg)]"
-								>
+									{m.notifications_action_test()}
+								</Button>
+								<IconButton label={m.notifications_action_edit()} onclick={() => openEdit(ch)}>
 									<IconPencil class="size-[13px]" stroke-width="2" />
-								</button>
-
-								<button
-									type="button"
+								</IconButton>
+								<IconButton
+									tone="danger"
+									label={m.notifications_action_delete()}
 									onclick={() => deleteChannel(ch)}
-									disabled={acting === `delete:${ch.id}`}
-									title={m.notifications_action_delete()}
-									class="grid h-8 w-8 place-items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-fg-muted)] transition hover:border-[var(--color-danger)]/50 hover:text-[var(--color-danger)] disabled:cursor-not-allowed disabled:opacity-30"
+									loading={acting === `delete:${ch.id}`}
 								>
-									{#if acting === `delete:${ch.id}`}
-										<span
-											class="h-3 w-3 animate-spin rounded-full border-2 border-current border-r-transparent"
-										></span>
-									{:else}
-										<IconTrash class="size-[13px]" stroke-width="2" />
-									{/if}
-								</button>
+									<IconTrash class="size-[13px]" stroke-width="2" />
+								</IconButton>
 							</div>
 						</div>
 					</Card>
@@ -425,16 +398,13 @@
 
 		{#if !editTarget}
 			<Field label={m.notifications_field_type()}>
-				<select
-					bind:value={formType}
-					class="text-md h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[var(--color-fg)] focus:border-[var(--color-accent)] focus:outline-none"
-				>
+				<Select bind:value={formType}>
 					<option value="telegram">Telegram</option>
 					<option value="ntfy">ntfy</option>
 					<option value="webhook">Webhook</option>
 					<option value="fcm">{m.notifications_type_option_fcm()}</option>
 					<option value="web-push">{m.notifications_type_option_web_push()}</option>
-				</select>
+				</Select>
 			</Field>
 		{/if}
 
@@ -489,19 +459,20 @@
 
 		<div class="grid grid-cols-2 gap-4">
 			<Field label={m.notifications_field_min_severity()}>
-				<select
-					bind:value={formMinSeverity}
-					class="text-md h-9 w-full rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[var(--color-fg)] focus:border-[var(--color-accent)] focus:outline-none"
-				>
+				<Select bind:value={formMinSeverity}>
 					<option value="">{m.notifications_severity_all()}</option>
 					<option value="warn">{m.notifications_severity_warn_and_above()}</option>
 					<option value="crit">{m.notifications_severity_crit_only()}</option>
-				</select>
+				</Select>
 			</Field>
 
 			<Field label={m.notifications_field_enabled()}>
-				<label class="flex h-9 cursor-pointer items-center gap-2 text-sm">
-					<input type="checkbox" bind:checked={formEnabled} class="accent-[var(--color-accent)]" />
+				<label class="flex h-9 cursor-pointer items-center gap-3 text-sm">
+					<Switch
+						checked={formEnabled}
+						onchange={(v) => (formEnabled = v)}
+						label={m.notifications_field_enabled_checkbox()}
+					/>
 					{m.notifications_field_enabled_checkbox()}
 				</label>
 			</Field>
