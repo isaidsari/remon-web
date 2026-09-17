@@ -24,56 +24,28 @@ export interface NavItem {
 	icon: Component;
 }
 
-export interface NavGroup {
-	label?: () => string;
-	items: NavItem[];
-}
-
 /** The one list the sidebar and the breadcrumb both read. */
-export const NAV_GROUPS: NavGroup[] = [
-	{
-		items: [
-			{ path: '', label: m.section_overview, icon: IconLayoutDashboard },
-			{ path: '/assistant', label: m.section_assistant, icon: IconBotMessageSquare }
-		]
-	},
-	{
-		label: m.nav_group_monitor,
-		items: [
-			{ path: '/metrics', label: m.section_metrics, icon: IconLineChart },
-			{ path: '/processes', label: m.section_processes, icon: IconList },
-			{ path: '/services', label: m.section_services, icon: IconActivity },
-			{ path: '/docker', label: m.section_containers, icon: IconContainer },
-			{ path: '/probes', label: m.section_probes, icon: IconStethoscope },
-			{ path: '/heartbeats', label: m.section_heartbeats, icon: IconHeartPulse }
-		]
-	},
-	{
-		label: m.nav_group_respond,
-		items: [
-			{ path: '/alerts', label: m.section_alerts, icon: IconTriangleAlert },
-			{ path: '/actions', label: m.section_actions, icon: IconZap },
-			{ path: '/incidents', label: m.section_incidents, icon: IconCamera },
-			{ path: '/events', label: m.section_events, icon: IconScrollText },
-			{ path: '/logs', label: m.section_logs, icon: IconFileText }
-		]
-	},
-	{
-		label: m.nav_group_configure,
-		items: [
-			{ path: '/notifications', label: m.section_notifications, icon: IconBell },
-			{ path: '/config', label: m.section_config, icon: IconSettings },
-			{ path: '/settings', label: m.section_settings, icon: IconSlidersHorizontal }
-		]
-	}
+export const NAV_ITEMS: NavItem[] = [
+	{ path: '', label: m.section_overview, icon: IconLayoutDashboard },
+	{ path: '/assistant', label: m.section_assistant, icon: IconBotMessageSquare },
+	{ path: '/metrics', label: m.section_metrics, icon: IconLineChart },
+	{ path: '/processes', label: m.section_processes, icon: IconList },
+	{ path: '/services', label: m.section_services, icon: IconActivity },
+	{ path: '/probes', label: m.section_probes, icon: IconStethoscope },
+	{ path: '/heartbeats', label: m.section_heartbeats, icon: IconHeartPulse },
+	{ path: '/docker', label: m.section_containers, icon: IconContainer },
+	{ path: '/alerts', label: m.section_alerts, icon: IconTriangleAlert },
+	{ path: '/actions', label: m.section_actions, icon: IconZap },
+	{ path: '/events', label: m.section_events, icon: IconScrollText },
+	{ path: '/incidents', label: m.section_incidents, icon: IconCamera },
+	{ path: '/logs', label: m.section_logs, icon: IconFileText },
+	{ path: '/notifications', label: m.section_notifications, icon: IconBell },
+	{ path: '/config', label: m.section_config, icon: IconSettings },
+	{ path: '/settings', label: m.section_settings, icon: IconSlidersHorizontal }
 ];
 
 /** Label for a URL segment under `/servers/[id]`; `overview` is the index. */
 export function sectionLabel(slug: string): string {
 	const path = slug === 'overview' ? '' : `/${slug}`;
-	for (const group of NAV_GROUPS) {
-		const hit = group.items.find((item) => item.path === path);
-		if (hit) return hit.label();
-	}
-	return slug;
+	return NAV_ITEMS.find((item) => item.path === path)?.label() ?? slug;
 }

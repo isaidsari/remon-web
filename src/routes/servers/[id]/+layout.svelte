@@ -7,7 +7,7 @@
 	import { sidebar } from '$lib/stores/sidebar.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { provideServer } from '$lib/server-scope';
-	import { NAV_GROUPS } from '$lib/nav';
+	import { NAV_ITEMS } from '$lib/nav';
 	import { ApiError } from '$lib/api/error';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
@@ -224,49 +224,38 @@
 				</p>
 			</div>
 
-			<nav class="flex flex-1 flex-col gap-5" aria-label={m.detail_aria_server_sections()}>
-				{#each NAV_GROUPS as group, gi (gi)}
-					<div class="flex flex-col gap-0.5">
-						{#if group.label}
-							<p
-								class="text-3xs mb-1 px-3 font-medium tracking-[0.12em] text-[var(--color-fg-faint)] uppercase"
-							>
-								{group.label()}
-							</p>
+			<nav class="flex flex-1 flex-col gap-0.5" aria-label={m.detail_aria_server_sections()}>
+				{#each NAV_ITEMS as item (item.path)}
+					{@const active = isActive(item.path)}
+					{@const Icon = item.icon}
+					<a
+						href={basePath + item.path}
+						onmouseenter={() => prefetch(item.path)}
+						onfocus={() => prefetch(item.path)}
+						class={cn(
+							'group text-md relative flex items-center gap-3 rounded-[var(--radius-input)] px-3 py-2.5 transition-all duration-[var(--dur-fast)] ease-[var(--ease-snap)]',
+							active
+								? 'bg-[var(--color-surface)] text-[var(--color-fg)]'
+								: 'text-[var(--color-fg-muted)] hover:bg-[var(--color-surface)]/60 hover:text-[var(--color-fg)]'
+						)}
+					>
+						{#if active}
+							<span
+								class="absolute inset-y-1.5 left-0 w-[2.5px] rounded-r-full bg-[var(--color-accent)]"
+								aria-hidden="true"
+							></span>
 						{/if}
-						{#each group.items as item (item.path)}
-							{@const active = isActive(item.path)}
-							{@const Icon = item.icon}
-							<a
-								href={basePath + item.path}
-								onmouseenter={() => prefetch(item.path)}
-								onfocus={() => prefetch(item.path)}
-								class={cn(
-									'group text-md relative flex items-center gap-3 rounded-[var(--radius-input)] px-3 py-2 transition-all duration-[var(--dur-fast)] ease-[var(--ease-snap)]',
-									active
-										? 'bg-[var(--color-surface)] text-[var(--color-fg)]'
-										: 'text-[var(--color-fg-muted)] hover:bg-[var(--color-surface)]/60 hover:text-[var(--color-fg)]'
-								)}
-							>
-								{#if active}
-									<span
-										class="absolute inset-y-1.5 left-0 w-[2.5px] rounded-r-full bg-[var(--color-accent)]"
-										aria-hidden="true"
-									></span>
-								{/if}
-								<Icon
-									class={cn(
-										'size-[17px] shrink-0 transition-colors',
-										active
-											? 'text-[var(--color-accent)]'
-											: 'text-[var(--color-fg-subtle)] group-hover:text-[var(--color-fg-muted)]'
-									)}
-									stroke-width="2"
-								/>
-								<span class="flex-1 font-medium">{item.label()}</span>
-							</a>
-						{/each}
-					</div>
+						<Icon
+							class={cn(
+								'size-[17px] shrink-0 transition-colors',
+								active
+									? 'text-[var(--color-accent)]'
+									: 'text-[var(--color-fg-subtle)] group-hover:text-[var(--color-fg-muted)]'
+							)}
+							stroke-width="2"
+						/>
+						<span class="flex-1 font-medium">{item.label()}</span>
+					</a>
 				{/each}
 			</nav>
 		</aside>
