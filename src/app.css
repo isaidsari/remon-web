@@ -65,9 +65,9 @@
 	--shadow-inset-hi: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 	--shadow-inset-hi-strong: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 
-	/* 1px outline instead of a real border — swap on hover without layout shift */
-	--shadow-flat: var(--shadow-inset-hi), 0 0 0 1px var(--color-border);
-	--shadow-flat-hover: var(--shadow-inset-hi-strong), 0 0 0 1px var(--color-border-strong);
+	/* Cards sit on the ground by tone alone: no outline, just the top sheen. */
+	--shadow-flat: var(--shadow-inset-hi);
+	--shadow-flat-hover: var(--shadow-inset-hi-strong);
 
 	--ease-snap: cubic-bezier(0.32, 0.72, 0, 1);
 	--ease-out-fast: cubic-bezier(0.22, 1, 0.36, 1);
@@ -101,8 +101,9 @@
 }
 
 :root[data-theme='light'] {
-	--color-bg: #fafafa;
-	--color-bg-soft: #f4f4f5;
+	/* Darker ground than the cards, since nothing outlines them any more. */
+	--color-bg: #f3f3f5;
+	--color-bg-soft: #ebebee;
 	--color-surface: #ffffff;
 	--color-surface-2: #f4f4f5;
 	--color-surface-3: #e4e4e7;

@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import type { ECharts, EChartsCoreOption, LinearGradientObject } from 'echarts/core';
 	import { loadEcharts } from '$lib/charts/echarts-lazy';
-	import { chartPalette } from '$lib/charts/chart-theme';
+	import { chartPalette, seriesColors } from '$lib/charts/chart-theme';
 	import { rgbAt } from '$lib/charts/color';
 	import { tabVisible } from '$lib/utils/visibility.svelte';
 	import type { TimeSeries } from '$lib/stores/livestats.svelte';
@@ -31,7 +31,7 @@
 
 	let {
 		data,
-		color = '#818cf8',
+		color = seriesColors().accent,
 		extra,
 		window = 30,
 		height = 64,

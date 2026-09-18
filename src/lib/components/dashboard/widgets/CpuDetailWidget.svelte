@@ -39,7 +39,7 @@
 	function barTone(pct: number): string {
 		if (pct > 90) return 'bg-[var(--color-danger)]';
 		if (pct > 75) return 'bg-[var(--color-warning)]';
-		return 'bg-[var(--color-info)]';
+		return 'bg-[var(--color-fg-subtle)]';
 	}
 
 	function timeTone(value: number, warn: number | null, bad: number | null): string {
