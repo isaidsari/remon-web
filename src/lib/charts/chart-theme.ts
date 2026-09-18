@@ -56,3 +56,18 @@ const LIGHT: ChartPalette = {
 export function chartPalette(): ChartPalette {
 	return activeTheme() === 'light' ? LIGHT : DARK;
 }
+
+/** One hue per page: the accent for the series that matters, greys for
+ *  context. Resolved from the CSS tokens at call time, so a server's own
+ *  accent and the light theme both come through. */
+export function seriesColors() {
+	const css = typeof document === 'undefined' ? null : getComputedStyle(document.documentElement);
+	const read = (name: string, fallback: string) => css?.getPropertyValue(name).trim() || fallback;
+	return {
+		accent: read('--color-accent', '#c2410c'),
+		neutral: read('--color-fg-subtle', '#8c8c94'),
+		faint: read('--color-fg-faint', '#55555c'),
+		warning: read('--color-warning', '#fbbf24'),
+		success: read('--color-success', '#34d399')
+	};
+}

@@ -36,12 +36,12 @@
 	{#if memory && memTotal > 0}
 		<div class="flex h-2.5 w-full overflow-hidden rounded-full bg-[var(--color-surface-3)]">
 			<div
-				class="h-full bg-[var(--color-info)]"
+				class="h-full bg-[var(--color-fg-subtle)]"
 				style="width: {activePct}%"
 				title={m.overview_mem_active_tooltip({ value: fmtBytes(memActive) })}
 			></div>
 			<div
-				class="h-full bg-[color-mix(in_oklab,var(--color-info)_40%,var(--color-surface-3))]"
+				class="h-full bg-[color-mix(in_oklab,var(--color-fg-subtle)_40%,var(--color-surface-3))]"
 				style="width: {cachePct}%"
 				title={m.overview_mem_cache_tooltip({ value: fmtBytes(memCached) })}
 			></div>

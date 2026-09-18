@@ -4,6 +4,7 @@
 	import type { LiveKpiConfig } from '$lib/types/dashboard';
 	import { fmtBps, fmtBytes, fmtPercent } from '$lib/utils/format';
 	import { m } from '$lib/paraglide/messages';
+	import { seriesColors } from '$lib/charts/chart-theme';
 
 	interface Props {
 		conn: Connection | null;
@@ -11,6 +12,7 @@
 	}
 
 	let { conn, config }: Props = $props();
+	const colors = seriesColors();
 
 	let live = $derived(conn?.live ?? null);
 
@@ -43,7 +45,7 @@
 		format={(v) => fmtPercent(v, 1)}
 		secondary={cpu ? m.overview_metric_cores_count({ count: cpu.per_core.length }) : ''}
 		series={live?.cpuHistory ?? { xs: [], ys: [] }}
-		color="#4fb6c2"
+		color={colors.accent}
 		min={0}
 		max={100}
 	/>
@@ -55,7 +57,7 @@
 		format={(v) => fmtPercent(v, 1)}
 		secondary={memTotal > 0 ? `${fmtBytes(memActive)} / ${fmtBytes(memTotal)}` : ''}
 		series={live?.memoryActivePercentHistory ?? { xs: [], ys: [] }}
-		color="#d97706"
+		color={colors.neutral}
 		min={0}
 		max={100}
 	/>
@@ -66,8 +68,10 @@
 		value={disks.length > 0 ? diskRead + diskWrite : null}
 		format={(v) => fmtBps(v, 1)}
 		series={live?.diskReadHistory ?? { xs: [], ys: [] }}
-		extra={live?.diskWriteHistory ? { data: live.diskWriteHistory, color: '#c4b5fd' } : undefined}
-		color="#8b7cc6"
+		extra={live?.diskWriteHistory
+			? { data: live.diskWriteHistory, color: colors.accent }
+			: undefined}
+		color={colors.neutral}
 		min={0}
 		secondary={disks.length > 0 ? `R ${fmtBps(diskRead, 0)} · W ${fmtBps(diskWrite, 0)}` : ''}
 	/>
@@ -78,8 +82,8 @@
 		value={network.length > 0 ? netRx + netTx : null}
 		format={(v) => fmtBps(v, 1)}
 		series={live?.netRxHistory ?? { xs: [], ys: [] }}
-		extra={live?.netTxHistory ? { data: live.netTxHistory, color: '#fbbf24' } : undefined}
-		color="#3b82f6"
+		extra={live?.netTxHistory ? { data: live.netTxHistory, color: colors.accent } : undefined}
+		color={colors.neutral}
 		min={0}
 		secondary={network.length > 0 ? `↓ ${fmtBps(netRx, 0)} · ↑ ${fmtBps(netTx, 0)}` : ''}
 	/>

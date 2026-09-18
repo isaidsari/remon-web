@@ -68,7 +68,7 @@
 					? 'var(--color-danger)'
 					: pct > 75
 						? 'var(--color-warning)'
-						: 'var(--color-info)'};"
+						: 'var(--color-fg-subtle)'};"
 			></div>
 		</div>
 	</div>

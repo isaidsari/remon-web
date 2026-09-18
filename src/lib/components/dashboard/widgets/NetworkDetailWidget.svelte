@@ -45,10 +45,10 @@
 		</span>
 		<span class="flex flex-col items-end gap-0.5 tabular-nums">
 			<span class="flex items-center gap-3 text-xs">
-				<span class="text-[var(--color-info)]" title={m.overview_iface_receive()}>
+				<span class="text-[var(--color-fg-muted)]" title={m.overview_iface_receive()}>
 					↓ {fmtBps(n.rx_bytes_per_sec)}
 				</span>
-				<span class="text-[var(--color-success)]" title={m.overview_iface_transmit()}>
+				<span class="text-[var(--color-accent)]" title={m.overview_iface_transmit()}>
 					↑ {fmtBps(n.tx_bytes_per_sec)}
 				</span>
 			</span>

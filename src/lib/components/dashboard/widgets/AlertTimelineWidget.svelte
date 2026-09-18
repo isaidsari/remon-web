@@ -3,9 +3,8 @@
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import EventRow from '$lib/components/events/EventRow.svelte';
 	import type { Connection } from '$lib/stores/connections.svelte';
-	import type { EventDto } from '$lib/types/api';
+	import type { EventDto, IncidentSummaryDto } from '$lib/types/api';
 	import { m } from '$lib/paraglide/messages';
-	import IconHistory from '~icons/lucide/history';
 	import IconArrowRight from '~icons/lucide/arrow-right';
 
 	interface Props {
@@ -14,15 +13,35 @@
 
 	let { conn }: Props = $props();
 
+	const LIMIT = 15;
 	let events = $state<EventDto[] | null>(null);
 
-	// The union timeline already carries human messages + severity, so the
-	// widget no longer resolves rule names itself — one call, not two.
+	/** An incident as a timeline row; open ones read as errors until they close. */
+	function incidentRow(i: IncidentSummaryDto): EventDto {
+		return {
+			ts: i.opened_at,
+			source: 'system',
+			kind: 'incident',
+			severity: i.closed_at == null ? 'error' : 'info',
+			message: i.rule_name ?? i.reason ?? m.incident_title(),
+			ref: { type: 'incident', id: String(i.id) }
+		};
+	}
+
+	// Alerts, operator actions and incidents in one list, newest first. The
+	// event feed already logs a manual capture, so those incidents are skipped.
 	async function fetchData() {
 		if (!conn?.isAuthenticated) return;
 		try {
-			const res = await conn.client.events({ limit: 15 });
-			events = res.events;
+			const [ev, inc] = await Promise.all([
+				conn.client.events({ limit: LIMIT }),
+				conn.client.listIncidents(10).catch(() => ({ incidents: [] }))
+			]);
+			const seen = new Set(
+				ev.events.filter((e) => e.ref?.type === 'incident').map((e) => e.ref!.id)
+			);
+			const rows = inc.incidents.filter((i) => !seen.has(String(i.id))).map(incidentRow);
+			events = [...ev.events, ...rows].sort((a, b) => b.ts - a.ts).slice(0, LIMIT);
 		} catch {
 			// keep the stale feed on a transient failure
 		}
@@ -44,9 +63,8 @@
 </script>
 
 <Card class="flex h-full flex-col overflow-hidden" padding="none">
-	<div class="flex items-center gap-2 px-4 pt-3.5 pb-2.5">
-		<IconHistory class="size-[15px] shrink-0 text-[var(--color-fg-subtle)]" stroke-width="2" />
-		<h2 class="flex-1 text-sm font-medium text-[var(--color-fg)]">{m.overview_events_title()}</h2>
+	<div class="flex items-center gap-2 px-4 pt-3.5 pb-1">
+		<h2 class="flex-1 text-sm font-semibold text-[var(--color-fg)]">{m.overview_events_title()}</h2>
 		<a
 			href={conn ? `/servers/${conn.serverId}/events` : '#'}
 			class="group text-2xs inline-flex items-center gap-1 text-[var(--color-fg-subtle)] transition-colors hover:text-[var(--color-fg)]"
@@ -70,8 +88,7 @@
 			<p class="mt-2 text-xs text-[var(--color-fg-muted)]">{m.overview_events_empty()}</p>
 		</div>
 	{:else}
-		<!-- Timeline: hairline rail on the left, one row per host event. -->
-		<ol class="min-h-0 flex-1 overflow-y-auto px-4 pb-3">
+		<ol class="min-h-0 flex-1 overflow-y-auto px-4 pb-2">
 			{#each events as ev, i (ev.ts + '-' + ev.kind + '-' + i)}
 				<EventRow event={ev} {now} serverId={conn?.serverId} />
 			{/each}

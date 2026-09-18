@@ -1,5 +1,6 @@
 <script lang="ts">
 	import HistoryChart, { type Series } from '$lib/components/charts/HistoryChart.svelte';
+	import { seriesColors } from '$lib/charts/chart-theme';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import { RANGE_SECONDS } from '$lib/components/charts/range';
@@ -22,12 +23,13 @@
 	let points = $state<BatchSeries | null>(null);
 	let loading = $state(true);
 
+	const colors = seriesColors();
 	const DISK_PALETTE = [
-		'rgb(251,191,36)',
-		'rgb(244,114,182)',
-		'rgb(16,185,129)',
-		'rgb(56,189,248)',
-		'rgb(217,70,239)'
+		colors.accent,
+		colors.neutral,
+		colors.warning,
+		colors.success,
+		colors.faint
 	];
 
 	async function fetchData() {
@@ -81,7 +83,7 @@
 				{
 					name: m.metrics_series_usage(),
 					...cpuUsageHistory(p.points),
-					color: 'rgb(96,165,250)'
+					color: colors.accent
 				}
 			];
 		}
@@ -89,7 +91,7 @@
 			return [
 				{
 					name: m.overview_card_memory_title(),
-					color: 'rgb(167,139,250)',
+					color: colors.accent,
 					...observedHistory(p.points, 'used_percent', (x) => x.used_percent)
 				}
 			];
@@ -108,12 +110,12 @@
 		return [
 			{
 				name: 'RX',
-				color: 'rgb(96,165,250)',
+				color: colors.neutral,
 				...observedHistory(p.totals, 'rx_bytes_per_sec', (x) => x.rx_bytes_per_sec)
 			},
 			{
 				name: 'TX',
-				color: 'rgb(52,211,153)',
+				color: colors.accent,
 				...observedHistory(p.totals, 'tx_bytes_per_sec', (x) => x.tx_bytes_per_sec)
 			}
 		];

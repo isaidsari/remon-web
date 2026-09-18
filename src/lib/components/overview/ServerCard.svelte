@@ -13,6 +13,7 @@
 	import OsIcon from './OsIcon.svelte';
 	import { connectionTone } from '$lib/utils/connTone';
 	import { m } from '$lib/paraglide/messages';
+	import { seriesColors } from '$lib/charts/chart-theme';
 
 	interface Props {
 		profile: ServerProfile;
@@ -114,13 +115,14 @@
 		return 'text-[var(--color-fg)]';
 	}
 
-	const metricColor = {
-		cpu: '#4fb6c2', // teal-500
-		mem: '#d97706', // amber-600
-		disk: '#8b7cc6', // muted violet
-		netRx: '#3b82f6', // blue-500 — download (incoming)
-		netTx: '#f59e0b' // amber-500 — upload (outgoing)
-	} as const;
+	const base = seriesColors();
+	let metricColor = $derived({
+		cpu: profile.accent ?? base.accent,
+		mem: base.neutral,
+		disk: base.neutral,
+		netRx: base.neutral,
+		netTx: profile.accent ?? base.accent
+	});
 
 	function handleRemoveClick(e: MouseEvent) {
 		e.preventDefault();
@@ -149,9 +151,9 @@
 
 <article
 	class={cn(
-		'group enter relative flex min-w-0 flex-col rounded-[var(--radius-card)] border border-[var(--card-border,var(--color-border))] bg-[var(--color-surface)] shadow-[var(--shadow-inset-hi)]',
+		'group enter relative flex min-w-0 flex-col rounded-[var(--radius-card)] border border-[var(--card-border,transparent)] bg-[var(--color-surface)] shadow-[var(--shadow-inset-hi)]',
 		'transition-[border-color,box-shadow] duration-[var(--dur-mid)] ease-[var(--ease-snap)]',
-		'hover:border-[var(--card-border,var(--color-border-strong))] hover:shadow-[0_4px_20px_-10px_rgba(0,0,0,0.25)]'
+		'hover:border-[var(--card-border,var(--color-border))] hover:shadow-[0_4px_20px_-10px_rgba(0,0,0,0.25)]'
 	)}
 	style={profile.accent ? `--card-border: ${profile.accent}` : undefined}
 >

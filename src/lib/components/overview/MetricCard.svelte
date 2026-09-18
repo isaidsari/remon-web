@@ -63,8 +63,7 @@
 			{value}
 			{format}
 			{duration}
-			class="text-figure font-mono leading-[1.1] font-semibold tracking-[-0.02em] tabular-nums"
-			style="color: {color}"
+			class="text-figure font-mono leading-[1.1] font-semibold tracking-[-0.02em] text-[var(--color-fg)] tabular-nums"
 		/>
 	{/if}
 	<div class="-mx-5 mt-auto">
