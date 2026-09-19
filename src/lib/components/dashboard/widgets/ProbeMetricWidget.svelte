@@ -1,6 +1,6 @@
 <script lang="ts">
 	import HistoryChart, { type Series } from '$lib/components/charts/HistoryChart.svelte';
-	import { seriesColors } from '$lib/charts/chart-theme';
+	import { metricColor } from '$lib/charts/chart-theme';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import type { Connection } from '$lib/stores/connections.svelte';
@@ -66,7 +66,7 @@
 					xs: activeGroup.points.map((p) => p.timestamp),
 					ys: activeGroup.points.map((p) => p.value)
 				},
-				color: seriesColors().accent,
+				color: metricColor('probe'),
 				fill: true
 			}
 		];

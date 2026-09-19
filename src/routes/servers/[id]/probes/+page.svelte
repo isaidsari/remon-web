@@ -10,6 +10,7 @@
 	import RefreshButton from '$lib/components/ui/RefreshButton.svelte';
 	import ProbeStatusBadge from '$lib/components/probes/ProbeStatusBadge.svelte';
 	import HistoryChart, { type Series } from '$lib/components/charts/HistoryChart.svelte';
+	import { categoricalColors } from '$lib/charts/chart-theme';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { ApiError } from '$lib/api/error';
 	import { fmtBytes, fmtPercent, fmtRelative, fmtScalar } from '$lib/utils/format';
@@ -634,7 +635,7 @@
 {/snippet}
 
 {#snippet metricHistoryPanel(probeName: string, metrics: ProbeMetric[])}
-	{@const COLORS = ['#818cf8', '#34d399', '#fb923c', '#f472b6', '#60a5fa', '#a78bfa']}
+	{@const COLORS = categoricalColors(6)}
 	<details
 		class="rounded-md bg-[var(--color-surface)] shadow-[inset_0_0_0_1px_var(--color-border)]"
 		ontoggle={(e) => {

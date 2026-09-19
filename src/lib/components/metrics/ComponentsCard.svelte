@@ -5,6 +5,7 @@
 	import { cn } from '$lib/utils/cn';
 	import type { ComponentsHistoryResponse, ComponentPoint } from '$lib/types/api';
 	import { m } from '$lib/paraglide/messages';
+	import { categoricalColors } from '$lib/charts/chart-theme';
 
 	interface Props {
 		data: ComponentsHistoryResponse | null;
@@ -13,16 +14,8 @@
 
 	let { data, class: klass = '' }: Props = $props();
 
-	const PALETTE = [
-		'rgb(96, 165, 250)',
-		'rgb(167, 139, 250)',
-		'rgb(52, 211, 153)',
-		'rgb(251, 191, 36)',
-		'rgb(244, 114, 182)',
-		'rgb(56, 189, 248)',
-		'rgb(248, 113, 113)',
-		'rgb(217, 70, 239)'
-	];
+	// Sensors are unrelated to each other, so they walk the categorical set.
+	const PALETTE = categoricalColors(8);
 
 	type SensorState = {
 		label: string;

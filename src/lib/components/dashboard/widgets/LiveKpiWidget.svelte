@@ -4,7 +4,7 @@
 	import type { LiveKpiConfig } from '$lib/types/dashboard';
 	import { fmtBps, fmtBytes, fmtPercent } from '$lib/utils/format';
 	import { m } from '$lib/paraglide/messages';
-	import { seriesColors } from '$lib/charts/chart-theme';
+	import { metricColor, metricRamp } from '$lib/charts/chart-theme';
 
 	interface Props {
 		conn: Connection | null;
@@ -12,7 +12,9 @@
 	}
 
 	let { conn, config }: Props = $props();
-	const colors = seriesColors();
+	// Read/write and rx/tx are two steps of their metric's own hue.
+	const [diskReadColor, diskWriteColor] = metricRamp('disk', 2);
+	const [netRxColor, netTxColor] = metricRamp('network', 2);
 
 	let live = $derived(conn?.live ?? null);
 
@@ -45,7 +47,7 @@
 		format={(v) => fmtPercent(v, 1)}
 		secondary={cpu ? m.overview_metric_cores_count({ count: cpu.per_core.length }) : ''}
 		series={live?.cpuHistory ?? { xs: [], ys: [] }}
-		color={colors.accent}
+		color={metricColor('cpu')}
 		min={0}
 		max={100}
 	/>
@@ -57,7 +59,7 @@
 		format={(v) => fmtPercent(v, 1)}
 		secondary={memTotal > 0 ? `${fmtBytes(memActive)} / ${fmtBytes(memTotal)}` : ''}
 		series={live?.memoryActivePercentHistory ?? { xs: [], ys: [] }}
-		color={colors.neutral}
+		color={metricColor('memory')}
 		min={0}
 		max={100}
 	/>
@@ -69,9 +71,9 @@
 		format={(v) => fmtBps(v, 1)}
 		series={live?.diskReadHistory ?? { xs: [], ys: [] }}
 		extra={live?.diskWriteHistory
-			? { data: live.diskWriteHistory, color: colors.accent }
+			? { data: live.diskWriteHistory, color: diskWriteColor }
 			: undefined}
-		color={colors.neutral}
+		color={diskReadColor}
 		min={0}
 		secondary={disks.length > 0 ? `R ${fmtBps(diskRead, 0)} · W ${fmtBps(diskWrite, 0)}` : ''}
 	/>
@@ -82,8 +84,8 @@
 		value={network.length > 0 ? netRx + netTx : null}
 		format={(v) => fmtBps(v, 1)}
 		series={live?.netRxHistory ?? { xs: [], ys: [] }}
-		extra={live?.netTxHistory ? { data: live.netTxHistory, color: colors.accent } : undefined}
-		color={colors.neutral}
+		extra={live?.netTxHistory ? { data: live.netTxHistory, color: netTxColor } : undefined}
+		color={netRxColor}
 		min={0}
 		secondary={network.length > 0 ? `↓ ${fmtBps(netRx, 0)} · ↑ ${fmtBps(netTx, 0)}` : ''}
 	/>

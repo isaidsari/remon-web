@@ -14,6 +14,7 @@
 	import IconHistory from '~icons/lucide/history';
 	import StatStrip from '$lib/components/charts/StatStrip.svelte';
 	import { RANGE_SECONDS, type RangeKey } from '$lib/components/charts/range';
+	import { metricColor, metricRamp } from '$lib/charts/chart-theme';
 	import PressureCard from '$lib/components/metrics/PressureCard.svelte';
 	import ComponentsCard from '$lib/components/metrics/ComponentsCard.svelte';
 	import MetricPanel from '$lib/components/metrics/MetricPanel.svelte';
@@ -249,41 +250,44 @@
 
 	const isDockerMount = isContainerMount;
 
+	// Usage first, then the breakdown as steps of the same CPU hue.
+	const CPU_RAMP = metricRamp('cpu', 5);
+
 	let cpuSeries = $derived.by((): Series[] => {
 		if (!cpu) return [];
 		const series: Series[] = [
 			{
 				name: m.metrics_series_usage(),
 				...cpuUsageHistory(cpu.points),
-				color: 'rgb(96, 165, 250)'
+				color: CPU_RAMP[0]
 			}
 		];
 		if (hasAny(cpu.points, (p) => p.user_percent)) {
 			series.push({
 				name: m.metrics_series_user(),
 				...observedHistory(cpu.points, 'user_percent', (p) => p.user_percent),
-				color: 'rgb(52, 211, 153)'
+				color: CPU_RAMP[1]
 			});
 		}
 		if (hasAny(cpu.points, (p) => p.system_percent)) {
 			series.push({
 				name: m.metrics_series_system(),
 				...observedHistory(cpu.points, 'system_percent', (p) => p.system_percent),
-				color: 'rgb(192, 132, 252)'
+				color: CPU_RAMP[2]
 			});
 		}
 		if (hasAny(cpu.points, (p) => p.steal_percent)) {
 			series.push({
 				name: m.metrics_series_steal(),
 				...observedHistory(cpu.points, 'steal_percent', (p) => p.steal_percent),
-				color: 'rgb(248, 113, 113)'
+				color: CPU_RAMP[3]
 			});
 		}
 		if (hasAny(cpu.points, (p) => p.iowait_percent)) {
 			series.push({
 				name: m.metrics_series_iowait(),
 				...observedHistory(cpu.points, 'iowait_percent', (p) => p.iowait_percent),
-				color: 'rgb(251, 191, 36)'
+				color: CPU_RAMP[4]
 			});
 		}
 		return series;
@@ -295,27 +299,29 @@
 			{
 				name: m.overview_card_memory_title(),
 				...observedHistory(memory.points, 'used_percent', (p) => p.used_percent),
-				color: 'rgb(167,139,250)'
+				color: metricColor('memory')
 			}
 		];
 	});
+	const MEM_RAMP = metricRamp('memory', 3);
+
 	let memoryPressureSeries = $derived.by((): Series[] => {
 		if (!memory) return [];
 		return [
 			{
 				field: 'page_faults_major_per_sec' as const,
 				name: m.metrics_series_major_faults(),
-				color: 'rgb(248,113,113)'
+				color: MEM_RAMP[0]
 			},
 			{
 				field: 'swap_in_pages_per_sec' as const,
 				name: m.metrics_series_swap_in(),
-				color: 'rgb(251,113,133)'
+				color: MEM_RAMP[1]
 			},
 			{
 				field: 'swap_out_pages_per_sec' as const,
 				name: m.metrics_series_swap_out(),
-				color: 'rgb(244,114,182)'
+				color: MEM_RAMP[2]
 			}
 		]
 			.filter((s) => hasAny(memory?.points, (p) => p[s.field]))
@@ -325,13 +331,8 @@
 				...observedHistory(memory!.points, s.field, (p) => p[s.field])
 			}));
 	});
-	const DISK_PALETTE = [
-		'rgb(251, 191, 36)',
-		'rgb(244, 114, 182)',
-		'rgb(16, 185, 129)',
-		'rgb(56, 189, 248)',
-		'rgb(217, 70, 239)'
-	];
+	// One step per mount (and per read/write pair) of the disk hue.
+	const DISK_PALETTE = metricRamp('disk', 6);
 
 	let diskSeries = $derived.by((): Series[] => {
 		if (!disk) return [];
@@ -379,17 +380,19 @@
 				}));
 		});
 	});
+	const NET_RAMP = metricRamp('network', 2);
+
 	let networkSeries = $derived.by((): Series[] => {
 		if (!network) return [];
 		return [
 			{
 				name: 'RX',
-				color: 'rgb(96,165,250)',
+				color: NET_RAMP[0],
 				...observedHistory(network.totals, 'rx_bytes_per_sec', (p) => p.rx_bytes_per_sec)
 			},
 			{
 				name: 'TX',
-				color: 'rgb(52,211,153)',
+				color: NET_RAMP[1],
 				...observedHistory(network.totals, 'tx_bytes_per_sec', (p) => p.tx_bytes_per_sec)
 			}
 		];
@@ -820,8 +823,8 @@
 											{shortenMount(r.mount)}
 										</span>
 										<div class="flex items-center gap-3 text-[var(--color-fg-subtle)] tabular-nums">
-											<span class="text-[rgb(251,191,36)]">↓ {fmtRate(r.readIops)}</span>
-											<span class="text-[rgb(244,114,182)]">↑ {fmtRate(r.writeIops)}</span>
+											<span>↓ {fmtRate(r.readIops)}</span>
+											<span>↑ {fmtRate(r.writeIops)}</span>
 											<span
 												class={r.util >= 80
 													? 'text-[var(--color-danger)]'

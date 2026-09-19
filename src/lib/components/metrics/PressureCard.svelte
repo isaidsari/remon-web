@@ -5,6 +5,7 @@
 	import { cn } from '$lib/utils/cn';
 	import type { PressureHistoryResponse, PressureResource } from '$lib/types/api';
 	import { m } from '$lib/paraglide/messages';
+	import { metricColor } from '$lib/charts/chart-theme';
 
 	interface Props {
 		cpu: PressureHistoryResponse | null;
@@ -25,14 +26,14 @@
 	};
 
 	let slots = $derived<Slot[]>([
-		{ key: 'cpu', label: 'CPU', color: 'rgb(96, 165, 250)', data: cpu },
+		{ key: 'cpu', label: 'CPU', color: metricColor('cpu'), data: cpu },
 		{
 			key: 'memory',
 			label: m.statspanel_label_memory(),
-			color: 'rgb(167, 139, 250)',
+			color: metricColor('memory'),
 			data: memory
 		},
-		{ key: 'io', label: 'I/O', color: 'rgb(251, 191, 36)', data: io }
+		{ key: 'io', label: 'I/O', color: metricColor('disk'), data: io }
 	]);
 
 	let hasAnyData = $derived(slots.some((s) => (s.data?.points.length ?? 0) > 0));

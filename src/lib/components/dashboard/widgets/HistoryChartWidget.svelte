@@ -1,6 +1,6 @@
 <script lang="ts">
 	import HistoryChart, { type Series } from '$lib/components/charts/HistoryChart.svelte';
-	import { seriesColors } from '$lib/charts/chart-theme';
+	import { metricColor, metricRamp } from '$lib/charts/chart-theme';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import { RANGE_SECONDS } from '$lib/components/charts/range';
@@ -23,14 +23,9 @@
 	let points = $state<BatchSeries | null>(null);
 	let loading = $state(true);
 
-	const colors = seriesColors();
-	const DISK_PALETTE = [
-		colors.accent,
-		colors.neutral,
-		colors.warning,
-		colors.success,
-		colors.faint
-	];
+	// One line per mount, all of them steps of the disk hue; rx/tx likewise.
+	const DISK_PALETTE = metricRamp('disk', 5);
+	const NET_COLORS = metricRamp('network', 2);
 
 	async function fetchData() {
 		if (!conn?.isAuthenticated) return;
@@ -83,7 +78,7 @@
 				{
 					name: m.metrics_series_usage(),
 					...cpuUsageHistory(p.points),
-					color: colors.accent
+					color: metricColor('cpu')
 				}
 			];
 		}
@@ -91,7 +86,7 @@
 			return [
 				{
 					name: m.overview_card_memory_title(),
-					color: colors.accent,
+					color: metricColor('memory'),
 					...observedHistory(p.points, 'used_percent', (x) => x.used_percent)
 				}
 			];
@@ -110,12 +105,12 @@
 		return [
 			{
 				name: 'RX',
-				color: colors.neutral,
+				color: NET_COLORS[0],
 				...observedHistory(p.totals, 'rx_bytes_per_sec', (x) => x.rx_bytes_per_sec)
 			},
 			{
 				name: 'TX',
-				color: colors.accent,
+				color: NET_COLORS[1],
 				...observedHistory(p.totals, 'tx_bytes_per_sec', (x) => x.tx_bytes_per_sec)
 			}
 		];

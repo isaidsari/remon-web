@@ -13,7 +13,7 @@
 	import OsIcon from './OsIcon.svelte';
 	import { connectionTone } from '$lib/utils/connTone';
 	import { m } from '$lib/paraglide/messages';
-	import { seriesColors } from '$lib/charts/chart-theme';
+	import { metricColor, metricRamp } from '$lib/charts/chart-theme';
 
 	interface Props {
 		profile: ServerProfile;
@@ -115,14 +115,15 @@
 		return 'text-[var(--color-fg)]';
 	}
 
-	const base = seriesColors();
-	let metricColor = $derived({
-		cpu: profile.accent ?? base.accent,
-		mem: base.neutral,
-		disk: base.neutral,
-		netRx: base.neutral,
-		netTx: profile.accent ?? base.accent
-	});
+	// Rx and tx share the network hue, one step apart.
+	const [rxColor, txColor] = metricRamp('network', 2);
+	const metricColors = {
+		cpu: metricColor('cpu'),
+		mem: metricColor('memory'),
+		disk: metricColor('disk'),
+		netRx: rxColor,
+		netTx: txColor
+	};
 
 	function handleRemoveClick(e: MouseEvent) {
 		e.preventDefault();
@@ -233,14 +234,14 @@
 			'CPU',
 			cpuPct,
 			fmtPct,
-			metricColor.cpu,
+			metricColors.cpu,
 			live.cpuHistory,
 			severity(cpuPct),
 			0,
 			100
 		)}
-		{@render barRow('MEM', memPct, fmtPct, metricColor.mem, severity(memPct))}
-		{@render barRow('DISK', diskPct, fmtPct, metricColor.disk, severity(diskPct))}
+		{@render barRow('MEM', memPct, fmtPct, metricColors.mem, severity(memPct))}
+		{@render barRow('DISK', diskPct, fmtPct, metricColors.disk, severity(diskPct))}
 		{@render netRow()}
 	</div>
 
@@ -294,8 +295,8 @@
 		<div class="min-w-0">
 			<Sparkline
 				data={live.netRxHistory}
-				color={metricColor.netRx}
-				extra={{ data: live.netTxHistory, color: metricColor.netTx }}
+				color={metricColors.netRx}
+				extra={{ data: live.netTxHistory, color: metricColors.netTx }}
 				height={36}
 				fill
 				window={20}

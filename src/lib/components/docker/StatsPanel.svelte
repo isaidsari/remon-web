@@ -113,7 +113,7 @@
 	<div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
 		<div class="flex flex-col gap-1">
 			<span class="text-xs tracking-wide text-[var(--color-fg-muted)]">CPU</span>
-			<span class="text-xl font-semibold tabular-nums" style="color: rgb(96, 165, 250)">
+			<span class="text-xl font-semibold text-[var(--color-fg)] tabular-nums">
 				{fmtMaybePct(m.cpuPercent)}
 			</span>
 		</div>
@@ -122,7 +122,7 @@
 			<span class="text-xs tracking-wide text-[var(--color-fg-muted)]"
 				>{t.statspanel_label_memory()}</span
 			>
-			<span class="text-xl font-semibold tabular-nums" style="color: rgb(167, 139, 250)">
+			<span class="text-xl font-semibold text-[var(--color-fg)] tabular-nums">
 				{fmtMaybePct(m.memPercent)}
 			</span>
 			{#if m.memUsedBytes !== null && m.memLimitBytes !== null}
@@ -136,7 +136,7 @@
 			<span class="text-xs tracking-wide text-[var(--color-fg-muted)]"
 				>{t.statspanel_label_network()}</span
 			>
-			<span class="text-xl font-semibold tabular-nums" style="color: rgb(52, 211, 153)">
+			<span class="text-xl font-semibold text-[var(--color-fg)] tabular-nums">
 				{fmtMaybeBps(
 					m.netRxBps === null && m.netTxBps === null ? null : (m.netRxBps ?? 0) + (m.netTxBps ?? 0)
 				)}
@@ -152,7 +152,7 @@
 			<span class="text-xs tracking-wide text-[var(--color-fg-muted)]"
 				>{t.statspanel_label_block_io()}</span
 			>
-			<span class="text-xl font-semibold tabular-nums" style="color: rgb(251, 191, 36)">
+			<span class="text-xl font-semibold text-[var(--color-fg)] tabular-nums">
 				{fmtMaybeBps(
 					m.blkReadBps === null && m.blkWriteBps === null
 						? null
@@ -168,7 +168,7 @@
 
 		<div class="flex flex-col gap-1">
 			<span class="text-xs tracking-wide text-[var(--color-fg-muted)]">PIDs</span>
-			<span class="text-xl font-semibold tabular-nums" style="color: rgb(244, 114, 182)">
+			<span class="text-xl font-semibold text-[var(--color-fg)] tabular-nums">
 				{m.pids === null ? '—' : m.pids}
 			</span>
 		</div>

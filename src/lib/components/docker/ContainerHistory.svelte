@@ -7,6 +7,7 @@
 	import type { Connection } from '$lib/stores/connections.svelte';
 	import type { DockerPoint } from '$lib/types/api';
 	import { m } from '$lib/paraglide/messages';
+	import { metricColor } from '$lib/charts/chart-theme';
 
 	interface Props {
 		conn: Connection;
@@ -54,8 +55,8 @@
 		};
 	});
 
-	const CPU_COLOR = 'rgb(96, 165, 250)';
-	const MEM_COLOR = 'rgb(167, 139, 250)';
+	const CPU_COLOR = metricColor('cpu');
+	const MEM_COLOR = metricColor('memory');
 
 	let cpuSeries = $derived<Series[]>([
 		{

@@ -26,21 +26,13 @@
 		label: string;
 		severity: 'info' | 'warn' | 'error';
 	}
-
-	// Canvas needs literal colors (CSS vars don't resolve inside ECharts);
-	// these mirror the app's danger/warning/neutral tones.
-	const ANNOTATION_COLORS: Record<ChartAnnotation['severity'], string> = {
-		info: 'rgb(148, 163, 184)',
-		warn: 'rgb(251, 191, 36)',
-		error: 'rgb(248, 113, 113)'
-	};
 </script>
 
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { ECharts, EChartsCoreOption, LinearGradientObject } from 'echarts/core';
 	import { loadEcharts } from '$lib/charts/echarts-lazy';
-	import { chartPalette } from '$lib/charts/chart-theme';
+	import { chartPalette, statusColors } from '$lib/charts/chart-theme';
 	import { rgbAt } from '$lib/charts/color';
 	import { tabVisible } from '$lib/utils/visibility.svelte';
 	import { m } from '$lib/paraglide/messages';
@@ -193,6 +185,7 @@
 
 		// Marks must attach to a series, so the overlay rides on the first one.
 		if (seriesArr.length > 0 && annotations.length > 0) {
+			const severityColor = statusColors();
 			const lines = annotations.filter((a) => a.endTs == null);
 			const bands = annotations.filter((a) => a.endTs != null);
 			if (lines.length > 0) {
@@ -202,12 +195,12 @@
 					data: lines.map((a) => ({
 						xAxis: a.ts * 1000,
 						name: a.label,
-						lineStyle: { color: ANNOTATION_COLORS[a.severity], type: 'dashed', width: 1 },
+						lineStyle: { color: severityColor[a.severity], type: 'dashed', width: 1 },
 						label: {
 							show: false,
 							formatter: '{b}',
 							position: 'insideEndTop',
-							color: ANNOTATION_COLORS[a.severity],
+							color: severityColor[a.severity],
 							fontSize: 10
 						},
 						emphasis: { label: { show: true } }
@@ -226,7 +219,7 @@
 							{
 								xAxis: a.ts * 1000,
 								name: a.label,
-								itemStyle: { color: rgbAt(ANNOTATION_COLORS[a.severity], 0.08) }
+								itemStyle: { color: rgbAt(severityColor[a.severity], 0.08) }
 							},
 							{ xAxis: (a.endTs ?? a.ts) * 1000 }
 						])
