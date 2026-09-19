@@ -792,7 +792,7 @@
 						<button
 							type="button"
 							aria-pressed={diskIoMode === mode}
-							class="rounded border border-[var(--color-border)] px-2 py-1 text-xs aria-pressed:bg-[var(--color-bg-hover)]"
+							class="rounded border border-[var(--color-border)] px-2 py-1 text-xs aria-pressed:bg-[var(--color-surface-2)]"
 							onclick={() => (diskIoMode = mode as typeof diskIoMode)}
 						>
 							{mode === 'bytes' ? 'B/s' : mode === 'iops' ? 'IOPS' : '%'}

@@ -478,9 +478,7 @@
 				<ul class="flex flex-col gap-2">
 					{#each resolutions as r (r.name)}
 						{@const locked = lockReason(r)}
-						<li
-							class="flex items-center gap-3 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2"
-						>
+						<li class="flex items-center gap-3 rounded-md bg-[var(--color-surface-2)] px-3 py-2">
 							<span class="text-md w-10 font-mono text-[var(--color-fg)]">{r.name}</span>
 							<span class="text-2xs font-mono text-[var(--color-fg-subtle)]">
 								{fmtIntervalSecs(r.interval_seconds)}

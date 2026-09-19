@@ -79,9 +79,7 @@
 				{@const last = latest(s.data)}
 				{@const series = someSeries(s.data)}
 				{@const hasPoints = (s.data?.points.length ?? 0) > 0}
-				<div
-					class="rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-bg-soft)] p-4"
-				>
+				<div class="rounded-[var(--radius-input)] bg-[var(--color-surface-2)] p-4">
 					<div class="flex items-baseline justify-between">
 						<span class="text-xs tracking-wide text-[var(--color-fg-muted)]">
 							{s.label}

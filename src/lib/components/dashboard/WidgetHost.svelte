@@ -49,7 +49,7 @@
 
 	{#snippet failed(_error, reset)}
 		<div
-			class="flex h-full flex-col items-center justify-center gap-2 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-4 text-center"
+			class="flex h-full flex-col items-center justify-center gap-2 rounded-[var(--radius-card)] bg-[var(--color-surface)] px-3 py-4 text-center shadow-[var(--shadow-flat)]"
 		>
 			<IconTriangleAlert class="size-4 text-[var(--color-warning)]" stroke-width="2" />
 			<p class="text-2xs leading-snug text-[var(--color-fg-muted)]">

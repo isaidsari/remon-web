@@ -440,7 +440,7 @@
 	{#if hasRanges}
 		<button
 			type="button"
-			class="text-2xs absolute top-0 right-2 z-10 rounded px-1.5 py-0.5 text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-hover)]"
+			class="text-2xs absolute top-0 right-2 z-10 rounded px-1.5 py-0.5 text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-2)]"
 			aria-pressed={showRanges}
 			title={m.history_range_explanation()}
 			onclick={() => (rangeMode = showRanges ? 'hide' : 'auto')}

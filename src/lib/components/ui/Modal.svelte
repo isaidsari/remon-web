@@ -114,7 +114,7 @@
 
 		{#if footer}
 			<footer
-				class="flex shrink-0 items-center justify-end gap-2 border-t border-[var(--color-border)] bg-[var(--color-bg-soft)]/40 px-6 py-3"
+				class="flex shrink-0 items-center justify-end gap-2 border-t border-[var(--color-border)] bg-[var(--color-surface-2)]/60 px-6 py-3"
 			>
 				{@render footer()}
 			</footer>

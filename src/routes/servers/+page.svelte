@@ -142,7 +142,7 @@
 			class="relative mx-auto max-w-md rounded-[var(--radius-card)] border border-dashed border-[var(--color-border-strong)] bg-[var(--color-surface)]/40 px-8 py-14 text-center"
 		>
 			<div
-				class="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-2xl bg-[var(--color-bg-soft)]"
+				class="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-2xl bg-[var(--color-surface-2)]"
 			>
 				<IconServer class="size-7 text-[var(--color-fg-muted)]" stroke-width="1.5" />
 			</div>

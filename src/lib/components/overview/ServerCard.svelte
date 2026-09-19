@@ -160,7 +160,7 @@
 >
 	<header class="flex items-start gap-3 px-4 pt-4">
 		<div
-			class="grid size-10 shrink-0 place-items-center rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-soft)]"
+			class="grid size-10 shrink-0 place-items-center rounded-lg bg-[var(--color-surface-2)]"
 			aria-hidden="true"
 		>
 			{#if sysInfo}
@@ -246,7 +246,7 @@
 	</div>
 
 	<footer
-		class="text-2xs flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-b-[var(--radius-card)] border-t border-[var(--color-border)] bg-[var(--color-bg-soft)] px-4 py-2.5 text-[var(--color-fg-subtle)]"
+		class="text-2xs flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-b-[var(--radius-card)] bg-[var(--color-surface-2)] px-4 py-2.5 text-[var(--color-fg-subtle)]"
 	>
 		{#if osLabel}
 			<span class="min-w-0 truncate">{osLabel}</span>

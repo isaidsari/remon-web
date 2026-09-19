@@ -44,9 +44,7 @@
 	{:else}
 		<div class="grid min-h-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-3">
 			{#each slots as s (s.key)}
-				<div
-					class="rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-bg-soft)] p-3"
-				>
+				<div class="rounded-[var(--radius-input)] bg-[var(--color-surface-2)] p-3">
 					<span class="text-xs tracking-wide text-[var(--color-fg-muted)]">{s.label}</span>
 					{#if s.data}
 						<p class="mt-2 text-xl font-semibold tabular-nums {pressureColor(s.data.some_avg10)}">

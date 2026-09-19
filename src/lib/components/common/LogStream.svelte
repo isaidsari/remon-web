@@ -172,7 +172,7 @@
 					onkeydown={(e) => {
 						if (e.key === 'Enter') applyTail();
 					}}
-					class="h-7 w-20 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-2 text-xs"
+					class="h-7 w-20 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)] px-2 text-xs"
 				/>
 			</label>
 			<label class="flex items-center gap-1.5 text-xs text-[var(--color-fg-muted)]">

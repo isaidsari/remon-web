@@ -480,9 +480,7 @@
 {/snippet}
 
 {#snippet runPanel(run: ProbeRunDto, metrics: ProbeMetric[])}
-	<div
-		class="rounded-md bg-[var(--color-surface)] p-3 shadow-[inset_0_0_0_1px_var(--color-border)]"
-	>
+	<div class="rounded-md bg-[var(--color-surface-2)] p-3">
 		<div class="mb-3 flex flex-wrap items-center justify-between gap-2">
 			<div class="flex items-center gap-2">
 				<ProbeStatusBadge parseOk={run.parse_ok} />
@@ -510,7 +508,7 @@
 				{#each groups as g (g.name)}
 					{@const singleUnlabelled =
 						g.entries.length === 1 && Object.keys(g.entries[0].labels ?? {}).length === 0}
-					<div class="rounded border border-[var(--color-border)] bg-[var(--color-surface)]">
+					<div class="rounded bg-[var(--color-surface-3)]">
 						<div class="flex items-baseline justify-between gap-2 px-3 py-1.5">
 							<span
 								class="text-2xs font-mono font-medium tracking-[0.08em] break-all text-[var(--color-fg-muted)]"
@@ -554,7 +552,7 @@
 {#snippet historyPanel(name: string)}
 	{@const history = historyCache[name]}
 	<details
-		class="rounded-md bg-[var(--color-surface)] shadow-[inset_0_0_0_1px_var(--color-border)]"
+		class="rounded-md bg-[var(--color-surface-2)]"
 		ontoggle={(e) => {
 			if ((e.currentTarget as HTMLDetailsElement).open) ensureHistory(name);
 		}}
@@ -637,7 +635,7 @@
 {#snippet metricHistoryPanel(probeName: string, metrics: ProbeMetric[])}
 	{@const COLORS = categoricalColors(6)}
 	<details
-		class="rounded-md bg-[var(--color-surface)] shadow-[inset_0_0_0_1px_var(--color-border)]"
+		class="rounded-md bg-[var(--color-surface-2)]"
 		ontoggle={(e) => {
 			if ((e.currentTarget as HTMLDetailsElement).open) {
 				for (const metric of metrics) {

@@ -20,15 +20,17 @@
 	--text-hero: 28px;
 	--text-hero-lg: 32px;
 
+	/* Ground, page chrome, card, well, track — a borderless card has nothing
+	   but this ladder to stand on, so each rung has to be visible. */
 	--color-bg: #0a0a0b;
-	--color-bg-soft: #111114;
-	--color-surface: #111114;
-	--color-surface-2: #17171a;
-	--color-surface-3: #1f1f23;
-	--color-border: #242428;
-	--color-border-strong: #2f2f35;
+	--color-bg-soft: #0e0e11;
+	--color-surface: #17171b;
+	--color-surface-2: #1f1f24;
+	--color-surface-3: #2a2a31;
+	--color-border: #2c2c33;
+	--color-border-strong: #3a3a42;
 	/* gap between hairline-grid children shows through as 1px dividers */
-	--color-hairline: #242428;
+	--color-hairline: #2c2c33;
 
 	--color-fg: #ededf0;
 	--color-fg-muted: #c4c4c8;
@@ -105,7 +107,7 @@
 	--color-bg: #f3f3f5;
 	--color-bg-soft: #ebebee;
 	--color-surface: #ffffff;
-	--color-surface-2: #f4f4f5;
+	--color-surface-2: #f1f1f4;
 	--color-surface-3: #e4e4e7;
 	--color-border: #e4e4e7;
 	--color-border-strong: #d4d4d8;

@@ -738,9 +738,7 @@
 			</Field>
 		</div>
 
-		<div
-			class="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2"
-		>
+		<div class="rounded-md bg-[var(--color-surface-2)] px-3 py-2">
 			<div class="text-3xs mb-0.5 tracking-wide text-[var(--color-fg-subtle)] uppercase">
 				{m.alerts_editor_expression_preview_label()}
 			</div>
