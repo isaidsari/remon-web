@@ -64,22 +64,22 @@ export function chartPalette(): ChartPalette {
 
 export type MetricKey = 'cpu' | 'memory' | 'disk' | 'network' | 'probe';
 
-/** One hue per metric, the same on every page, and none of them close to the
- *  status hues below — an amber line has to mean "watch this". */
+/** One hue per metric, the same on every page. Blue, green, orange, cyan —
+ *  no violet or pink, and each one a clear step from the next. */
 const METRIC_HUES: Record<ChartTheme, Record<MetricKey, string>> = {
 	dark: {
 		cpu: '#60a5fa',
-		memory: '#a78bfa',
-		disk: '#22d3ee',
-		network: '#e879f9',
-		probe: '#818cf8'
+		memory: '#34d399',
+		disk: '#fb923c',
+		network: '#22d3ee',
+		probe: '#38bdf8'
 	},
 	light: {
 		cpu: '#2563eb',
-		memory: '#7c3aed',
-		disk: '#0e7490',
-		network: '#c026d3',
-		probe: '#4f46e5'
+		memory: '#059669',
+		disk: '#d97706',
+		network: '#0891b2',
+		probe: '#0284c7'
 	}
 };
 
@@ -97,11 +97,11 @@ const STATUS: Record<ChartTheme, { info: string; warn: string; error: string }> 
  *  pale cyan from landing next to a pale blue. */
 const RAMP: { turn: number; level: number }[] = [
 	{ turn: 0, level: 0 }, // the metric's own colour
-	{ turn: -8, level: 0.95 },
-	{ turn: 8, level: 0.25 },
-	{ turn: -17, level: 0.65 },
-	{ turn: 17, level: 0.1 },
-	{ turn: -25, level: 0.45 }
+	{ turn: -6, level: 0.95 },
+	{ turn: 6, level: 0.25 },
+	{ turn: -11, level: 0.65 },
+	{ turn: 11, level: 0.1 },
+	{ turn: -16, level: 0.45 }
 ];
 
 /** The card the series is drawn on, and how far a colour may drift from it. */
