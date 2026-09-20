@@ -70,14 +70,14 @@ const METRIC_HUES: Record<ChartTheme, Record<MetricKey, string>> = {
 	dark: {
 		cpu: '#60a5fa',
 		memory: '#34d399',
-		disk: '#fb923c',
+		disk: '#d8a25e',
 		network: '#22d3ee',
 		probe: '#38bdf8'
 	},
 	light: {
 		cpu: '#2563eb',
 		memory: '#059669',
-		disk: '#d97706',
+		disk: '#a16207',
 		network: '#0891b2',
 		probe: '#0284c7'
 	}

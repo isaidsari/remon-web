@@ -5,6 +5,7 @@
 	import type { Connection } from '$lib/stores/connections.svelte';
 	import type { EventDto, IncidentSummaryDto } from '$lib/types/api';
 	import { m } from '$lib/paraglide/messages';
+	import { fmtDuration, fmtScalar } from '$lib/utils/format';
 	import IconArrowRight from '~icons/lucide/arrow-right';
 
 	interface Props {
@@ -17,22 +18,26 @@
 	let events = $state<EventDto[] | null>(null);
 
 	/** An incident as a timeline row; open ones read as errors until they close.
-	 *  The name alone says nothing, so the row spells out what happened to it. */
+	 *  How long it ran and how bad it got are the two things worth the width. */
 	function incidentRow(i: IncidentSummaryDto): EventDto {
 		const open = i.closed_at == null;
 		const name = i.rule_name?.trim() || i.reason?.trim() || '';
+		const duration = fmtDuration((i.closed_at ?? Math.floor(Date.now() / 1000)) - i.opened_at);
+		const head = name
+			? open
+				? m.events_incident_open({ name, duration })
+				: m.events_incident_closed({ name, duration })
+			: open
+				? m.events_incident_open_unnamed({ duration })
+				: m.events_incident_closed_unnamed({ duration });
+		const peak = i.worst_value ?? i.trigger_value;
 		return {
 			ts: i.opened_at,
 			source: 'system',
 			kind: 'incident',
 			severity: open ? 'error' : 'info',
-			message: name
-				? open
-					? m.events_incident_opened({ name })
-					: m.events_incident_closed({ name })
-				: open
-					? m.events_incident_opened_unnamed()
-					: m.events_incident_closed_unnamed(),
+			message:
+				peak == null ? head : `${head}, ${m.events_incident_worst({ value: fmtScalar(peak) })}`,
 			ref: { type: 'incident', id: String(i.id) }
 		};
 	}
