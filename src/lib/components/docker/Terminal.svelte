@@ -42,10 +42,10 @@
 			fontSize: 13,
 			lineHeight: 1.2,
 			theme: {
-				background: '#06070b',
+				background: '#0a0a0a',
 				foreground: '#e5e7eb',
 				cursor: '#60a5fa',
-				cursorAccent: '#06070b',
+				cursorAccent: '#0a0a0a',
 				selectionBackground: '#3b82f650',
 				black: '#1f2937',
 				brightBlack: '#374151',

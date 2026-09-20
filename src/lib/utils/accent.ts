@@ -39,14 +39,14 @@ function luminance([r, g, b]: [number, number, number]): number {
 
 export function accentFg(hex: string): string {
 	if (!isValidHex(hex)) return '#ffffff';
-	return luminance(parseHex(hex)) > 0.55 ? '#0a0a0b' : '#ffffff';
+	return luminance(parseHex(hex)) > 0.55 ? '#0a0a0a' : '#ffffff';
 }
 
 export function applyAccent(hex: string): void {
 	if (!isValidHex(hex)) return;
 	const preset = ACCENT_PRESETS.find((p) => p.hex.toLowerCase() === hex.toLowerCase());
 	const [r, g, b] = parseHex(hex);
-	const fg = luminance([r, g, b]) > 0.55 ? '#0a0a0b' : '#ffffff';
+	const fg = luminance([r, g, b]) > 0.55 ? '#0a0a0a' : '#ffffff';
 	const root = document.documentElement.style;
 	root.setProperty('--color-accent', hex);
 	root.setProperty('--color-accent-strong', preset?.strong ?? hex);

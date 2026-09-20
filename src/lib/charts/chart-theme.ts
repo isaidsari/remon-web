@@ -34,9 +34,9 @@ const DARK: ChartPalette = {
 	gridLine: 'rgba(255,255,255,0.05)',
 	axisLine: 'rgba(255,255,255,0.12)',
 	crossLine: 'rgba(255,255,255,0.18)',
-	tooltipBg: 'rgba(31,31,36,0.96)',
+	tooltipBg: 'rgba(31,31,31,0.96)',
 	tooltipBorder: 'rgba(255,255,255,0.08)',
-	tooltipLabelBg: 'rgba(42,42,49,0.95)',
+	tooltipLabelBg: 'rgba(42,42,42,0.95)',
 	tooltipText: 'rgb(220,220,228)',
 	legendText: 'rgb(180,180,188)',
 	axisText: 'rgb(140,140,150)'
@@ -106,7 +106,7 @@ const RAMP: { turn: number; level: number }[] = [
 
 /** The card the series is drawn on, and how far a colour may drift from it. */
 const SURFACE: Record<ChartTheme, { bg: string; min: number; max: number }> = {
-	dark: { bg: '#17171b', min: 3.2, max: 12.5 },
+	dark: { bg: '#171717', min: 3.2, max: 12.5 },
 	light: { bg: '#ffffff', min: 3, max: 11 }
 };
 

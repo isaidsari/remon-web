@@ -21,16 +21,17 @@
 	--text-hero-lg: 32px;
 
 	/* Ground, page chrome, card, well, track — a borderless card has nothing
-	   but this ladder to stand on, so each rung has to be visible. */
-	--color-bg: #0a0a0b;
-	--color-bg-soft: #0e0e11;
-	--color-surface: #17171b;
-	--color-surface-2: #1f1f24;
-	--color-surface-3: #2a2a31;
-	--color-border: #2c2c33;
-	--color-border-strong: #3a3a42;
+	   but this ladder to stand on, so each rung has to be visible. Neutral
+	   greys: any blue in them reads as violet once the card sits on black. */
+	--color-bg: #0a0a0a;
+	--color-bg-soft: #0e0e0e;
+	--color-surface: #171717;
+	--color-surface-2: #1f1f1f;
+	--color-surface-3: #2a2a2a;
+	--color-border: #2e2e2e;
+	--color-border-strong: #3c3c3c;
 	/* gap between hairline-grid children shows through as 1px dividers */
-	--color-hairline: #2c2c33;
+	--color-hairline: #2e2e2e;
 
 	--color-fg: #ededf0;
 	--color-fg-muted: #c4c4c8;
