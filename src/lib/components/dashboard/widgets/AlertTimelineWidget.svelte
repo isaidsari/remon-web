@@ -16,14 +16,23 @@
 	const LIMIT = 15;
 	let events = $state<EventDto[] | null>(null);
 
-	/** An incident as a timeline row; open ones read as errors until they close. */
+	/** An incident as a timeline row; open ones read as errors until they close.
+	 *  The name alone says nothing, so the row spells out what happened to it. */
 	function incidentRow(i: IncidentSummaryDto): EventDto {
+		const open = i.closed_at == null;
+		const name = i.rule_name?.trim() || i.reason?.trim() || '';
 		return {
 			ts: i.opened_at,
 			source: 'system',
 			kind: 'incident',
-			severity: i.closed_at == null ? 'error' : 'info',
-			message: i.rule_name ?? i.reason ?? m.incident_title(),
+			severity: open ? 'error' : 'info',
+			message: name
+				? open
+					? m.events_incident_opened({ name })
+					: m.events_incident_closed({ name })
+				: open
+					? m.events_incident_opened_unnamed()
+					: m.events_incident_closed_unnamed(),
 			ref: { type: 'incident', id: String(i.id) }
 		};
 	}

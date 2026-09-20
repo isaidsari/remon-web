@@ -397,8 +397,9 @@
 			padding: 10px 14px;
 			border-top: 1px solid var(--color-border);
 		}
-		/* These are the primary controls on a phone, so they get touch size. */
-		.data-table > tbody > tr > td.actions button {
+		/* These are the primary controls on a phone, so they get touch size.
+		   A switch keeps its own size and carries its tap area as a pseudo. */
+		.data-table > tbody > tr > td.actions button:not([role='switch']) {
 			min-width: 2.25rem;
 			min-height: 2.25rem;
 		}
