@@ -6,20 +6,20 @@
 	import Banner from '$lib/components/ui/Banner.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
+	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { confirm as confirmDialog } from '$lib/stores/confirm.svelte';
 	import { ApiError } from '$lib/api/error';
 	import { StreamUnsupportedError } from '$lib/api/client';
 	import { cn } from '$lib/utils/cn';
 	import { m } from '$lib/paraglide/messages';
-	import type { ProposedAction, AssistantTraceStep } from '$lib/types/api';
+	import type { ProposedAction } from '$lib/types/api';
 	import Markdown from '$lib/components/assistant/Markdown.svelte';
 	import HistoryPanel from '$lib/components/assistant/HistoryPanel.svelte';
 	import { vault } from '$lib/vault/store.svelte';
 	import { deriveTitle, type Conversation, type StoredTurn } from '$lib/assistant/conversation';
 	import { deleteConversation, listConversations, saveConversation } from '$lib/assistant/history';
 	import IconHistory from '~icons/lucide/history';
-	import IconBotMessageSquare from '~icons/lucide/bot-message-square';
 	import IconArrowUp from '~icons/lucide/arrow-up';
 	import IconArrowDown from '~icons/lucide/arrow-down';
 	import IconSquare from '~icons/lucide/square';
@@ -28,7 +28,6 @@
 	import IconX from '~icons/lucide/x';
 	import IconCopy from '~icons/lucide/copy';
 	import IconTrash from '~icons/lucide/trash-2';
-	import IconWrench from '~icons/lucide/wrench';
 	import IconGauge from '~icons/lucide/gauge';
 	import IconMemoryStick from '~icons/lucide/memory-stick';
 	import IconTriangleAlert from '~icons/lucide/triangle-alert';
@@ -47,7 +46,6 @@
 		loading: boolean;
 		proposals: Proposal[];
 		startedAt?: number;
-		trace?: AssistantTraceStep[];
 		/** Tool currently running on the server (streaming asks only) — shown
 		 * next to the thinking dots, never persisted past the turn. */
 		activity?: string | null;
@@ -160,25 +158,6 @@
 
 	function elapsedSeconds(entry: Entry): number {
 		return Math.max(0, Math.floor((now - (entry.startedAt ?? now)) / 1000));
-	}
-
-	// Per-tab toggle asking for the loop trace. The server refuses overrides
-	// unless [assistant] dev = true, so a locked-down daemon just answers 403.
-	let devMode = $state(false);
-	let devSystem = $state('');
-	let devModel = $state('');
-	$effect(() => {
-		untrack(() => {
-			devMode = sessionStorage.getItem('remon.assistant.dev') === '1';
-		});
-	});
-	function toggleDev() {
-		devMode = !devMode;
-		try {
-			sessionStorage.setItem('remon.assistant.dev', devMode ? '1' : '0');
-		} catch {
-			// fine — the toggle just won't stick
-		}
 	}
 
 	async function copyAnswer(text: string) {
@@ -305,14 +284,7 @@
 				.map((e) => ({ question: e.question, answer: e.answer }));
 			const opts = {
 				history,
-				signal: ctrl.signal,
-				dev: devMode
-					? {
-							trace: true,
-							system: devSystem.trim() ? devSystem : undefined,
-							model: devModel.trim() ? devModel.trim() : undefined
-						}
-					: undefined
+				signal: ctrl.signal
 			};
 
 			// Daemons without the stream route fall back to the buffered ask.
@@ -341,7 +313,6 @@
 			}
 			entry.answer = res.answer;
 			entry.proposals = (res.proposals ?? []).map((p) => ({ ...p, state: 'pending' }));
-			entry.trace = res.trace;
 		} catch (e) {
 			// A stop is not a failure: drop the pending turn and hand the
 			// question back so it can be edited and re-sent.
@@ -434,22 +405,14 @@
 	}
 </script>
 
-<!-- App-frame chat: toolbar / scrolling conversation / docked composer fill
-     the viewport below the 3rem app header. dvh keeps the composer above the
-     collapsing URL bar on mobile. -->
-<div class="flex h-[calc(100dvh-3rem)] flex-col">
-	<header
-		class="flex h-11 shrink-0 items-center justify-between gap-2 border-b border-[var(--color-border)] px-3 md:px-5"
-	>
-		<div class="flex min-w-0 items-center gap-2">
-			<IconBotMessageSquare class="size-4 shrink-0 text-[var(--color-accent)]" />
-			<h1 class="text-md truncate font-semibold tracking-tight">{m.assistant_title()}</h1>
-		</div>
+<!-- Shared page framing, with an independently scrolling conversation. -->
+<div class="flex h-[calc(100dvh-3rem)] min-h-[28rem] flex-col px-4 py-6 md:px-8 md:py-8">
+	<PageHeader title={m.assistant_title()} subtitle={m.assistant_intro()} class="shrink-0">
 		<div class="flex shrink-0 items-center gap-0.5">
 			<div class="relative" bind:this={historyEl}>
 				<Button
-					size="icon"
-					variant="ghost"
+					size="sm"
+					variant="secondary"
 					class={cn(historyOpen && 'text-[var(--color-accent)]')}
 					onclick={() => (historyOpen = !historyOpen)}
 					aria-label={m.assistant_history()}
@@ -457,11 +420,12 @@
 					aria-expanded={historyOpen}
 				>
 					<IconHistory class="size-4" />
+					{m.assistant_history()}
 				</Button>
 				{#if historyOpen}
 					<!-- Closes on any pointer down outside, so no backdrop element is needed. -->
 					<div
-						class="absolute right-0 z-30 mt-1 overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-surface)] shadow-[var(--shadow-flat),0_12px_32px_rgba(0,0,0,0.45)]"
+						class="absolute left-0 z-30 mt-2 max-w-[calc(100vw-2rem)] overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-surface)] shadow-lg sm:right-0 sm:left-auto"
 					>
 						<HistoryPanel
 							{conversations}
@@ -473,16 +437,7 @@
 					</div>
 				{/if}
 			</div>
-			<Button
-				size="icon"
-				variant="ghost"
-				class={cn(devMode && 'text-[var(--color-warning)]')}
-				onclick={toggleDev}
-				aria-label={m.assistant_dev()}
-				title={m.assistant_dev()}
-			>
-				<IconWrench class="size-4" />
-			</Button>
+
 			{#if entries.length > 0}
 				<Button
 					size="icon"
@@ -496,31 +451,25 @@
 				</Button>
 			{/if}
 		</div>
-	</header>
+	</PageHeader>
 
-	<div bind:this={scroller} onscroll={onScroll} class="flex-1 overflow-y-auto overscroll-contain">
+	<div
+		bind:this={scroller}
+		onscroll={onScroll}
+		class="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+	>
 		<div
 			class={cn(
-				'mx-auto flex min-h-full w-full max-w-3xl flex-col px-4 pt-6 pb-4 md:px-6',
+				'mx-auto flex min-h-full w-full max-w-3xl flex-col pb-6',
 				entries.length > 0 && 'gap-8'
 			)}
 		>
 			{#if entries.length === 0}
-				<div class="enter m-auto flex w-full max-w-md flex-col items-center pb-10 text-center">
-					<span
-						class="flex size-12 items-center justify-center rounded-2xl bg-[var(--color-accent-bg)] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-accent)_25%,transparent),0_0_40px_-10px_var(--color-accent-glow)]"
-					>
-						<IconBotMessageSquare class="size-5 text-[var(--color-accent)]" />
-					</span>
-					<p class="text-md mt-4 max-w-sm leading-relaxed text-[var(--color-fg-muted)]">
-						{m.assistant_intro()}
-					</p>
-					<p class="text-2xs mt-7 font-medium tracking-wide text-[var(--color-fg-subtle)]">
+				<div class="w-full">
+					<p class="text-xs font-medium text-[var(--color-fg-muted)]">
 						{m.assistant_empty_hint()}
 					</p>
-					<div
-						class="mt-3 flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-center"
-					>
+					<div class="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-3">
 						{#each examples as ex (ex.label)}
 							{@const Icon = ex.icon}
 							<button
@@ -528,11 +477,10 @@
 								onclick={() => ask(ex.label)}
 								disabled={!conn.isAuthenticated}
 								class={cn(
-									'group text-md flex items-center gap-2.5 rounded-xl bg-[var(--color-surface)] px-3.5 py-2.5 text-left text-[var(--color-fg-muted)]',
+									'group flex items-center gap-3 rounded-[var(--radius-card)] bg-[var(--color-surface)] p-4 text-left text-sm text-[var(--color-fg-muted)]',
 									'shadow-[var(--shadow-flat)] transition-all duration-[var(--dur-fast)]',
 									'hover:text-[var(--color-fg)] hover:shadow-[var(--shadow-flat-hover)]',
-									'disabled:cursor-not-allowed disabled:opacity-40',
-									'sm:rounded-full sm:py-2'
+									'disabled:cursor-not-allowed disabled:opacity-40'
 								)}
 							>
 								<Icon
@@ -547,10 +495,10 @@
 
 			{#each entries as entry, i (entry)}
 				<div class="enter group space-y-4">
-					<!-- Operator question: wears the server's accent -->
+					<!-- Questions use the same neutral surfaces as the rest of the app. -->
 					<div class="flex justify-end">
 						<div
-							class="text-md max-w-[85%] rounded-2xl rounded-br-md bg-[var(--color-accent)] px-4 py-2.5 leading-relaxed break-words whitespace-pre-wrap text-[var(--color-accent-fg)] md:max-w-[75%]"
+							class="text-md max-w-[85%] rounded-[var(--radius-card)] bg-[var(--color-surface)] px-4 py-3 leading-relaxed break-words whitespace-pre-wrap text-[var(--color-fg)] shadow-[var(--shadow-flat)] md:max-w-[75%]"
 						>
 							{entry.question}
 						</div>
@@ -602,43 +550,6 @@
 									{m.assistant_copy()}
 								</button>
 							</div>
-
-							{#if entry.trace && entry.trace.length > 0}
-								<details
-									class="rounded-lg bg-[var(--color-surface)] px-3 py-2 shadow-[var(--shadow-flat)]"
-								>
-									<summary
-										class="text-2xs cursor-pointer text-[var(--color-fg-subtle)] select-none"
-									>
-										{m.assistant_trace()} · {entry.trace.length}
-									</summary>
-									<ol class="text-3xs mt-2 space-y-1.5 font-mono leading-relaxed">
-										{#each entry.trace as step, si (si)}
-											<li class="text-[var(--color-fg-muted)]">
-												{#if step.type === 'tool'}
-													<span class="text-[var(--color-accent)]">{step.name}</span>
-													<span class="text-[var(--color-fg-faint)]"
-														>{JSON.stringify(step.args)} · {step.ms}ms</span
-													>
-													{#if step.result_preview}
-														<div
-															class="mt-0.5 max-h-24 overflow-y-auto rounded bg-[var(--color-surface-2)] p-1.5 break-all whitespace-pre-wrap text-[var(--color-fg-subtle)]"
-														>
-															{step.result_preview}
-														</div>
-													{/if}
-												{:else}
-													<span class="text-[var(--color-fg-subtle)]"
-														>model · {step.ms}ms{#if step.usage}
-															· in={step.usage.input_tokens ?? 0} out={step.usage.output_tokens ??
-																0} cache_read={step.usage.cache_read_input_tokens ?? 0}{/if}</span
-													>
-												{/if}
-											</li>
-										{/each}
-									</ol>
-								</details>
-							{/if}
 						{/if}
 
 						{#each entry.proposals as p, pi (pi)}
@@ -726,14 +637,7 @@
 		</div>
 	</div>
 
-	<!-- Docked composer. The gradient lets messages fade out underneath it
-	     instead of clipping on a hard edge. -->
-	<div class="relative shrink-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-6">
-		<div
-			class="pointer-events-none absolute inset-x-0 -top-14 h-14 bg-gradient-to-t from-[var(--color-bg)] to-transparent"
-			aria-hidden="true"
-		></div>
-
+	<div class="relative mx-auto w-full max-w-3xl shrink-0 pt-3 pb-[env(safe-area-inset-bottom)]">
 		{#if !atBottom && entries.length > 0}
 			<button
 				type="button"
@@ -751,36 +655,11 @@
 			</button>
 		{/if}
 
-		<div class="mx-auto w-full max-w-3xl">
-			{#if devMode}
-				<div
-					class="mb-2 rounded-[var(--radius-card)] bg-[var(--color-surface)] p-2.5"
-					style="box-shadow: inset 0 0 0 1px var(--color-warning)"
-				>
-					<p class="text-2xs mb-1.5 font-medium text-[var(--color-warning)]">
-						{m.assistant_dev()}
-					</p>
-					<textarea
-						bind:value={devSystem}
-						rows="2"
-						placeholder={m.assistant_dev_system_placeholder()}
-						class="text-2xs w-full resize-y rounded-lg bg-[var(--color-surface-2)] px-2.5 py-2 font-mono text-[var(--color-fg)] placeholder:text-[var(--color-fg-faint)] focus:outline-none"
-					></textarea>
-					<input
-						bind:value={devModel}
-						placeholder={m.assistant_dev_model_placeholder()}
-						class="text-2xs mt-1.5 w-full rounded-lg bg-[var(--color-surface-2)] px-2.5 py-1.5 font-mono text-[var(--color-fg)] placeholder:text-[var(--color-fg-faint)] focus:outline-none"
-					/>
-					<p class="text-3xs mt-1 text-[var(--color-fg-faint)]">
-						{m.assistant_dev_note()}
-					</p>
-				</div>
-			{/if}
-
-			<!-- p-1 keeps the button concentric: the card's 10px minus 4px is its own 6px. -->
+		<div class="w-full">
+			<!-- The input and send control share a comfortable baseline as the text grows. -->
 			<Card
 				padding="none"
-				class="flex items-end gap-1.5 p-1 focus-within:shadow-[var(--shadow-flat-hover)]"
+				class="flex items-end gap-2 p-2 ring-1 ring-[var(--color-border)] focus-within:ring-[var(--color-border-strong)]"
 			>
 				<!-- 16px on mobile so iOS doesn't zoom the page on focus -->
 				<textarea
@@ -792,8 +671,9 @@
 					rows="1"
 					enterkeyhint="send"
 					placeholder={m.assistant_placeholder()}
+					aria-label={m.assistant_placeholder()}
 					class={cn(
-						'md:text-md max-h-40 min-h-9 flex-1 resize-none overflow-y-hidden bg-transparent px-3 py-2 text-base text-[var(--color-fg)]',
+						'md:text-md max-h-40 min-h-10 min-w-0 flex-1 resize-none overflow-y-hidden bg-transparent px-2 py-2.5 text-base leading-5 text-[var(--color-fg)]',
 						'placeholder:overflow-hidden placeholder:text-ellipsis placeholder:whitespace-nowrap',
 						'placeholder:text-[var(--color-fg-faint)] focus:outline-none disabled:opacity-50'
 					)}></textarea>
@@ -803,7 +683,7 @@
 				{#if busy}
 					<Button
 						size="icon"
-						class="size-9 shrink-0"
+						class="size-10 shrink-0"
 						onclick={() => aborter?.abort()}
 						aria-label={m.assistant_stop()}
 						title={m.assistant_stop()}
@@ -813,7 +693,7 @@
 				{:else}
 					<Button
 						size="icon"
-						class="size-9 shrink-0"
+						class="size-10 shrink-0"
 						onclick={() => ask(question)}
 						disabled={!canSend}
 						aria-label={m.assistant_send()}
@@ -822,7 +702,7 @@
 					</Button>
 				{/if}
 			</Card>
-			<p class="text-3xs md:text-2xs mt-1.5 px-1 text-center text-[var(--color-fg-subtle)]">
+			<p class="text-3xs md:text-2xs mt-2 px-1 text-center text-[var(--color-fg-subtle)]">
 				{m.assistant_readonly_note()}
 			</p>
 		</div>

@@ -88,11 +88,39 @@
 	}
 }
 
-/* view transitions wired up in routes/+layout.svelte via onNavigate */
-::view-transition-old(root),
+/* Keep the shell still; only the route content crossfades. */
+::view-transition {
+	pointer-events: none;
+}
+
+::view-transition-group(root),
+::view-transition-group(page-content),
 ::view-transition-new(root) {
-	animation-duration: var(--dur-mid);
-	animation-timing-function: var(--ease-snap);
+	animation: none;
+}
+
+::view-transition-old(root) {
+	display: none;
+}
+
+::view-transition-old(page-content) {
+	animation: page-fade-out 140ms ease-out both;
+}
+
+::view-transition-new(page-content) {
+	animation: page-fade-in 140ms ease-out both;
+}
+
+@keyframes page-fade-out {
+	to {
+		opacity: 0;
+	}
+}
+
+@keyframes page-fade-in {
+	from {
+		opacity: 0;
+	}
 }
 
 @media (prefers-reduced-motion: reduce) {

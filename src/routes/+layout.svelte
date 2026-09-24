@@ -89,6 +89,9 @@
 	// View Transitions API — animation rules in app.css; no-ops on unsupported browsers.
 	onNavigate((navigation) => {
 		if (!('startViewTransition' in document)) return;
+		if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+		// Query/hash changes update the current page without a page transition.
+		if (navigation.from?.url.pathname === navigation.to?.url.pathname) return;
 		return new Promise((resolve) => {
 			let transition: ViewTransition;
 			try {
@@ -145,7 +148,7 @@
 		{#if showChrome}
 			<Header />
 		{/if}
-		<main class="flex-1">
+		<main class="flex-1" style:view-transition-name={page.params.id ? 'none' : 'page-content'}>
 			{#if showContent}
 				{@render children()}
 			{/if}

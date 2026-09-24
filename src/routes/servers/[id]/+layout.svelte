@@ -261,7 +261,7 @@
 		</aside>
 
 		<!-- clip, not hidden: hidden makes this a scroll container and breaks sticky. -->
-		<main class="min-w-0 overflow-x-clip">
+		<main class="min-w-0 overflow-x-clip" style:view-transition-name="page-content">
 			{#if !gated || conn?.isAuthenticated}
 				{@render children()}
 			{:else if conn?.status === 'error'}
