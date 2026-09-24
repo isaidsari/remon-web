@@ -176,25 +176,27 @@
 		</EmptyState>
 	</div>
 {:else}
-	<div class="relative grid min-h-[calc(100dvh-3rem)] grid-cols-1 md:grid-cols-[256px_1fr]">
+	<div
+		class="relative grid min-h-[calc(100dvh-var(--app-header-height))] grid-cols-1 md:grid-cols-[256px_1fr]"
+	>
 		{#if sidebar.open}
 			<button
 				type="button"
 				onclick={() => sidebar.close()}
 				aria-label={m.header_close_menu()}
-				class="fixed inset-x-0 top-12 bottom-0 z-30 bg-black/50 backdrop-blur-sm md:hidden"
+				class="fixed inset-x-0 top-[var(--app-header-height)] bottom-0 z-30 bg-black/50 backdrop-blur-sm md:hidden"
 			></button>
 		{/if}
 		<!-- Sticks under the header and scrolls on its own; content keeps window scroll. -->
 		<aside
 			class={cn(
-				'flex flex-col border-r border-[var(--color-border)] px-4 py-6',
+				'flex flex-col border-r border-[var(--color-border)] px-4 pt-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]',
 				'overflow-y-auto overscroll-contain',
 				'bg-[var(--color-bg)]',
 				'md:bg-[var(--color-bg-soft)]/30 md:backdrop-blur-sm',
-				'fixed inset-y-0 top-12 left-0 z-40 w-64 transform transition-transform duration-[var(--dur-mid)] ease-[var(--ease-snap)]',
+				'fixed inset-y-0 top-[var(--app-header-height)] left-[env(safe-area-inset-left)] z-40 w-64 transform transition-transform duration-[var(--dur-mid)] ease-[var(--ease-snap)]',
 				sidebar.open ? 'translate-x-0' : '-translate-x-full',
-				'md:sticky md:top-12 md:bottom-auto md:z-auto md:h-[calc(100dvh-3rem)] md:translate-x-0 md:self-start md:transition-none'
+				'md:sticky md:top-[var(--app-header-height)] md:bottom-auto md:z-auto md:h-[calc(100dvh-var(--app-header-height))] md:translate-x-0 md:self-start md:transition-none'
 			)}
 		>
 			<a

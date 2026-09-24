@@ -406,7 +406,9 @@
 </script>
 
 <!-- Shared page framing, with an independently scrolling conversation. -->
-<div class="flex h-[calc(100dvh-3rem)] min-h-[28rem] flex-col px-4 py-6 md:px-8 md:py-8">
+<div
+	class="flex h-[calc(100dvh-var(--app-header-height))] min-h-[28rem] flex-col px-4 py-6 md:px-8 md:py-8"
+>
 	<PageHeader title={m.assistant_title()} subtitle={m.assistant_intro()} class="shrink-0">
 		<div class="flex shrink-0 items-center gap-0.5">
 			<div class="relative" bind:this={historyEl}>

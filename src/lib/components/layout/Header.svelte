@@ -35,7 +35,7 @@
 </script>
 
 <header
-	class="sticky top-0 z-30 flex h-12 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-bg)]/80 px-4 backdrop-blur-xl sm:px-6"
+	class="sticky top-0 z-30 flex h-[var(--app-header-height)] items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-bg)]/80 px-4 pt-[env(safe-area-inset-top)] backdrop-blur-xl sm:px-6"
 >
 	<div class="flex min-w-0 items-center gap-2 sm:gap-3">
 		{#if activeServerId}
@@ -43,7 +43,7 @@
 				type="button"
 				onclick={() => sidebar.toggle()}
 				aria-label={sidebar.open ? m.header_close_menu() : m.header_open_menu()}
-				class="-ml-1 grid h-8 w-8 shrink-0 place-items-center rounded-md text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)] md:hidden"
+				class="-ml-2 grid size-11 shrink-0 place-items-center rounded-md text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)] md:hidden"
 			>
 				<IconPanelLeft class="size-[16px]" stroke-width="2" />
 			</button>
@@ -91,7 +91,7 @@
 				size="sm"
 				onclick={lock}
 				aria-label={m.common_lock()}
-				class="max-sm:w-7 max-sm:px-0"
+				class="max-sm:size-11 max-sm:px-0"
 			>
 				<IconLock class="size-[13px]" stroke-width="1.9" />
 				<span class="hidden sm:inline">{m.common_lock()}</span>

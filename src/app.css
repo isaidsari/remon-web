@@ -2,6 +2,15 @@
 @import '@fontsource-variable/geist';
 @import '@fontsource-variable/geist-mono';
 
+:root {
+	--app-header-height: calc(3rem + env(safe-area-inset-top, 0px));
+}
+
+.app-content {
+	padding-left: env(safe-area-inset-left, 0px);
+	padding-right: env(safe-area-inset-right, 0px);
+}
+
 @theme {
 	--font-sans:
 		'Geist Variable', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
