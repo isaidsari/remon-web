@@ -1,11 +1,12 @@
 <script lang="ts">
 	import Card from '$lib/components/ui/Card.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
+	import ByteValue from '$lib/components/ui/ByteValue.svelte';
 	import IfaceIcon from '$lib/components/overview/IfaceIcon.svelte';
 	import type { Connection } from '$lib/stores/connections.svelte';
 	import type { NetworkStats } from '$lib/types/api';
 	import { classifyInterface } from '$lib/utils/netClassify';
-	import { fmtBps, fmtBytes, fmtDuration } from '$lib/utils/format';
+	import { fmtBps, fmtDuration } from '$lib/utils/format';
 	import { m } from '$lib/paraglide/messages';
 
 	interface Props {
@@ -52,9 +53,9 @@
 					↑ {fmtBps(n.tx_bytes_per_sec)}
 				</span>
 			</span>
-			<span class="text-3xs flex items-center gap-3 text-[var(--color-fg-subtle)]">
-				<span title={m.overview_iface_total_rx()}>↓ {fmtBytes(n.rx_bytes_total)}</span>
-				<span title={m.overview_iface_total_tx()}>↑ {fmtBytes(n.tx_bytes_total)}</span>
+			<span class="flex items-center gap-3 text-xs text-[var(--color-fg-muted)]">
+				<span>↓ <ByteValue value={n.rx_bytes_total} label={m.overview_iface_total_rx()} /></span>
+				<span>↑ <ByteValue value={n.tx_bytes_total} label={m.overview_iface_total_tx()} /></span>
 			</span>
 		</span>
 	</li>
@@ -67,12 +68,17 @@
 		</p>
 		{#if physicalNet.length > 0}
 			<span
-				class="text-2xs shrink-0 font-mono text-[var(--color-fg-subtle)] tabular-nums"
+				class="shrink-0 font-mono text-base font-medium text-[var(--color-fg)] tabular-nums"
 				title={uptimeSecs == null
 					? m.overview_network_total_title()
 					: m.overview_network_total_since({ uptime: fmtDuration(uptimeSecs) })}
 			>
-				{fmtBytes(totalBytes)}
+				<ByteValue
+					value={totalBytes}
+					label={uptimeSecs == null
+						? m.overview_network_total_title()
+						: m.overview_network_total_since({ uptime: fmtDuration(uptimeSecs) })}
+				/>
 			</span>
 		{/if}
 	</div>

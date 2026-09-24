@@ -70,14 +70,14 @@ const METRIC_HUES: Record<ChartTheme, Record<MetricKey, string>> = {
 	dark: {
 		cpu: '#60a5fa',
 		memory: '#34d399',
-		disk: '#d8a25e',
+		disk: '#f2b84b',
 		network: '#22d3ee',
 		probe: '#38bdf8'
 	},
 	light: {
 		cpu: '#2563eb',
 		memory: '#059669',
-		disk: '#a16207',
+		disk: '#a66b0a',
 		network: '#0891b2',
 		probe: '#0284c7'
 	}
@@ -151,7 +151,12 @@ export function metricRamp(key: MetricKey, count: number): string[] {
 		if (i === 0) return base;
 		const step = RAMP[i % RAMP.length];
 		const wrap = Math.floor(i / RAMP.length) * 9;
-		return atLevel(h + step.turn + wrap, s, step.level, theme);
+		return atLevel(
+			h + step.turn + wrap,
+			s,
+			key === 'disk' ? Math.min(step.level, 0.65) : step.level,
+			theme
+		);
 	});
 }
 

@@ -2,10 +2,10 @@
 	import Card from '$lib/components/ui/Card.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import EventRow from '$lib/components/events/EventRow.svelte';
+	import IncidentTimelineRow from './IncidentTimelineRow.svelte';
 	import type { Connection } from '$lib/stores/connections.svelte';
 	import type { EventDto, IncidentSummaryDto } from '$lib/types/api';
 	import { m } from '$lib/paraglide/messages';
-	import { fmtDuration, fmtScalar } from '$lib/utils/format';
 	import IconArrowRight from '~icons/lucide/arrow-right';
 
 	interface Props {
@@ -15,32 +15,10 @@
 	let { conn }: Props = $props();
 
 	const LIMIT = 15;
-	let events = $state<EventDto[] | null>(null);
-
-	/** An incident as a timeline row; open ones read as errors until they close.
-	 *  How long it ran and how bad it got are the two things worth the width. */
-	function incidentRow(i: IncidentSummaryDto): EventDto {
-		const open = i.closed_at == null;
-		const name = i.rule_name?.trim() || i.reason?.trim() || '';
-		const duration = fmtDuration((i.closed_at ?? Math.floor(Date.now() / 1000)) - i.opened_at);
-		const head = name
-			? open
-				? m.events_incident_open({ name, duration })
-				: m.events_incident_closed({ name, duration })
-			: open
-				? m.events_incident_open_unnamed({ duration })
-				: m.events_incident_closed_unnamed({ duration });
-		const peak = i.worst_value ?? i.trigger_value;
-		return {
-			ts: i.opened_at,
-			source: 'system',
-			kind: 'incident',
-			severity: open ? 'error' : 'info',
-			message:
-				peak == null ? head : `${head}, ${m.events_incident_worst({ value: fmtScalar(peak) })}`,
-			ref: { type: 'incident', id: String(i.id) }
-		};
-	}
+	type TimelineEntry = { ts: number; key: string } & (
+		{ event: EventDto; incident?: never } | { incident: IncidentSummaryDto; event?: never }
+	);
+	let events = $state<TimelineEntry[] | null>(null);
 
 	// Alerts, operator actions and incidents in one list, newest first. The
 	// event feed already logs a manual capture, so those incidents are skipped.
@@ -54,8 +32,19 @@
 			const seen = new Set(
 				ev.events.filter((e) => e.ref?.type === 'incident').map((e) => e.ref!.id)
 			);
-			const rows = inc.incidents.filter((i) => !seen.has(String(i.id))).map(incidentRow);
-			events = [...ev.events, ...rows].sort((a, b) => b.ts - a.ts).slice(0, LIMIT);
+			const rows: TimelineEntry[] = inc.incidents
+				.filter((i) => !seen.has(String(i.id)))
+				.map((incident) => ({ ts: incident.opened_at, key: `incident-${incident.id}`, incident }));
+			events = [
+				...ev.events.map((event, index) => ({
+					ts: event.ts,
+					key: `event-${event.ts}-${index}`,
+					event
+				})),
+				...rows
+			]
+				.sort((a, b) => b.ts - a.ts)
+				.slice(0, LIMIT);
 		} catch {
 			// keep the stale feed on a transient failure
 		}
@@ -103,8 +92,12 @@
 		</div>
 	{:else}
 		<ol class="min-h-0 flex-1 overflow-y-auto px-4 pb-2">
-			{#each events as ev, i (ev.ts + '-' + ev.kind + '-' + i)}
-				<EventRow event={ev} {now} serverId={conn?.serverId} />
+			{#each events as entry (entry.key)}
+				{#if entry.incident}
+					<IncidentTimelineRow incident={entry.incident} {now} serverId={conn?.serverId} />
+				{:else}
+					<EventRow event={entry.event} {now} serverId={conn?.serverId} />
+				{/if}
 			{/each}
 		</ol>
 	{/if}

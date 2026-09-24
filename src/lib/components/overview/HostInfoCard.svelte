@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { fmtBytes, fmtDuration } from '$lib/utils/format';
+	import { currentLocale } from '$lib/utils/lang';
+	import { m } from '$lib/paraglide/messages';
 	import { cn } from '$lib/utils/cn';
 	import type { SystemInfoResponse } from '$lib/types/api';
 	import OsIcon from './OsIcon.svelte';
@@ -37,6 +39,14 @@
 			: `${os} ${os_version}`;
 		return candidate.toLowerCase();
 	});
+	let startedAt = $derived(
+		info && fetchedAt > 0
+			? new Date(fetchedAt - info.description.uptime_secs * 1000).toLocaleString(currentLocale(), {
+					dateStyle: 'medium',
+					timeStyle: 'short'
+				})
+			: null
+	);
 </script>
 
 <div class={cn('@container overflow-hidden', klass)}>
@@ -70,7 +80,10 @@
 			{info?.description.hostname ?? '—'}
 		</span>
 		{#if info}
-			<span class="text-2xs relative truncate font-mono text-[var(--color-fg-subtle)]">
+			<span
+				class="text-2xs relative truncate font-mono text-[var(--color-fg-subtle)]"
+				title={startedAt ? m.overview_uptime_since({ date: startedAt }) : undefined}
+			>
 				up {fmtDuration(liveUptime)}
 			</span>
 		{/if}

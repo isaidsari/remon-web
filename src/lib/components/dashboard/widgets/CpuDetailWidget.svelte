@@ -11,6 +11,14 @@
 	}
 	let { conn }: Props = $props();
 	let cpu = $derived(conn?.live?.cpu ?? null);
+	let busiest = $derived(
+		cpu?.per_core
+			.filter((core) => Number.isFinite(core.usage_percent))
+			.reduce<NonNullable<typeof cpu>['per_core'][number] | null>(
+				(best, core) => (!best || core.usage_percent > best.usage_percent ? core : best),
+				null
+			) ?? null
+	);
 
 	let loads = $derived(
 		cpu
@@ -76,13 +84,21 @@
 		</div>
 	</div>
 
-	<!-- One line per core, so a sixteen-core host fits the default cell without
-	     scrolling. The scroll stays as a quiet safety net for very wide hosts. -->
-	<div class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+	{#if busiest}
+		<p class="mb-3 text-xs text-[var(--color-fg-muted)]">
+			{m.overview_cpu_busiest()}
+			<span class="ml-1 font-mono text-[var(--color-fg)]"
+				>#{busiest.core_index} · {fmtPercent(busiest.usage_percent, 0)}</span
+			>
+		</p>
+	{/if}
+
+	<!-- Shrink to the core count; only large hosts need the scroll region. -->
+	<div class="min-h-0 overflow-y-auto overscroll-contain">
 		{#if cpu}
 			{#if cpu.per_core.length > 0}
 				<ul
-					class="grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-x-4 gap-y-1.5"
+					class="grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-x-4 gap-y-2.5"
 					aria-label={m.overview_per_core_cpu_title()}
 				>
 					{#each cpu.per_core as core (core.core_index)}

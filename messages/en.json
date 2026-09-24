@@ -1,4 +1,12 @@
 {
+	"overview_uptime_since": "Up since {date}",
+	"overview_history_values": "Avg {avg} · Min {min} · Max {max}",
+	"overview_cpu_busiest": "Busiest core",
+	"overview_incident_active": "Ongoing",
+	"overview_incident_resolved": "Recovered",
+	"overview_incident_closed": "Recording ended",
+	"overview_incident_started": "Started: {time}",
+	"overview_incident_recording_duration": "Recording: {duration}",
 	"history_disk_read": "read",
 	"history_disk_write": "write",
 	"history_range_explanation": "Observed minimum and maximum within each time bucket. This is not a percentile band and does not show how long a peak lasted.",

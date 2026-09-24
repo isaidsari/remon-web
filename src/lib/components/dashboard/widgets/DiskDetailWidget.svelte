@@ -1,11 +1,12 @@
 <script lang="ts">
 	import Card from '$lib/components/ui/Card.svelte';
+	import ByteValue from '$lib/components/ui/ByteValue.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import MountIcon from '$lib/components/overview/MountIcon.svelte';
 	import type { Connection } from '$lib/stores/connections.svelte';
 	import type { DiskStats } from '$lib/types/api';
 	import { isContainerMount } from '$lib/utils/netClassify';
-	import { fmtBps, fmtBytes, fmtPercent } from '$lib/utils/format';
+	import { fmtBps, fmtPercent } from '$lib/utils/format';
 	import { m } from '$lib/paraglide/messages';
 
 	interface Props {
@@ -56,7 +57,7 @@
 				class="flex items-baseline justify-between pl-[20px] text-xs text-[var(--color-fg-muted)] tabular-nums"
 			>
 				<span class="font-medium text-[var(--color-fg)]">
-					{fmtBytes(d.used_bytes)} / {fmtBytes(d.total_bytes)}
+					<ByteValue value={d.used_bytes} /> / <ByteValue value={d.total_bytes} />
 				</span>
 				<span>{fmtPercent(pct, 0)}</span>
 			</div>

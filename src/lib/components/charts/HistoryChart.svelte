@@ -54,6 +54,10 @@
 		group?: string;
 		/** Host-event overlay: instants as dashed lines, ranges as shaded bands. */
 		annotations?: ChartAnnotation[];
+		/** Compact overview presentation; keep range controls on detail pages. */
+		compact?: boolean;
+		showAllRanges?: boolean;
+		rangeOpacity?: number;
 		class?: string;
 	}
 
@@ -68,6 +72,9 @@
 		axisLabel,
 		group,
 		annotations = [],
+		compact = false,
+		showAllRanges = false,
+		rangeOpacity,
 		class: klass = ''
 	}: Props = $props();
 
@@ -141,12 +148,14 @@
 				emphasis: { focus: 'series' as const, lineStyle: { width: 2.25 } },
 				connectNulls: false,
 				markArea:
-					s.buckets && showRanges && (series.length <= 3 || index === focusedSeries)
+					s.buckets &&
+					showRanges &&
+					(showAllRanges || series.length <= 3 || index === focusedSeries)
 						? {
 								silent: true,
 								animation: false,
 								itemStyle: {
-									color: rgbAt(s.color, 0.09),
+									color: rgbAt(s.color, rangeOpacity ?? (compact ? 0.045 : 0.09)),
 									borderWidth: 0
 								},
 								data: s.buckets
@@ -165,18 +174,19 @@
 						: undefined,
 				tooltip: s.buckets
 					? {
-							// Deliberately wordless: one line per series, and a label would be
-							// repeated on every one of them. The corner toggle already names
-							// the concept once and carries the explanation, so here the
-							// bracket is enough — and with no prose there is nothing to leave
-							// untranslated. A bucket without extrema (a row written before
-							// rollups kept them) says nothing rather than printing a dash.
+							// Older buckets without extrema show only the available value.
 							valueFormatter: (v: number, index: number) => {
 								const value = valueFormatter ? valueFormatter(v) : String(v);
 								const bucket = s.buckets?.[index];
 								if (!bucket || bucket.min == null || bucket.max == null) return value;
 								const fmt = (n: number) => (valueFormatter ? valueFormatter(n) : String(n));
-								return `${value} (${fmt(bucket.min)}–${fmt(bucket.max)})`;
+								return compact
+									? m.overview_history_values({
+											avg: value,
+											min: fmt(bucket.min),
+											max: fmt(bucket.max)
+										})
+									: `${value} (${fmt(bucket.min)}–${fmt(bucket.max)})`;
 							}
 						}
 					: undefined
@@ -241,7 +251,7 @@
 			grid: {
 				left: 4,
 				right: 10,
-				top: hasLegend || hasRanges ? 30 : 10,
+				top: hasLegend || (hasRanges && !compact) ? 30 : 10,
 				bottom: 4,
 				outerBoundsMode: 'same',
 				outerBoundsContain: 'axisLabel'
@@ -261,7 +271,7 @@
 				valueFormatter: valueFormatter ? (v: unknown) => valueFormatter(v as number) : undefined
 			},
 			legend: {
-				right: hasRanges ? 160 : undefined,
+				right: hasRanges && !compact ? 160 : undefined,
 				show: hasLegend,
 				// Scrolls instead of wrapping: a second legend row would sit on the plot,
 				// because the grid reserves one row's worth of space and no more.
@@ -437,7 +447,7 @@
 </script>
 
 <div class="relative {klass}">
-	{#if hasRanges}
+	{#if hasRanges && !compact}
 		<button
 			type="button"
 			class="text-2xs absolute top-0 right-2 z-10 rounded px-1.5 py-0.5 text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-2)]"

@@ -1,4 +1,12 @@
 {
+	"overview_uptime_since": "Başlangıç: {date}",
+	"overview_history_values": "Ort. {avg} · Min {min} · Maks {max}",
+	"overview_cpu_busiest": "En yoğun çekirdek",
+	"overview_incident_active": "Devam ediyor",
+	"overview_incident_resolved": "Düzeldi",
+	"overview_incident_closed": "Kayıt sona erdi",
+	"overview_incident_started": "Başlangıç: {time}",
+	"overview_incident_recording_duration": "Kayıt süresi: {duration}",
 	"history_disk_read": "okuma",
 	"history_disk_write": "yazma",
 	"history_range_explanation": "Her zaman kovasında gözlenen en düşük ve en yüksek değer. Yüzdelik bandı değildir; pikin ne kadar sürdüğünü göstermez.",

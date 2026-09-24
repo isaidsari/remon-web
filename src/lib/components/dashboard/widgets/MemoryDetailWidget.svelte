@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Card from '$lib/components/ui/Card.svelte';
+	import ByteValue from '$lib/components/ui/ByteValue.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import type { Connection } from '$lib/stores/connections.svelte';
 	import { fmtBytes, fmtPercent } from '$lib/utils/format';
@@ -55,19 +56,19 @@
 		<dl class="mt-3 grid grid-cols-2 gap-2 font-mono text-xs tabular-nums sm:grid-cols-4">
 			<div>
 				<dt class="text-2xs text-[var(--color-fg-muted)]">{m.overview_mem_active()}</dt>
-				<dd class="text-[var(--color-fg)]">{fmtBytes(memActive)}</dd>
+				<dd class="text-[var(--color-fg)]"><ByteValue value={memActive} /></dd>
 			</div>
 			<div>
 				<dt class="text-2xs text-[var(--color-fg-muted)]">{m.overview_mem_cache()}</dt>
-				<dd class="text-[var(--color-fg-muted)]">{fmtBytes(memCached)}</dd>
+				<dd class="text-[var(--color-fg-muted)]"><ByteValue value={memCached} /></dd>
 			</div>
 			<div>
 				<dt class="text-2xs text-[var(--color-fg-muted)]">{m.overview_mem_free()}</dt>
-				<dd class="text-[var(--color-fg-muted)]">{fmtBytes(memFreeRest)}</dd>
+				<dd class="text-[var(--color-fg-muted)]"><ByteValue value={memFreeRest} /></dd>
 			</div>
 			<div>
 				<dt class="text-2xs text-[var(--color-fg-subtle)]">{m.overview_mem_total()}</dt>
-				<dd class="text-[var(--color-fg-muted)]">{fmtBytes(memTotal)}</dd>
+				<dd class="text-[var(--color-fg-muted)]"><ByteValue value={memTotal} /></dd>
 			</div>
 		</dl>
 
@@ -76,7 +77,7 @@
 				<div class="mb-1.5 flex items-baseline justify-between text-xs">
 					<span class="text-[var(--color-fg-subtle)]">{m.overview_mem_swap()}</span>
 					<span class="font-mono text-[var(--color-fg-muted)] tabular-nums">
-						{fmtBytes(swapUsed)} / {fmtBytes(swapTotal)}
+						<ByteValue value={swapUsed} /> / <ByteValue value={swapTotal} />
 						<span class="ml-2">{fmtPercent(swapPct, 0)}</span>
 					</span>
 				</div>

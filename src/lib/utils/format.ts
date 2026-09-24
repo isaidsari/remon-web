@@ -31,6 +31,17 @@ export function fmtBytes(n: number, fractionDigits = 1): string {
 	return `${fixed(v, i === 0 ? 0 : fractionDigits)} ${BYTE_UNITS[i]}`;
 }
 
+/** One unit below the compact display, without an oversized raw byte count. */
+export function fmtBytesDetail(n: number): string {
+	if (!Number.isFinite(n) || n <= 0) return '0 B';
+	const unit = Math.max(
+		0,
+		Math.min(BYTE_UNITS.length - 1, Math.floor(Math.log(n) / Math.log(1024))) - 1
+	);
+	const bytes = `${fixed(n, 0)} B`;
+	return unit === 0 ? bytes : `${fixed(n / 1024 ** unit, 2)} ${BYTE_UNITS[unit]}`;
+}
+
 /** Bytes/sec → ("1.2 MB/s"). */
 export function fmtBps(n: number, fractionDigits = 1): string {
 	return `${fmtBytes(n, fractionDigits)}/s`;

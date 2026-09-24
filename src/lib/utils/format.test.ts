@@ -1,5 +1,28 @@
 import { describe, it, expect } from 'bun:test';
-import { fmtBytes, fmtBps, fmtPercent, fmtNumber, fmtScalar, fmtDuration } from './format';
+import {
+	fmtBytes,
+	fmtBytesDetail,
+	fmtBps,
+	fmtPercent,
+	fmtNumber,
+	fmtScalar,
+	fmtDuration
+} from './format';
+
+describe('fmtBytesDetail', () => {
+	it('expands terabytes to gigabytes without using the rounded display value', () => {
+		const value = 1354 * 1024 ** 3;
+		expect(fmtBytes(value)).toBe('1.3 TB');
+		expect(fmtBytesDetail(value)).toBe('1,354.00 GB');
+	});
+	it('handles bytes, invalid values and unit boundaries', () => {
+		expect(fmtBytesDetail(512)).toBe('512 B');
+		expect(fmtBytesDetail(1024)).toBe('1,024 B');
+		expect(fmtBytesDetail(1024 ** 2)).toBe('1,024.00 KB');
+		expect(fmtBytesDetail(Number.NaN)).toBe('0 B');
+		expect(fmtBytesDetail(-1)).toBe('0 B');
+	});
+});
 
 // Bun selects no locale, so these assert the base locale (en). The point is
 // that the figures go through Intl at all.

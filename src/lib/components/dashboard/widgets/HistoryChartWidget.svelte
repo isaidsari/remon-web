@@ -130,6 +130,7 @@
 		{:else}
 			{#key seriesKey}
 				<HistoryChart
+					compact
 					{series}
 					valueFormatter={fmt}
 					axisFormatter={isPercent ? (v) => (v == null ? '—' : fmtPercent(v, 0)) : fmt}

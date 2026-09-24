@@ -1,0 +1,11 @@
+<script lang="ts">
+	import { fmtBytes, fmtBytesDetail } from '$lib/utils/format';
+	let {
+		value,
+		label = '',
+		digits = 1
+	}: { value: number; label?: string; digits?: number } = $props();
+	let detail = $derived(`${label ? `${label}: ` : ''}${fmtBytesDetail(value)}`);
+</script>
+
+<span title={detail} aria-label={detail}>{fmtBytes(value, digits)}</span>
