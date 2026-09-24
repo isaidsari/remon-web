@@ -195,7 +195,7 @@
 					yMax={percent ? 100 : undefined}
 					compact
 					showAllRanges
-					rangeOpacity={0.1}
+					rangeOpacity={0.14}
 				/>
 			{/key}
 			{#if !hasData && !failed}

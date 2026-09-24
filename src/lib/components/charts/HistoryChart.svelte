@@ -157,7 +157,7 @@
 								silent: true,
 								animation: false,
 								itemStyle: {
-									color: rgbAt(s.color, rangeOpacity ?? (compact ? 0.045 : 0.09)),
+									color: rgbAt(s.color, rangeOpacity ?? (compact ? 0.08 : 0.16)),
 									borderWidth: 0
 								},
 								data: s.buckets
