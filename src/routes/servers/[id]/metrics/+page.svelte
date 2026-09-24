@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
+	import ChartResolution from '$lib/components/charts/ChartResolution.svelte';
+	import { chartPointBudget } from '$lib/charts/point-budget';
 	import { useServer } from '$lib/server-scope';
 	import { cpuUsageHistory, cpuUsageStats } from '$lib/charts/cpu-history';
 	import { observedHistory, groupHistory } from '$lib/charts/observed-history';
@@ -66,6 +68,8 @@
 	});
 
 	let cpu = $state<CpuHistoryResponse | null>(null);
+	let cpuChartWidth = $state(0);
+	let maxPoints = $derived(chartPointBudget(cpuChartWidth));
 	let memory = $state<MemoryHistoryResponse | null>(null);
 	let disk = $state<DiskHistoryResponse | null>(null);
 	let network = $state<NetworkHistoryResponse | null>(null);
@@ -134,6 +138,7 @@
 				conn.client.metricsBatch(
 					{
 						resources: 'cpu,memory,disk,network,components',
+						max_points: maxPoints,
 						...q
 					},
 					{ signal }
@@ -160,7 +165,11 @@
 			const compBatch = batch.series.find((s) => s.resource === 'components');
 			cpu =
 				cpuBatch && cpuBatch.resource === 'cpu'
-					? { resolution: res, points: cpuBatch.points }
+					? {
+							resolution: cpuBatch.chart ? null : res,
+							points: cpuBatch.points,
+							chart: cpuBatch.chart
+						}
 					: null;
 			memory =
 				memBatch && memBatch.resource === 'memory'
@@ -618,7 +627,9 @@
 			>
 				{#if resolution}
 					<span>
-						{m.metrics_resolution_label({ value: resolution })}
+						{cpu?.chart
+							? m.metrics_other_resolution_label({ value: resolution })
+							: m.metrics_resolution_label({ value: resolution })}
 					</span>
 				{/if}
 				{#if lastFetched}
@@ -636,51 +647,61 @@
 			     keeps the two cards in a row close in content, so nothing is left
 			     holding a big empty box. -->
 	<div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
-		<MetricPanel title={m.metrics_card_cpu_title()}>
-			{#if loading}
-				{@render chartSkeleton()}
-			{:else}
-				{#if cpuSeries.length > 0}
-					<StatStrip
-						data={cpuSeries[0].data}
-						summary={cpuUsageStats(cpu?.points ?? [])}
-						showPercentile={cpu?.resolution === 'raw'}
-						format={fmtPct}
-						accent={cpuSeries[0].color}
-						class="mb-3"
-					/>
+		<div class="min-w-0" bind:clientWidth={cpuChartWidth}>
+			<MetricPanel title={m.metrics_card_cpu_title()} class="h-full">
+				<ChartResolution chart={cpu?.chart} />
+				{#if loading}
+					{@render chartSkeleton()}
+				{:else}
+					{#if cpuSeries.length > 0}
+						<StatStrip
+							data={cpuSeries[0].data}
+							summary={cpuUsageStats(cpu?.points ?? [])}
+							showPercentile={cpu?.points.every((p) => p.bucket_seconds === 0) ?? false}
+							format={fmtPct}
+							accent={cpuSeries[0].color}
+							class="mb-3"
+						/>
+					{/if}
+					{#key cpuKey}
+						<HistoryChart
+							series={cpuSeries}
+							timeWindow={cpu?.chart
+								? {
+										start: cpu.chart.aligned.start,
+										end: Math.min(cpu.chart.aligned.end, cpu.chart.as_of)
+									}
+								: undefined}
+							valueFormatter={fmtPct}
+							axisFormatter={fmtPctAxis}
+							yMin={0}
+							yMax={100}
+							group="metrics"
+							annotations={showAnnotations ? chartAnnotations : []}
+						/>
+					{/key}
+					{#if hasKernelRateData && lastCpu}
+						<div
+							class="text-2xs mt-3 flex items-center justify-end gap-4 border-t border-[var(--color-border)] pt-2.5 font-mono text-[var(--color-fg-muted)] tabular-nums"
+						>
+							{#if lastCpu.context_switches_per_sec != null}
+								<span>
+									<span class="text-[var(--color-fg-subtle)]">{m.metrics_kernel_ctx_label()}</span>
+									{fmtRate(lastCpu.context_switches_per_sec)}
+								</span>
+							{/if}
+							{#if lastCpu.process_forks_per_sec != null}
+								<span>
+									<span class="text-[var(--color-fg-subtle)]">{m.metrics_kernel_forks_label()}</span
+									>
+									{fmtRate(lastCpu.process_forks_per_sec)}
+								</span>
+							{/if}
+						</div>
+					{/if}
 				{/if}
-				{#key cpuKey}
-					<HistoryChart
-						series={cpuSeries}
-						valueFormatter={fmtPct}
-						axisFormatter={fmtPctAxis}
-						yMin={0}
-						yMax={100}
-						group="metrics"
-						annotations={showAnnotations ? chartAnnotations : []}
-					/>
-				{/key}
-				{#if hasKernelRateData && lastCpu}
-					<div
-						class="text-2xs mt-3 flex items-center justify-end gap-4 border-t border-[var(--color-border)] pt-2.5 font-mono text-[var(--color-fg-muted)] tabular-nums"
-					>
-						{#if lastCpu.context_switches_per_sec != null}
-							<span>
-								<span class="text-[var(--color-fg-subtle)]">{m.metrics_kernel_ctx_label()}</span>
-								{fmtRate(lastCpu.context_switches_per_sec)}
-							</span>
-						{/if}
-						{#if lastCpu.process_forks_per_sec != null}
-							<span>
-								<span class="text-[var(--color-fg-subtle)]">{m.metrics_kernel_forks_label()}</span>
-								{fmtRate(lastCpu.process_forks_per_sec)}
-							</span>
-						{/if}
-					</div>
-				{/if}
-			{/if}
-		</MetricPanel>
+			</MetricPanel>
+		</div>
 
 		<MetricPanel title={m.metrics_card_memory_title()}>
 			{#if loading}

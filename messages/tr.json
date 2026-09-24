@@ -518,7 +518,7 @@
 	"overview_auth_repair_button": "tekrar eşleştir",
 	"overview_auth_retry_button": "tekrar dene",
 	"overview_auth_signin_button": "oturum aç",
-	"overview_metric_cpu_label": "CPU",
+	"overview_metric_cpu_label": "cpu",
 	"overview_metric_memory_label": "bellek",
 	"overview_metric_disk_io_label": "disk g/ç",
 	"overview_metric_network_label": "ağ",
@@ -1334,5 +1334,13 @@
 	"processes_command": "Komut",
 	"processes_executable": "Çalıştırılabilir dosya",
 	"processes_directory": "Çalışma dizini",
-	"processes_close": "Kapat"
+	"processes_close": "Kapat",
+	"history_requested_window": "İstenen: {start} – {end}",
+	"history_aligned_window": "Kova aralığı: {start} – {end}",
+	"history_data_through": "Gösterilen son verinin sınırı: {time}",
+	"history_raw_samples": "Ham örnekler",
+	"history_bucket_size": "{interval} aralıklarla",
+	"history_missing_coverage": "Geçmişin bir kısmı mevcut değil",
+	"history_reduced_detail": "Saklanan geçmişin ayrıntısı sınırlı",
+	"metrics_other_resolution_label": "Diğer grafikler: {value}"
 }

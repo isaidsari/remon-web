@@ -1,5 +1,7 @@
 <script lang="ts">
 	import HistoryChart, { type Series } from '$lib/components/charts/HistoryChart.svelte';
+	import ChartResolution from '$lib/components/charts/ChartResolution.svelte';
+	import { chartPointBudget } from '$lib/charts/point-budget';
 	import { metricColor, metricRamp } from '$lib/charts/chart-theme';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
@@ -22,6 +24,10 @@
 
 	let points = $state<BatchSeries | null>(null);
 	let loading = $state(true);
+	let chartWidth = $state(0);
+	let maxPoints = $derived(chartPointBudget(chartWidth));
+	let chart = $derived(points?.resource === 'cpu' ? points.chart : undefined);
+	let requestId = 0;
 
 	// One line per mount, all of them steps of the disk hue; rx/tx likewise.
 	const DISK_PALETTE = metricRamp('disk', 5);
@@ -29,15 +35,22 @@
 
 	async function fetchData() {
 		if (!conn?.isAuthenticated) return;
+		const id = ++requestId;
 		const end = Math.floor(Date.now() / 1000);
 		const start = end - RANGE_SECONDS[config.range];
 		try {
-			const batch = await conn.client.metricsBatch({ resources: config.resource, start, end });
+			const batch = await conn.client.metricsBatch({
+				resources: config.resource,
+				start,
+				end,
+				max_points: maxPoints
+			});
+			if (id !== requestId) return;
 			points = batch.series.find((s) => s.resource === config.resource) ?? null;
 		} catch {
 			// Leave previous data in place; transient fetch failures shouldn't blank the widget.
 		} finally {
-			loading = false;
+			if (id === requestId) loading = false;
 		}
 	}
 
@@ -48,7 +61,10 @@
 		loading = true;
 		void fetchData();
 		const t = setInterval(fetchData, 60_000);
-		return () => clearInterval(t);
+		return () => {
+			++requestId;
+			clearInterval(t);
+		};
 	});
 
 	let title = $derived(
@@ -124,13 +140,17 @@
 		<h2 class="text-sm font-medium text-[var(--color-fg)]">{title}</h2>
 		<span class="text-3xs font-mono text-[var(--color-fg-subtle)]">{config.range}</span>
 	</div>
-	<div class="min-h-0 flex-1">
+	<ChartResolution {chart} />
+	<div class="min-h-0 flex-1" bind:clientWidth={chartWidth}>
 		{#if loading && !points}
 			<Skeleton class="h-full min-h-[160px] w-full" rounded="lg" />
 		{:else}
 			{#key seriesKey}
 				<HistoryChart
 					compact
+					timeWindow={chart
+						? { start: chart.aligned.start, end: Math.min(chart.aligned.end, chart.as_of) }
+						: undefined}
 					{series}
 					valueFormatter={fmt}
 					axisFormatter={isPercent ? (v) => (v == null ? '—' : fmtPercent(v, 0)) : fmt}

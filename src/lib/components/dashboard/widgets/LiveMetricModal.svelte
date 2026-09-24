@@ -4,7 +4,8 @@
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import SegmentedControl from '$lib/components/ui/SegmentedControl.svelte';
 	import HistoryChart, { type Series } from '$lib/components/charts/HistoryChart.svelte';
-
+	import ChartResolution from '$lib/components/charts/ChartResolution.svelte';
+	import { chartPointBudget } from '$lib/charts/point-budget';
 	import CpuDetailWidget from './CpuDetailWidget.svelte';
 	import MemoryDetailWidget from './MemoryDetailWidget.svelte';
 	import NetworkDetailWidget from './NetworkDetailWidget.svelte';
@@ -37,7 +38,9 @@
 	let loading = $state(true);
 	let failed = $state(false);
 	let retry = $state(0);
-
+	let chartWidth = $state(0);
+	let maxPoints = $derived(chartPointBudget(chartWidth));
+	let chart = $derived(data?.resource === 'cpu' ? data.chart : undefined);
 	let percent = $derived(source === 'cpu' || source === 'memory');
 	let format = $derived(
 		percent
@@ -49,7 +52,7 @@
 		const client = conn?.isAuthenticated ? conn.client : null;
 		const resource = source === 'disk-io' ? 'disk' : source;
 		const seconds = Number(range);
-
+		const budget = maxPoints;
 		void retry;
 		const controller = new AbortController();
 		loading = true;
@@ -66,7 +69,7 @@
 			try {
 				const end = Math.floor(Date.now() / 1000);
 				const batch = await client.metricsBatch(
-					{ resources: resource, start: end - seconds, end, limit: 5000 },
+					{ resources: resource, start: end - seconds, end, limit: 5000, max_points: budget },
 					{ signal: controller.signal }
 				);
 				if (controller.signal.aborted) return;
@@ -175,14 +178,17 @@
 			<Button variant="secondary" size="sm" onclick={() => retry++}>{m.probes_retry()}</Button>
 		</div>
 	{/if}
-
-	<div class="relative" aria-busy={loading}>
+	<ChartResolution {chart} />
+	<div class="relative" aria-busy={loading} bind:clientWidth={chartWidth}>
 		{#if loading}
 			<Skeleton class="h-[260px] w-full" rounded="lg" />
 		{:else}
 			{#key loadedRange}
 				<HistoryChart
 					{series}
+					timeWindow={chart
+						? { start: chart.aligned.start, end: Math.min(chart.aligned.end, chart.as_of) }
+						: undefined}
 					height={260}
 					valueFormatter={format}
 					yMin={0}

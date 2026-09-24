@@ -54,6 +54,7 @@
 		group?: string;
 		/** Host-event overlay: instants as dashed lines, ranges as shaded bands. */
 		annotations?: ChartAnnotation[];
+		timeWindow?: { start: number; end: number };
 		/** Compact overview presentation; keep range controls on detail pages. */
 		compact?: boolean;
 		showAllRanges?: boolean;
@@ -72,6 +73,7 @@
 		axisLabel,
 		group,
 		annotations = [],
+		timeWindow,
 		compact = false,
 		showAllRanges = false,
 		rangeOpacity,
@@ -286,6 +288,8 @@
 			},
 			xAxis: {
 				type: 'time',
+				min: timeWindow ? timeWindow.start * 1000 : undefined,
+				max: timeWindow ? timeWindow.end * 1000 : undefined,
 				boundaryGap: false,
 				axisLine: { lineStyle: { color: palette.axisLine } },
 				axisLabel: { color: palette.axisText, fontSize: 10, hideOverlap: true },

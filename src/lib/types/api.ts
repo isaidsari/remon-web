@@ -183,6 +183,20 @@ export interface MetricsRangeQuery {
 	end?: number;
 	resolution?: MetricsResolution;
 	limit?: number;
+	/** CPU output budget, separate from stored resolution. */
+	max_points?: number;
+}
+
+export interface ChartMetadata {
+	requested: { start: number; end: number };
+	aligned: { start: number; end: number };
+	as_of: number;
+	data_through: number | null;
+	bucket_seconds: number;
+	max_points: number;
+	sources: { resolution: MetricsResolution; from: number; to: number }[];
+	unavailable: { start: number; end: number }[];
+	degraded: boolean;
 }
 
 export interface CpuPoint extends HistoryStatistics {
@@ -208,7 +222,8 @@ export interface CpuPoint extends HistoryStatistics {
 }
 
 export interface CpuHistoryResponse {
-	resolution: MetricsResolution;
+	resolution: MetricsResolution | null;
+	chart?: ChartMetadata;
 	points: CpuPoint[];
 }
 
@@ -419,10 +434,11 @@ export interface BatchMetricsQuery {
 	end?: number;
 	resolution?: MetricsResolution;
 	limit?: number;
+	max_points?: number;
 }
 
 export type BatchSeries =
-	| { resource: 'cpu'; points: CpuPoint[] }
+	| { resource: 'cpu'; points: CpuPoint[]; chart?: ChartMetadata }
 	| { resource: 'cpu_cores'; points: CpuCorePoint[] }
 	| { resource: 'memory'; points: MemoryPoint[] }
 	| { resource: 'disk'; points: DiskPoint[] }

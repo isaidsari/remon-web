@@ -1334,5 +1334,13 @@
 	"processes_command": "Command",
 	"processes_executable": "Executable",
 	"processes_directory": "Working directory",
-	"processes_close": "Close"
+	"processes_close": "Close",
+	"history_requested_window": "Requested: {start} – {end}",
+	"history_aligned_window": "Bucket range: {start} – {end}",
+	"history_data_through": "Latest represented data boundary: {time}",
+	"history_raw_samples": "Original samples",
+	"history_bucket_size": "{interval} intervals",
+	"history_missing_coverage": "Some history is unavailable",
+	"history_reduced_detail": "Limited by retained history",
+	"metrics_other_resolution_label": "Other charts: {value}"
 }

@@ -330,19 +330,28 @@ export class ApiClient {
 	}
 
 	cpuHistory(q: MetricsRangeQuery = {}): Promise<CpuHistoryResponse> {
-		return this.request<CpuHistoryResponse>('/metrics/cpu', { query: { ...q } });
+		// Preserve full stored-resolution windows unless the caller requests fewer rows.
+		return this.request<CpuHistoryResponse>('/metrics/cpu', {
+			query: { ...q, limit: q.limit ?? 5000 }
+		});
 	}
 
 	cpuCoresHistory(q: MetricsRangeQuery = {}): Promise<CpuCoresHistoryResponse> {
-		return this.request<CpuCoresHistoryResponse>('/metrics/cpu/cores', { query: { ...q } });
+		return this.request<CpuCoresHistoryResponse>('/metrics/cpu/cores', {
+			query: { ...q, limit: q.limit ?? 5000 }
+		});
 	}
 
 	memoryHistory(q: MetricsRangeQuery = {}): Promise<MemoryHistoryResponse> {
-		return this.request<MemoryHistoryResponse>('/metrics/memory', { query: { ...q } });
+		return this.request<MemoryHistoryResponse>('/metrics/memory', {
+			query: { ...q, limit: q.limit ?? 5000 }
+		});
 	}
 
 	diskHistory(q: MetricsRangeQuery = {}): Promise<DiskHistoryResponse> {
-		return this.request<DiskHistoryResponse>('/metrics/disk', { query: { ...q } });
+		return this.request<DiskHistoryResponse>('/metrics/disk', {
+			query: { ...q, limit: q.limit ?? 5000 }
+		});
 	}
 
 	/** When each volume runs out of room, fitted server-side over its stored
@@ -359,7 +368,9 @@ export class ApiClient {
 	}
 
 	networkHistory(q: MetricsRangeQuery = {}): Promise<NetworkHistoryResponse> {
-		return this.request<NetworkHistoryResponse>('/metrics/network', { query: { ...q } });
+		return this.request<NetworkHistoryResponse>('/metrics/network', {
+			query: { ...q, limit: q.limit ?? 5000 }
+		});
 	}
 
 	/** Bytes moved over the window, not bytes per second. The live counters in
@@ -374,7 +385,7 @@ export class ApiClient {
 
 	dockerHistory(container: string, q: MetricsRangeQuery = {}): Promise<DockerHistoryResponse> {
 		return this.request<DockerHistoryResponse>(`/metrics/docker/${encodeURIComponent(container)}`, {
-			query: { ...q }
+			query: { ...q, limit: q.limit ?? 5000 }
 		});
 	}
 
@@ -384,18 +395,20 @@ export class ApiClient {
 		opts: Cancellable = {}
 	): Promise<PressureHistoryResponse> {
 		return this.request<PressureHistoryResponse>(`/metrics/pressure/${resource}`, {
-			query: { ...q },
+			query: { ...q, limit: q.limit ?? 5000 },
 			signal: opts.signal
 		});
 	}
 
 	componentsHistory(q: MetricsRangeQuery = {}): Promise<ComponentsHistoryResponse> {
-		return this.request<ComponentsHistoryResponse>('/metrics/components', { query: { ...q } });
+		return this.request<ComponentsHistoryResponse>('/metrics/components', {
+			query: { ...q, limit: q.limit ?? 5000 }
+		});
 	}
 
 	metricsBatch(q: BatchMetricsQuery, opts: Cancellable = {}): Promise<BatchMetricsResponse> {
 		return this.request<BatchMetricsResponse>('/metrics/batch', {
-			query: { ...q },
+			query: { ...q, limit: q.limit ?? 5000 },
 			signal: opts.signal
 		});
 	}
