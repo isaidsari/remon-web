@@ -240,7 +240,7 @@
 				</div>
 				<!-- Block interaction with the widget body while editing so clicks land on the chrome. -->
 				<div class="pointer-events-none h-full">
-					<WidgetHost {widget} {conn} />
+					<WidgetHost {widget} {conn} {editing} />
 				</div>
 				{#if arrangeable}
 					<button

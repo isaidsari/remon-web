@@ -1,5 +1,10 @@
 {
 	"overview_uptime_since": "Up since {date}",
+	"overview_metric_inspect": "Inspect {metric}",
+	"overview_metric_15m": "15 min",
+	"overview_metric_1h": "1 hour",
+	"overview_metric_6h": "6 hours",
+	"overview_metric_history_failed": "History could not be refreshed. Previously loaded data, if any, is still shown.",
 	"overview_history_values": "Avg {avg} · Min {min} · Max {max}",
 	"overview_cpu_busiest": "Busiest core",
 	"overview_incident_active": "Ongoing",

@@ -17,16 +17,17 @@
 	interface Props {
 		widget: Widget;
 		conn: Connection | null;
+		editing?: boolean;
 	}
 
-	let { widget, conn }: Props = $props();
+	let { widget, conn, editing = false }: Props = $props();
 	let config = $derived(widget.config);
 </script>
 
 <!-- Here, not in the grid, so every widget kind inherits it. -->
 <svelte:boundary onerror={(e) => console.error('widget failed', widget.config.kind, e)}>
 	{#if config.kind === 'live-kpi'}
-		<LiveKpiWidget {conn} {config} />
+		<LiveKpiWidget {conn} {config} {editing} />
 	{:else if config.kind === 'history-chart'}
 		<HistoryChartWidget {conn} {config} />
 	{:else if config.kind === 'probe-metric'}

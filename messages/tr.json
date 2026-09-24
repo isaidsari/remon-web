@@ -1,5 +1,10 @@
 {
 	"overview_uptime_since": "Başlangıç: {date}",
+	"overview_metric_inspect": "{metric} ayrıntılarını incele",
+	"overview_metric_15m": "15 dk",
+	"overview_metric_1h": "1 saat",
+	"overview_metric_6h": "6 saat",
+	"overview_metric_history_failed": "Geçmiş yenilenemedi. Varsa önceki veriler gösteriliyor.",
 	"overview_history_values": "Ort. {avg} · Min {min} · Maks {max}",
 	"overview_cpu_busiest": "En yoğun çekirdek",
 	"overview_incident_active": "Devam ediyor",
