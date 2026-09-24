@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { IncidentSummaryDto } from '$lib/types/api';
-	import { fmtDuration, fmtRelative } from '$lib/utils/format';
+	import { fmtRelative } from '$lib/utils/format';
 	import { m } from '$lib/paraglide/messages';
 
 	let {
@@ -41,40 +41,36 @@
 		}
 	});
 	let title = $derived(incident.rule_name?.trim() || incident.reason?.trim() || m.incident_title());
-	// An episode may include several excursions and a recovery confirmation.
-	// Its envelope is recording time, never a claim of continuous violation.
-	let duration = $derived(
-		fmtDuration(Math.max(0, (incident.closed_at ?? Math.floor(now / 1000)) - incident.opened_at))
-	);
 </script>
 
-<li
-	class="flex items-start gap-3 py-3 [&:not(:first-child)]:border-t [&:not(:first-child)]:border-[var(--color-border)]"
->
-	<span
-		class="mt-1.5 size-1.5 shrink-0 rounded-full"
-		style:background={recovering
-			? 'var(--color-warning)'
-			: open
-				? 'var(--color-danger)'
-				: resolved
-					? 'var(--color-success)'
-					: 'var(--color-fg-subtle)'}
-		aria-hidden="true"
-	></span>
-	<div class="min-w-0 flex-1">
-		{#if serverId}
-			<a
-				class="block text-sm font-medium break-words text-[var(--color-fg)] hover:underline"
-				href={`/servers/${serverId}/incidents/${incident.id}`}>{title}</a
+<li class="border-[var(--color-border)] [&:not(:first-child)]:border-t">
+	<svelte:element
+		this={serverId ? 'a' : 'div'}
+		href={serverId ? `/servers/${serverId}/incidents/${incident.id}` : undefined}
+		class="-mx-2 flex min-h-16 items-start gap-3 rounded-md px-2 py-3 transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]"
+	>
+		<span
+			class="mt-1.5 size-1.5 shrink-0 rounded-full"
+			style:background={recovering
+				? 'var(--color-warning)'
+				: open
+					? 'var(--color-danger)'
+					: resolved
+						? 'var(--color-success)'
+						: 'var(--color-fg-subtle)'}
+			aria-hidden="true"
+		></span>
+		<span class="min-w-0 flex-1">
+			<span class="line-clamp-2 text-sm leading-snug font-medium break-words text-[var(--color-fg)]"
+				>{title}</span
 			>
-		{:else}
-			<p class="text-sm font-medium break-words text-[var(--color-fg)]">{title}</p>
-		{/if}
-		<p class="mt-1 text-xs text-[var(--color-fg-muted)]">{status}</p>
-		<p class="text-2xs mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[var(--color-fg-subtle)]">
-			<span>{m.overview_incident_started({ time: fmtRelative(incident.opened_at, now) })}</span>
-			<span>{m.overview_incident_recording_duration({ duration })}</span>
-		</p>
-	</div>
+			<span
+				class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--color-fg-subtle)]"
+			>
+				<span class:text-[var(--color-fg-muted)]={open}>{status}</span>
+				<span aria-hidden="true">·</span>
+				<span>{fmtRelative(incident.opened_at, now)}</span>
+			</span>
+		</span>
+	</svelte:element>
 </li>

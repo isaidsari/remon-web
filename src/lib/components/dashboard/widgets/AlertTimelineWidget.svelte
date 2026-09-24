@@ -7,6 +7,7 @@
 	import type { EventDto, IncidentSummaryDto } from '$lib/types/api';
 	import { m } from '$lib/paraglide/messages';
 	import IconArrowRight from '~icons/lucide/arrow-right';
+	import { tabVisible } from '$lib/utils/visibility.svelte';
 
 	interface Props {
 		conn: Connection | null;
@@ -19,16 +20,25 @@
 		{ event: EventDto; incident?: never } | { incident: IncidentSummaryDto; event?: never }
 	);
 	let events = $state<TimelineEntry[] | null>(null);
+	let narrow = $state(false);
+	let preview = $derived(events?.slice(0, narrow ? 3 : 5));
+	$effect(() => {
+		const media = window.matchMedia('(max-width: 767px)');
+		const update = () => (narrow = media.matches);
+		update();
+		media.addEventListener('change', update);
+		return () => media.removeEventListener('change', update);
+	});
 
 	// Alerts, operator actions and incidents in one list, newest first. The
 	// event feed already logs a manual capture, so those incidents are skipped.
-	async function fetchData() {
-		if (!conn?.isAuthenticated) return;
+	async function fetchData(connection: Connection, isCurrent: () => boolean) {
 		try {
 			const [ev, inc] = await Promise.all([
-				conn.client.events({ limit: LIMIT }),
-				conn.client.listIncidents(10).catch(() => ({ incidents: [] }))
+				connection.client.events({ limit: LIMIT }),
+				connection.client.listIncidents(10).catch(() => ({ incidents: [] }))
 			]);
+			if (!isCurrent()) return;
 			const seen = new Set(
 				ev.events.filter((e) => e.ref?.type === 'incident').map((e) => e.ref!.id)
 			);
@@ -51,15 +61,29 @@
 	}
 
 	$effect(() => {
-		if (!conn?.isAuthenticated) return;
-		void fetchData();
-		const t = setInterval(fetchData, 30_000);
-		return () => clearInterval(t);
+		if (!conn?.isAuthenticated || !tabVisible()) return;
+		const connection = conn;
+		let current = true;
+		let pending = false;
+		const refresh = async () => {
+			if (pending) return;
+			pending = true;
+			await fetchData(connection, () => current);
+			pending = false;
+		};
+		void refresh();
+		const t = setInterval(refresh, 30_000);
+		return () => {
+			current = false;
+			clearInterval(t);
+		};
 	});
 
 	// Re-render relative timestamps once a minute.
 	let now = $state(Date.now());
 	$effect(() => {
+		if (!tabVisible()) return;
+		now = Date.now();
 		const t = setInterval(() => (now = Date.now()), 60_000);
 		return () => clearInterval(t);
 	});
@@ -70,7 +94,7 @@
 		<h2 class="flex-1 text-sm font-semibold text-[var(--color-fg)]">{m.overview_events_title()}</h2>
 		<a
 			href={conn ? `/servers/${conn.serverId}/events` : '#'}
-			class="group text-2xs inline-flex items-center gap-1 text-[var(--color-fg-subtle)] transition-colors hover:text-[var(--color-fg)]"
+			class="group -mr-2 inline-flex min-h-11 items-center gap-1 rounded-md px-2 text-xs text-[var(--color-fg-subtle)] transition-colors hover:text-[var(--color-fg)] focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]"
 		>
 			{m.overview_events_all()}
 			<IconArrowRight
@@ -92,11 +116,11 @@
 		</div>
 	{:else}
 		<ol class="min-h-0 flex-1 overflow-y-auto px-4 pb-2">
-			{#each events as entry (entry.key)}
+			{#each preview ?? [] as entry (entry.key)}
 				{#if entry.incident}
 					<IncidentTimelineRow incident={entry.incident} {now} serverId={conn?.serverId} />
 				{:else}
-					<EventRow event={entry.event} {now} serverId={conn?.serverId} />
+					<EventRow event={entry.event} {now} serverId={conn?.serverId} compact />
 				{/if}
 			{/each}
 		</ol>

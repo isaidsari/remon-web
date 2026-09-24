@@ -10,9 +10,10 @@
 		/** When set, refs that map to a page render as links. */
 		serverId?: string;
 		class?: string;
+		compact?: boolean;
 	}
 
-	let { event, now = Date.now(), serverId, class: klass = '' }: Props = $props();
+	let { event, now = Date.now(), serverId, class: klass = '', compact = false }: Props = $props();
 
 	// Severity is the one colour on the row; the message carries the meaning.
 	const bar: Record<EventSeverity, string> = {
@@ -36,29 +37,57 @@
 				: null
 	);
 	let actor = $derived(event.source === 'operator' ? event.actor?.name : undefined);
+	let previewHref = $derived(refHref ?? (serverId ? `/servers/${serverId}/events` : null));
 </script>
 
-<li
-	class={cn(
-		'grid grid-cols-[3px_1fr_auto] items-center gap-3 py-2.5 [&:not(:first-child)]:border-t [&:not(:first-child)]:border-[var(--color-border)]',
-		klass
-	)}
->
-	<span class={cn('h-8 w-[3px] rounded-full', bar[event.severity])} aria-hidden="true"></span>
-	<span class="min-w-0">
-		<span class="text-md block leading-snug font-medium break-words text-[var(--color-fg)]">
-			{event.message}
-		</span>
-		{#if actor || refHref}
-			<span class="text-2xs mt-0.5 flex flex-wrap gap-x-2 font-mono text-[var(--color-fg-subtle)]">
-				{#if actor}<span>{m.events_actor_by({ name: actor })}</span>{/if}
-				{#if refHref && refLabel}
-					<a href={refHref} class="text-[var(--color-accent)] hover:underline">{refLabel} →</a>
-				{/if}
+{#if compact}
+	<li class="border-[var(--color-border)] [&:not(:first-child)]:border-t">
+		<svelte:element
+			this={previewHref ? 'a' : 'div'}
+			href={previewHref ?? undefined}
+			class="-mx-2 flex min-h-16 items-start gap-3 rounded-md px-2 py-3 transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]"
+		>
+			<span
+				class={cn('mt-1.5 size-1.5 shrink-0 rounded-full', bar[event.severity])}
+				aria-hidden="true"
+			></span>
+			<span class="min-w-0 flex-1">
+				<span
+					class="line-clamp-2 text-sm leading-snug font-medium break-words text-[var(--color-fg)]"
+					>{event.message}</span
+				>
+				<span class="mt-1 block text-xs text-[var(--color-fg-subtle)]"
+					>{fmtRelative(event.ts, now)}{#if actor}
+						· {m.events_actor_by({ name: actor })}{/if}</span
+				>
 			</span>
-		{/if}
-	</span>
-	<span class="text-2xs shrink-0 font-mono text-[var(--color-fg-faint)] tabular-nums">
-		{fmtRelative(event.ts, now)}
-	</span>
-</li>
+		</svelte:element>
+	</li>
+{:else}
+	<li
+		class={cn(
+			'grid grid-cols-[3px_1fr_auto] items-center gap-3 py-2.5 [&:not(:first-child)]:border-t [&:not(:first-child)]:border-[var(--color-border)]',
+			klass
+		)}
+	>
+		<span class={cn('h-8 w-[3px] rounded-full', bar[event.severity])} aria-hidden="true"></span>
+		<span class="min-w-0">
+			<span class="text-md block leading-snug font-medium break-words text-[var(--color-fg)]">
+				{event.message}
+			</span>
+			{#if actor || refHref}
+				<span
+					class="text-2xs mt-0.5 flex flex-wrap gap-x-2 font-mono text-[var(--color-fg-subtle)]"
+				>
+					{#if actor}<span>{m.events_actor_by({ name: actor })}</span>{/if}
+					{#if refHref && refLabel}
+						<a href={refHref} class="text-[var(--color-accent)] hover:underline">{refLabel} →</a>
+					{/if}
+				</span>
+			{/if}
+		</span>
+		<span class="text-2xs shrink-0 font-mono text-[var(--color-fg-faint)] tabular-nums">
+			{fmtRelative(event.ts, now)}
+		</span>
+	</li>
+{/if}

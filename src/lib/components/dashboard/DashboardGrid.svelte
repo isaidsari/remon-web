@@ -199,6 +199,7 @@
 	{#each ordered as widget (widget.id)}
 		<div
 			class="dash-cell"
+			class:timeline={widget.config.kind === 'alert-timeline'}
 			class:editing
 			class:draggable={arrangeable}
 			class:dragging={drag?.id === widget.id}
@@ -344,6 +345,9 @@
 		}
 		.dash-slot {
 			display: none;
+		}
+		.dash-cell.timeline:not(.editing) {
+			min-height: 0;
 		}
 	}
 </style>
