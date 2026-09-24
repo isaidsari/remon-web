@@ -3,6 +3,7 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import Toaster from '$lib/components/ui/Toaster.svelte';
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
+	import Button from '$lib/components/ui/Button.svelte';
 	import Header from '$lib/components/layout/Header.svelte';
 	import { vault } from '$lib/vault/store.svelte';
 	import { goto, onNavigate } from '$app/navigation';
@@ -15,7 +16,7 @@
 	import { QueryClientProvider } from '@tanstack/svelte-query';
 	import { createQueryClient } from '$lib/api/query';
 	import { toast } from '$lib/stores/toast.svelte';
-	import { fly } from 'svelte/transition';
+	import { fade } from 'svelte/transition';
 	import IconDownload from '~icons/lucide/download';
 	import { m } from '$lib/paraglide/messages';
 
@@ -57,6 +58,7 @@
 
 	/** Hand the waiting worker its cue, then reload when it takes over. */
 	async function applyUpdate() {
+		if (applying) return;
 		applying = true;
 		const reg = await navigator.serviceWorker?.getRegistration().catch(() => undefined);
 		if (!reg?.waiting) {
@@ -157,30 +159,32 @@
 </QueryClientProvider>
 
 {#if $needRefresh}
-	<!-- Bottom-centre, but no longer whispering: an accent edge, an icon and a
-	     slide-in, because the previous flat surface-2 bar read as chrome and
-	     went unnoticed on a busy dashboard. -->
 	<div
-		role="status"
-		aria-live="polite"
-		transition:fly={{ y: 12, duration: 200 }}
-		class="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg bg-[var(--color-surface-2)] px-4 py-2.5 text-sm shadow-lg ring-1 shadow-black/20 ring-[var(--color-accent)]/40"
+		transition:fade={{ duration: 140 }}
+		class="fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] left-4 z-40 rounded-[var(--radius-card)] bg-[var(--color-surface)] p-4 shadow-lg ring-1 shadow-black/15 ring-[var(--color-border)] sm:left-auto sm:w-80"
 	>
-		<IconDownload class="size-[15px] shrink-0 text-[var(--color-accent)]" stroke-width="2.25" />
-		<span class="font-medium text-[var(--color-fg)]">{m.update_available()}</span>
-		<button
-			onclick={() => needRefresh.set(false)}
-			class="text-[var(--color-fg-subtle)] transition hover:text-[var(--color-fg)]"
-		>
-			{m.common_dismiss()}
-		</button>
-		<button
-			onclick={applyUpdate}
-			disabled={applying}
-			class="rounded-md bg-[var(--color-accent)] px-3 py-1 text-xs font-medium text-[var(--color-accent-fg)] transition hover:bg-[var(--color-accent-hover)] disabled:opacity-60"
-		>
-			{applying ? m.update_reloading() : m.update_reload()}
-		</button>
+		<div class="flex items-start gap-3" role="status" aria-live="polite" aria-atomic="true">
+			<IconDownload
+				class="mt-0.5 size-4 shrink-0 text-[var(--color-fg-muted)]"
+				aria-hidden="true"
+			/>
+			<div class="min-w-0">
+				<p class="text-sm font-medium text-[var(--color-fg)]">
+					{applying ? m.update_reloading() : m.update_available()}
+				</p>
+				<p class="mt-1 text-xs leading-relaxed text-[var(--color-fg-muted)]">
+					{m.update_description()}
+				</p>
+			</div>
+		</div>
+		<div class="mt-4 flex flex-wrap justify-end gap-2">
+			<Button variant="ghost" size="sm" disabled={applying} onclick={() => needRefresh.set(false)}>
+				{m.update_later()}
+			</Button>
+			<Button size="sm" onclick={applyUpdate} loading={applying}>
+				{applying ? m.update_reloading() : m.update_reload()}
+			</Button>
+		</div>
 	</div>
 {/if}
 
