@@ -10,3 +10,9 @@ dist/
 src/lib/paraglide/
 .claude/
 memory/
+/docs/research/
+/scripts/research/
+.codex/
+.agents/
+CLAUDE.md
+AGENTS.md
