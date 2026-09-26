@@ -40,7 +40,7 @@
 	let retry = $state(0);
 	let chartWidth = $state(0);
 	let maxPoints = $derived(chartPointBudget(chartWidth));
-	let chart = $derived(data?.resource === 'cpu' ? data.chart : undefined);
+	let chart = $derived(data && 'chart' in data ? data.chart : undefined);
 	let percent = $derived(source === 'cpu' || source === 'memory');
 	let format = $derived(
 		percent

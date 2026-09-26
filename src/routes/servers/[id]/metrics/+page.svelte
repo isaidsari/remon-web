@@ -29,6 +29,7 @@
 	import { m } from '$lib/paraglide/messages';
 	import { classifyInterface, isContainerMount, type IfaceClass } from '$lib/utils/netClassify';
 	import type {
+		ChartMetadata,
 		ComponentsHistoryResponse,
 		CpuHistoryResponse,
 		DiskForecastMount,
@@ -173,15 +174,28 @@
 					: null;
 			memory =
 				memBatch && memBatch.resource === 'memory'
-					? { resolution: res, points: memBatch.points }
+					? {
+							resolution: memBatch.chart ? null : res,
+							points: memBatch.points,
+							chart: memBatch.chart
+						}
 					: null;
 			disk =
 				diskBatch && diskBatch.resource === 'disk'
-					? { resolution: res, points: diskBatch.points }
+					? {
+							resolution: diskBatch.chart ? null : res,
+							points: diskBatch.points,
+							chart: diskBatch.chart
+						}
 					: null;
 			network =
 				netBatch && netBatch.resource === 'network'
-					? { resolution: res, points: netBatch.points, totals: netBatch.totals }
+					? {
+							resolution: netBatch.chart ? null : res,
+							points: netBatch.points,
+							totals: netBatch.totals,
+							chart: netBatch.chart
+						}
 					: null;
 			components =
 				compBatch && compBatch.resource === 'components'
@@ -246,6 +260,12 @@
 			if (!cur || p.timestamp > cur.timestamp) out.set(key(p), p);
 		}
 		return out;
+	}
+
+	function chartWindow(chart: ChartMetadata | undefined) {
+		return chart
+			? { start: chart.aligned.start, end: Math.min(chart.aligned.end, chart.as_of) }
+			: undefined;
 	}
 
 	function hasAny<T>(points: T[] | undefined, pick: (p: T) => number | null | undefined): boolean {
@@ -666,12 +686,7 @@
 					{#key cpuKey}
 						<HistoryChart
 							series={cpuSeries}
-							timeWindow={cpu?.chart
-								? {
-										start: cpu.chart.aligned.start,
-										end: Math.min(cpu.chart.aligned.end, cpu.chart.as_of)
-									}
-								: undefined}
+							timeWindow={chartWindow(cpu?.chart)}
 							valueFormatter={fmtPct}
 							axisFormatter={fmtPctAxis}
 							yMin={0}
@@ -704,6 +719,7 @@
 		</div>
 
 		<MetricPanel title={m.metrics_card_memory_title()}>
+			<ChartResolution chart={memory?.chart} />
 			{#if loading}
 				{@render chartSkeleton()}
 			{:else}
@@ -720,6 +736,7 @@
 				{#key memoryKey}
 					<HistoryChart
 						series={memorySeries}
+						timeWindow={chartWindow(memory?.chart)}
 						valueFormatter={fmtPct}
 						axisFormatter={fmtPctAxis}
 						yMin={0}
@@ -732,6 +749,7 @@
 		</MetricPanel>
 
 		<MetricPanel title={m.metrics_card_disk_title()}>
+			<ChartResolution chart={disk?.chart} />
 			{#if loading}
 				{@render chartSkeleton()}
 			{:else}
@@ -741,6 +759,7 @@
 				{#key diskKey}
 					<HistoryChart
 						series={diskSeries}
+						timeWindow={chartWindow(disk?.chart)}
 						valueFormatter={fmtPct}
 						axisFormatter={fmtPctAxis}
 						yMin={0}
@@ -827,6 +846,7 @@
 					{#key diskIopsKey}
 						<HistoryChart
 							series={diskIopsSeries}
+							timeWindow={chartWindow(disk?.chart)}
 							valueFormatter={diskIoFormat}
 							yMin={0}
 							yMax={diskIoMode === 'util' ? 100 : undefined}
@@ -878,6 +898,7 @@
 				{#key memoryPressureKey}
 					<HistoryChart
 						series={memoryPressureSeries}
+						timeWindow={chartWindow(memory?.chart)}
 						valueFormatter={(v) => (v == null ? '—' : fmtNumber(v, 0))}
 						group="metrics"
 					/>
@@ -889,6 +910,7 @@
 			title={m.metrics_card_network_title()}
 			class={lastHalfSpansRow ? 'xl:col-span-2' : ''}
 		>
+			<ChartResolution chart={network?.chart} />
 			{#if loading}
 				{@render chartSkeleton()}
 			{:else}
@@ -933,6 +955,7 @@
 				{#key networkKey}
 					<HistoryChart
 						series={networkSeries}
+						timeWindow={chartWindow(network?.chart)}
 						valueFormatter={fmtBpsCell}
 						group="metrics"
 						annotations={showAnnotations ? chartAnnotations : []}

@@ -26,7 +26,7 @@
 	let loading = $state(true);
 	let chartWidth = $state(0);
 	let maxPoints = $derived(chartPointBudget(chartWidth));
-	let chart = $derived(points?.resource === 'cpu' ? points.chart : undefined);
+	let chart = $derived(points && 'chart' in points ? points.chart : undefined);
 	let requestId = 0;
 
 	// One line per mount, all of them steps of the disk hue; rx/tx likewise.

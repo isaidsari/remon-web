@@ -183,7 +183,7 @@ export interface MetricsRangeQuery {
 	end?: number;
 	resolution?: MetricsResolution;
 	limit?: number;
-	/** CPU output budget, separate from stored resolution. */
+	/** Chart output budget per series, separate from stored resolution. */
 	max_points?: number;
 }
 
@@ -270,7 +270,8 @@ export interface MemoryPoint extends HistoryStatistics {
 }
 
 export interface MemoryHistoryResponse {
-	resolution: MetricsResolution;
+	resolution: MetricsResolution | null;
+	chart?: ChartMetadata;
 	points: MemoryPoint[];
 }
 
@@ -294,7 +295,8 @@ export interface DiskPoint extends HistoryStatistics {
 }
 
 export interface DiskHistoryResponse {
-	resolution: MetricsResolution;
+	resolution: MetricsResolution | null;
+	chart?: ChartMetadata;
 	points: DiskPoint[];
 }
 
@@ -342,7 +344,8 @@ export interface NetworkPoint extends HistoryStatistics {
 
 export interface NetworkHistoryResponse {
 	totals: NetworkPoint[];
-	resolution: MetricsResolution;
+	resolution: MetricsResolution | null;
+	chart?: ChartMetadata;
 	points: NetworkPoint[];
 }
 
@@ -440,9 +443,14 @@ export interface BatchMetricsQuery {
 export type BatchSeries =
 	| { resource: 'cpu'; points: CpuPoint[]; chart?: ChartMetadata }
 	| { resource: 'cpu_cores'; points: CpuCorePoint[] }
-	| { resource: 'memory'; points: MemoryPoint[] }
-	| { resource: 'disk'; points: DiskPoint[] }
-	| { resource: 'network'; points: NetworkPoint[]; totals: NetworkPoint[] }
+	| { resource: 'memory'; points: MemoryPoint[]; chart?: ChartMetadata }
+	| { resource: 'disk'; points: DiskPoint[]; chart?: ChartMetadata }
+	| {
+			resource: 'network';
+			points: NetworkPoint[];
+			totals: NetworkPoint[];
+			chart?: ChartMetadata;
+	  }
 	| { resource: 'components'; points: ComponentPoint[] };
 
 export interface BatchMetricsResponse {
