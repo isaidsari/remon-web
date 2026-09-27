@@ -1175,7 +1175,7 @@ export interface ComparatorSchema {
 	display: string;
 }
 
-export type NotificationChannelType = 'fcm' | 'telegram' | 'ntfy' | 'webhook' | 'web-push';
+export type NotificationChannelType = 'fcm' | 'telegram' | 'ntfy' | 'webhook';
 export type NotificationMinSeverity = 'warn' | 'crit';
 
 export interface NotificationChannelResponse {

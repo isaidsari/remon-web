@@ -10,6 +10,8 @@
 	import { NAV_ITEMS, sectionLabel } from '$lib/nav';
 	import { APP_NAME, markValues, tab } from '$lib/brand/tab.svelte';
 	import type { SummaryResponse } from '$lib/types/api';
+	import { syncServerPush } from '$lib/utils/push';
+	import { clearServerFiring } from '$lib/utils/push-cache';
 	import { ApiError } from '$lib/api/error';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
@@ -54,6 +56,11 @@
 
 	$effect(() => {
 		if (conn?.isAuthenticated) void conn.fetchSystemInfo().catch(() => {});
+	});
+
+	// A server registered before this browser's subscription changed gets the new one.
+	$effect(() => {
+		if (conn?.isAuthenticated) void syncServerPush(conn.client, id).catch(() => {});
 	});
 
 	// Restores default accent on unmount so other routes aren't tinted.
@@ -177,6 +184,7 @@
 				.summary()
 				.then((s) => {
 					summary = s;
+					if (s.alerts_firing === 0) void clearServerFiring(id);
 					if (c.live.status !== 'open') tab.beat++;
 				})
 				.catch(() => {});

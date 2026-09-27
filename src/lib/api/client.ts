@@ -665,11 +665,14 @@ export class ApiClient {
 		});
 	}
 
-	getVapidPublicKey(): Promise<{ public_key: string }> {
-		return this.request<{ public_key: string }>('/push/vapid-public-key');
-	}
-
-	subscribePush(req: { endpoint: string; p256dh: string; auth: string }): Promise<void> {
+	subscribePush(req: {
+		endpoint: string;
+		p256dh: string;
+		auth: string;
+		vapid_private_key: string;
+		ref?: string;
+		min_severity?: 'warn' | 'crit' | null;
+	}): Promise<void> {
 		return this.request<void>('/me/push-subscription', {
 			method: 'POST',
 			body: req,

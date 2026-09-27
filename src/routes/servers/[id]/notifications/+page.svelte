@@ -20,7 +20,6 @@
 	import IconSend from '~icons/lucide/send';
 	import IconRadio from '~icons/lucide/radio';
 	import IconWebhook from '~icons/lucide/webhook';
-	import IconBellRing from '~icons/lucide/bell-ring';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { confirm } from '$lib/stores/confirm.svelte';
 	import { ApiError } from '$lib/api/error';
@@ -178,8 +177,6 @@
 				return { url: cfgWebhookUrl.trim() };
 			case 'fcm':
 				return {};
-			case 'web-push':
-				return {};
 		}
 	}
 
@@ -220,16 +217,14 @@
 		fcm: () => m.notifications_type_label_fcm(),
 		telegram: () => 'Telegram',
 		ntfy: () => 'ntfy',
-		webhook: () => 'Webhook',
-		'web-push': () => m.notifications_type_label_web_push()
+		webhook: () => 'Webhook'
 	};
 
 	const TYPE_ICONS: Record<NotificationChannelType, Component> = {
 		fcm: IconSmartphone,
 		telegram: IconSend,
 		ntfy: IconRadio,
-		webhook: IconWebhook,
-		'web-push': IconBellRing
+		webhook: IconWebhook
 	};
 
 	function target(ch: NotificationChannelResponse): string {
@@ -242,8 +237,6 @@
 				return (ch.config.url as string) || '—';
 			case 'fcm':
 				return m.notifications_target_fcm();
-			case 'web-push':
-				return m.notifications_target_web_push();
 		}
 	}
 </script>
@@ -379,7 +372,6 @@
 					<option value="ntfy">ntfy</option>
 					<option value="webhook">Webhook</option>
 					<option value="fcm">{m.notifications_type_option_fcm()}</option>
-					<option value="web-push">{m.notifications_type_option_web_push()}</option>
 				</Select>
 			</Field>
 		{/if}
@@ -426,10 +418,6 @@
 			<Banner variant="info" title={m.notifications_banner_no_config_title()}>
 				{m.notifications_banner_fcm_body_pre()}
 				<code class="text-2xs font-mono">notifications.fcm.service_account_path</code>.
-			</Banner>
-		{:else if formType === 'web-push'}
-			<Banner variant="info" title={m.notifications_banner_no_config_title()}>
-				{m.notifications_banner_web_push_body()}
 			</Banner>
 		{/if}
 

@@ -7,6 +7,7 @@
 	import Input from '$lib/components/ui/Input.svelte';
 	import Field from '$lib/components/ui/Field.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
+	import Select from '$lib/components/ui/Select.svelte';
 	import StatusDot from '$lib/components/layout/StatusDot.svelte';
 	import { profiles } from '$lib/stores/profiles.svelte';
 	import { connections } from '$lib/stores/connections.svelte';
@@ -37,12 +38,10 @@
 	import {
 		isPushSupported,
 		notificationPermission,
-		getCurrentSubscription,
-		subscribeToPush,
-		unsubscribeLocal,
-		getPushOwner,
-		setPushOwner,
-		clearPushOwner
+		pushRegistration,
+		enableServerPush,
+		disableServerPush,
+		type MinSeverity
 	} from '$lib/utils/push';
 	import IconCheck from '~icons/lucide/check';
 	import IconRotateCcw from '~icons/lucide/rotate-ccw';
@@ -204,73 +203,48 @@
 	}
 
 	let pushSupported = $state(false);
-	/** Which server owns this browser's one subscription — see push.ts. */
-	let pushState = $state<'none' | 'this' | 'other'>('none');
-	let pushOtherName = $state<string | null>(null);
+	let pushEnabled = $state(false);
+	let pushLevel = $state<MinSeverity | 'all'>('all');
 	let pushBusy = $state(false);
 	let pushPermission = $state<NotificationPermission>('default');
 
-	async function refreshPushState() {
-		if (!isPushSupported()) {
-			pushSupported = false;
-			return;
-		}
-		pushSupported = true;
+	function refreshPushState() {
+		pushSupported = isPushSupported();
+		if (!pushSupported) return;
 		pushPermission = notificationPermission();
-		const sub = await getCurrentSubscription();
-		if (!sub) {
-			pushState = 'none';
-			pushOtherName = null;
-			return;
-		}
-		const owner = getPushOwner();
-		if (owner && owner.serverId === id && owner.endpoint === sub.endpoint) {
-			pushState = 'this';
-			pushOtherName = null;
-		} else {
-			pushState = 'other';
-			pushOtherName = (owner && profiles.byId(owner.serverId)?.name) || null;
-		}
+		const reg = pushRegistration(id);
+		pushEnabled = reg !== null;
+		pushLevel = reg?.minSeverity ?? 'all';
 	}
 
 	$effect(() => {
 		// Read synchronously so Svelte tracks it: the component is reused across
 		// server switches and the status would otherwise freeze on the first.
 		void id;
-		void refreshPushState();
+		refreshPushState();
 	});
 
+	function clientFor(profileId: string) {
+		const p = profiles.byId(profileId);
+		const c = p ? connections.connect(p) : null;
+		return c?.isAuthenticated ? c.client : null;
+	}
+
+	/** Enables, or retunes the level of, alerts from this server on this browser. */
 	async function enablePush() {
 		if (!conn.isAuthenticated) return;
 		pushBusy = true;
+		const wasEnabled = pushEnabled;
 		try {
-			// Best-effort: tell the previous owner to drop its row. Unreachable is
-			// fine — its next failed send self-heals on 410.
-			const prevOwner = getPushOwner();
-			if (pushState === 'other' && prevOwner && prevOwner.serverId !== id) {
-				const otherProfile = profiles.byId(prevOwner.serverId);
-				if (otherProfile) {
-					try {
-						await connections.connect(otherProfile).client.unsubscribePush();
-					} catch {
-						// unreachable/unauthenticated — the server-side row goes
-						// stale and self-heals on its next failed push attempt
-					}
-				}
-			}
-			if (pushState !== 'none') await unsubscribeLocal();
-
-			const { public_key } = await conn.client.getVapidPublicKey();
-			const payload = await subscribeToPush(public_key);
-			await conn.client.subscribePush(payload);
-			setPushOwner({ serverId: id, endpoint: payload.endpoint });
-			pushState = 'this';
-			pushOtherName = null;
+			await enableServerPush(conn.client, id, pushLevel === 'all' ? null : pushLevel, clientFor);
+			pushEnabled = true;
 			pushPermission = notificationPermission();
-			toast.success(m.settings_toast_push_enabled());
+			if (!wasEnabled) toast.success(m.settings_toast_push_enabled());
 		} catch (e) {
-			const msg = e instanceof Error ? e.message : String(e);
-			toast.error(m.settings_toast_push_enable_failed(), { description: msg });
+			toast.error(m.settings_toast_push_enable_failed(), {
+				description: e instanceof Error ? e.message : String(e)
+			});
+			refreshPushState();
 		} finally {
 			pushBusy = false;
 		}
@@ -280,11 +254,8 @@
 		if (!conn.isAuthenticated) return;
 		pushBusy = true;
 		try {
-			// Both steps needed: skipping either leaves a stale subscription on relay or server.
-			await unsubscribeLocal();
-			await conn.client.unsubscribePush();
-			clearPushOwner();
-			pushState = 'none';
+			await disableServerPush(conn.client, id);
+			pushEnabled = false;
 			toast.info(m.settings_toast_push_disabled());
 		} catch (e) {
 			toast.error(m.settings_toast_push_disable_failed(), {
@@ -616,18 +587,10 @@
 				<span
 					class={cn(
 						'text-2xs',
-						pushState === 'this'
-							? 'text-[var(--color-success)]'
-							: pushState === 'other'
-								? 'text-[var(--color-warning)]'
-								: 'text-[var(--color-fg-subtle)]'
+						pushEnabled ? 'text-[var(--color-success)]' : 'text-[var(--color-fg-subtle)]'
 					)}
 				>
-					{pushState === 'this'
-						? m.settings_push_status_enabled()
-						: pushState === 'other'
-							? m.settings_push_status_other()
-							: m.settings_push_status_disabled()}
+					{pushEnabled ? m.settings_push_status_enabled() : m.settings_push_status_disabled()}
 				</span>
 			{/if}
 		</div>
@@ -644,30 +607,32 @@
 				{m.settings_push_blocked()}
 			</p>
 		{:else}
-			{#if pushState === 'other'}
-				<p class="mb-3 max-w-md text-xs text-[var(--color-warning)]">
-					{pushOtherName
-						? m.settings_push_other_body_named({ name: pushOtherName })
-						: m.settings_push_other_body_unknown()}
-				</p>
-			{/if}
-			<Button
-				variant={pushState === 'this' ? 'secondary' : 'primary'}
-				size="sm"
-				onclick={pushState === 'this' ? disablePush : enablePush}
-				loading={pushBusy}
-			>
-				{#if pushState === 'this'}
-					<IconBellOff class="size-[13px]" stroke-width="2" />
-					{m.settings_push_disable()}
-				{:else if pushState === 'other'}
-					<IconBellRing class="size-[13px]" stroke-width="2" />
-					{m.settings_push_action_switch()}
-				{:else}
-					<IconBellRing class="size-[13px]" stroke-width="2" />
-					{m.settings_push_enable()}
-				{/if}
-			</Button>
+			<div class="flex flex-wrap items-center gap-2">
+				<Select
+					bind:value={pushLevel}
+					onchange={() => pushEnabled && enablePush()}
+					disabled={pushBusy}
+					aria-label={m.settings_push_level_label()}
+					class="w-48"
+				>
+					<option value="all">{m.settings_push_level_all()}</option>
+					<option value="crit">{m.settings_push_level_crit()}</option>
+				</Select>
+				<Button
+					variant={pushEnabled ? 'secondary' : 'primary'}
+					size="sm"
+					onclick={pushEnabled ? disablePush : enablePush}
+					loading={pushBusy}
+				>
+					{#if pushEnabled}
+						<IconBellOff class="size-[13px]" stroke-width="2" />
+						{m.settings_push_disable()}
+					{:else}
+						<IconBellRing class="size-[13px]" stroke-width="2" />
+						{m.settings_push_enable()}
+					{/if}
+				</Button>
+			</div>
 		{/if}
 	</Card>
 
