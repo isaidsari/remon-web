@@ -17,7 +17,16 @@
 	let { title, subtitle, count, meta, children, class: klass = '' }: Props = $props();
 </script>
 
-<header class={cn('mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between', klass)}>
+<!-- A bare title shares its row with the actions on phones too. -->
+<header
+	class={cn(
+		'mb-6 flex gap-3',
+		subtitle || meta
+			? 'flex-col sm:flex-row sm:items-end sm:justify-between'
+			: 'flex-wrap items-center justify-between',
+		klass
+	)}
+>
 	<div class="min-w-0">
 		<h1 class="flex items-baseline gap-2.5 text-2xl font-semibold tracking-tight">
 			{title}
@@ -38,6 +47,13 @@
 		{/if}
 	</div>
 	{#if children}
-		<div class="flex flex-wrap items-center gap-2 sm:shrink-0">{@render children()}</div>
+		<div
+			class={cn(
+				'flex flex-wrap items-center gap-2 sm:shrink-0',
+				!(subtitle || meta) && 'justify-end'
+			)}
+		>
+			{@render children()}
+		</div>
 	{/if}
 </header>
