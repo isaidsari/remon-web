@@ -124,13 +124,17 @@
 			{/if}
 		</div>
 
-		<nav class="flex flex-wrap items-center gap-1.5" aria-label={m.overview_quick_aria()}>
+		<!-- One swipeable row on phones, bleeding to the card edges; wraps from md up. -->
+		<nav
+			class="quick-links -mx-4 flex items-center gap-1.5 overflow-x-auto px-4 md:mx-0 md:flex-wrap md:overflow-visible md:px-0"
+			aria-label={m.overview_quick_aria()}
+		>
 			{#each quickLinks as link (link.href)}
 				{@const Icon = link.icon}
 				<a
 					href={link.href}
 					class={cn(
-						'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-[var(--dur-fast)]',
+						'inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all duration-[var(--dur-fast)]',
 						link.tone === 'danger'
 							? 'bg-[var(--color-danger-bg)] text-[var(--color-danger)] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-danger)_35%,transparent)]'
 							: link.tone === 'accent'
@@ -158,3 +162,19 @@
 		class="border-t border-[var(--color-hairline)]"
 	/>
 </div>
+
+<style>
+	.quick-links {
+		scrollbar-width: none;
+		overscroll-behavior-x: contain;
+	}
+	.quick-links::-webkit-scrollbar {
+		display: none;
+	}
+	@media (max-width: 767px) {
+		/* Chips fade out at the card edge, hinting there is more to swipe. */
+		.quick-links {
+			mask-image: linear-gradient(to right, #000 calc(100% - 16px), transparent);
+		}
+	}
+</style>
