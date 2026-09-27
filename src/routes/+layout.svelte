@@ -146,7 +146,7 @@
 </svelte:head>
 
 <QueryClientProvider client={queryClient}>
-	<div class="app-content flex min-h-screen flex-col text-[var(--color-fg)]">
+	<div class="app-content safe-x flex min-h-screen flex-col text-[var(--color-fg)]">
 		{#if showChrome}
 			<Header />
 		{/if}
