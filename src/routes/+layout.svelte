@@ -18,10 +18,18 @@
 	import { fade } from 'svelte/transition';
 	import IconDownload from '~icons/lucide/download';
 	import { m } from '$lib/paraglide/messages';
+	import { tab } from '$lib/brand/tab.svelte';
+	import { faviconSvg, svgDataUrl } from '$lib/brand/mark';
 
 	let { children } = $props();
 
 	const queryClient = createQueryClient();
+
+	// app.html's icon is the pre-hydration default; from here on it follows the tab state.
+	$effect(() => {
+		const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+		if (link) link.href = svgDataUrl(faviconSvg(tab.values, tab.status));
+	});
 
 	// This tab stays open for weeks; the browser only looks for a new SW on load.
 	const SW_UPDATE_INTERVAL_MS = 60 * 60 * 1000;
@@ -140,7 +148,7 @@
 </script>
 
 <svelte:head>
-	<title>Remon</title>
+	<title>{tab.title}</title>
 </svelte:head>
 
 <QueryClientProvider client={queryClient}>

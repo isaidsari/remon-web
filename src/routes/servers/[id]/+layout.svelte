@@ -7,7 +7,9 @@
 	import { sidebar } from '$lib/stores/sidebar.svelte';
 	import { toast } from '$lib/stores/toast.svelte';
 	import { provideServer } from '$lib/server-scope';
-	import { NAV_ITEMS } from '$lib/nav';
+	import { NAV_ITEMS, sectionLabel } from '$lib/nav';
+	import { APP_NAME, markValues, tab } from '$lib/brand/tab.svelte';
+	import type { SummaryResponse } from '$lib/types/api';
 	import { ApiError } from '$lib/api/error';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
@@ -161,6 +163,69 @@
 		offline: 'bg-[var(--color-danger)]',
 		idle: 'bg-[var(--color-fg-faint)]'
 	};
+
+	// The browser tab mirrors this server: fills from its load, lamp from its
+	// alerts, title from where you are. Summary is the floor; the live stream,
+	// when a page holds it open, is fresher.
+	let summary = $state<SummaryResponse | null>(null);
+	$effect(() => {
+		summary = null;
+		if (!conn?.isAuthenticated) return;
+		const c = conn;
+		const load = () =>
+			c.client
+				.summary()
+				.then((s) => {
+					summary = s;
+					if (c.live.status !== 'open') tab.beat++;
+				})
+				.catch(() => {});
+		void load();
+		const t = setInterval(load, 15_000);
+		return () => clearInterval(t);
+	});
+
+	$effect(() => {
+		const live = conn?.live;
+		if (live?.status !== 'open' || !live.cpu) return;
+		void live.cpu.usage_percent;
+		untrack(() => tab.beat++);
+	});
+
+	let section = $derived(
+		currentPath.slice(basePath.length).split('/').filter(Boolean)[0] ?? 'overview'
+	);
+	let firing = $derived(summary?.alerts_firing ?? 0);
+
+	$effect(() => {
+		const live = conn?.live;
+		if (live?.status === 'open' && live.cpu && live.memory) {
+			const mem = live.memory;
+			const memPct =
+				mem.total_bytes > 0 ? ((mem.total_bytes - mem.available_bytes) / mem.total_bytes) * 100 : 0;
+			tab.show(
+				markValues(live.cpu.usage_percent, memPct, live.diskMaxPercentHistory.ys.at(-1) ?? null)
+			);
+		} else if (summary) {
+			const memPct =
+				summary.memory_total_bytes && summary.memory_used_bytes != null
+					? (summary.memory_used_bytes / summary.memory_total_bytes) * 100
+					: null;
+			tab.show(markValues(summary.cpu_usage_percent, memPct, summary.disk_max_used_percent));
+		}
+		tab.status =
+			conn?.status === 'error'
+				? 'off'
+				: firing > 0
+					? 'crit'
+					: (summary?.alerts_pending ?? 0) > 0
+						? 'warn'
+						: 'ok';
+		tab.title = `${firing > 0 ? `(${firing}) ` : ''}${displayName} · ${sectionLabel(section)} · ${APP_NAME}`;
+		tab.live = true;
+	});
+
+	$effect(() => () => tab.reset());
 
 	// Auto-close on route change so the drawer doesn't linger after a nav item tap.
 	$effect(() => {
