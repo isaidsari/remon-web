@@ -11,7 +11,7 @@
 	import BrandMark from './BrandMark.svelte';
 	import IconLock from '~icons/lucide/lock';
 	import IconChevronRight from '~icons/lucide/chevron-right';
-	import IconPanelLeft from '~icons/lucide/panel-left';
+	import { cn } from '$lib/utils/cn';
 
 	function lock() {
 		vault.lock();
@@ -40,17 +40,22 @@
 >
 	<div class="flex min-w-0 items-center gap-2 sm:gap-3">
 		{#if activeServerId}
+			<!-- On phones the mark's three units double as the menu button. -->
 			<button
 				type="button"
 				onclick={() => sidebar.toggle()}
 				aria-label={sidebar.open ? m.header_close_menu() : m.header_open_menu()}
-				class="-ml-2 grid size-11 shrink-0 place-items-center rounded-md text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)] md:hidden"
+				aria-expanded={sidebar.open}
+				class={cn(
+					'-mx-2.5 grid size-11 shrink-0 place-items-center rounded-md text-[var(--color-fg)] transition md:hidden',
+					sidebar.open ? 'bg-[var(--color-surface-2)]' : 'hover:bg-[var(--color-surface-2)]'
+				)}
 			>
-				<IconPanelLeft class="size-[16px]" stroke-width="2" />
+				<BrandMark />
 			</button>
 		{/if}
 		<a href="/servers" class="group flex shrink-0 items-center gap-2 text-[var(--color-fg)]">
-			<BrandMark />
+			<span class={cn('contents', activeServerId && 'max-md:hidden')}><BrandMark /></span>
 			<span class="flex items-baseline gap-1.5">
 				<span
 					class="font-mono text-sm font-semibold tracking-[0.02em] transition-colors group-hover:text-[var(--color-accent)]"
