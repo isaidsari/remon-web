@@ -1,5 +1,6 @@
 /// <reference lib="WebWorker" />
 import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching';
+import { readBadgeCount, showBadge, writeBadgeCount } from './lib/utils/badge';
 
 declare const self: ServiceWorkerGlobalScope & typeof globalThis;
 
@@ -39,8 +40,23 @@ self.addEventListener('push', (event) => {
 		data,
 		requireInteraction: isCrit
 	};
-	event.waitUntil(self.registration.showNotification(title, options));
+	event.waitUntil(
+		Promise.all([
+			self.registration.showNotification(title, options),
+			data.event === 'fired' ? bumpBadge() : Promise.resolve()
+		])
+	);
 });
+
+async function bumpBadge() {
+	try {
+		const n = (await readBadgeCount()) + 1;
+		await writeBadgeCount(n);
+		await showBadge(self.navigator, n);
+	} catch {
+		// Badging is optional; the notification itself already went out.
+	}
+}
 
 self.addEventListener('notificationclick', (event) => {
 	event.notification.close();

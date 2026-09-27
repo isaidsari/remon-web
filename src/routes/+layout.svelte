@@ -20,10 +20,21 @@
 	import { m } from '$lib/paraglide/messages';
 	import { tab } from '$lib/brand/tab.svelte';
 	import { faviconSvg, svgDataUrl } from '$lib/brand/mark';
+	import { clearBadge } from '$lib/utils/badge';
 
 	let { children } = $props();
 
 	const queryClient = createQueryClient();
+
+	// Looking at the app counts as having seen the alerts the badge was counting.
+	$effect(() => {
+		const onVisible = () => {
+			if (document.visibilityState === 'visible') void clearBadge();
+		};
+		onVisible();
+		document.addEventListener('visibilitychange', onVisible);
+		return () => document.removeEventListener('visibilitychange', onVisible);
+	});
 
 	// app.html's icon is the pre-hydration default; from here on it follows the tab state.
 	$effect(() => {
