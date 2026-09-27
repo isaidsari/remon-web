@@ -1,8 +1,8 @@
 import { RANGE_SECONDS } from '$lib/components/charts/range';
+import { LIVE_KPI_SOURCES } from './live-kpi';
 import type { DashboardLayout, Widget, WidgetConfig } from '$lib/types/dashboard';
 import { DASHBOARD_COLUMNS } from '$lib/types/dashboard';
 
-const LIVE_KPI_SOURCES = ['cpu', 'memory', 'disk-io', 'network'] as const;
 const HISTORY_RESOURCES = ['cpu', 'memory', 'disk', 'network'] as const;
 const HISTORY_RANGES = Object.keys(RANGE_SECONDS) as Array<keyof typeof RANGE_SECONDS>;
 const STATUS_SUMMARIES = ['host', 'services', 'containers', 'alerts'] as const;
@@ -20,10 +20,7 @@ export function defaultDashboard(): DashboardLayout {
 	return {
 		version: 1,
 		widgets: [
-			widget(0, 0, 3, 2, { kind: 'live-kpi', source: 'cpu' }),
-			widget(3, 0, 3, 2, { kind: 'live-kpi', source: 'memory' }),
-			widget(6, 0, 3, 2, { kind: 'live-kpi', source: 'disk-io' }),
-			widget(9, 0, 3, 2, { kind: 'live-kpi', source: 'network' }),
+			widget(0, 0, 12, 2, { kind: 'live-vitals' }),
 			widget(0, 2, 8, 4, { kind: 'history-chart', resource: 'cpu', range: '1h' }),
 			widget(8, 2, 4, 4, { kind: 'alert-timeline' }),
 			widget(0, 6, 6, 4, { kind: 'history-chart', resource: 'memory', range: '1h' }),
@@ -60,6 +57,9 @@ function normalizeConfig(input: unknown): WidgetConfig | null {
 	}
 	if (input.kind === 'status-summary' && isStringIn(input.summary, STATUS_SUMMARIES)) {
 		return { kind: 'status-summary', summary: input.summary };
+	}
+	if (input.kind === 'live-vitals') {
+		return { kind: 'live-vitals' };
 	}
 	if (input.kind === 'memory-detail') {
 		return { kind: 'memory-detail' };

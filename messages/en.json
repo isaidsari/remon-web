@@ -53,6 +53,7 @@
 	"section_probes": "probes",
 	"section_containers": "containers",
 	"section_settings": "app settings",
+	"dashboard_widget_live_vitals": "live vitals",
 	"dashboard_widget_live_kpi": "live metric",
 	"dashboard_widget_history_chart": "history chart",
 	"dashboard_widget_probe_metric": "probe metric",

@@ -138,6 +138,8 @@
 		switch (kind) {
 			case 'live-kpi':
 				return { kind: 'live-kpi', source: liveSource };
+			case 'live-vitals':
+				return { kind: 'live-vitals' };
 			case 'history-chart':
 				return { kind: 'history-chart', resource: histResource, range: histRange };
 			case 'status-summary':
@@ -172,6 +174,7 @@
 	}
 
 	const KIND_OPTS: { value: WidgetKind; label: () => string }[] = [
+		{ value: 'live-vitals', label: () => m.dashboard_widget_live_vitals() },
 		{ value: 'live-kpi', label: () => m.dashboard_widget_live_kpi() },
 		{ value: 'history-chart', label: () => m.dashboard_widget_history_chart() },
 		{ value: 'probe-metric', label: () => m.dashboard_widget_probe_metric() },

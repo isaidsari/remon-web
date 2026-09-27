@@ -16,6 +16,12 @@ export const WIDGET_META: Record<WidgetKind, WidgetMeta> = {
 		defaultSize: { w: 3, h: 2 },
 		needsLive: true
 	},
+	'live-vitals': {
+		kind: 'live-vitals',
+		label: () => m.dashboard_widget_live_vitals(),
+		defaultSize: { w: 12, h: 2 },
+		needsLive: true
+	},
 	'history-chart': {
 		kind: 'history-chart',
 		label: () => m.dashboard_widget_history_chart(),

@@ -2,6 +2,7 @@
 	import type { Connection } from '$lib/stores/connections.svelte';
 	import type { Widget } from '$lib/types/dashboard';
 	import LiveKpiWidget from './widgets/LiveKpiWidget.svelte';
+	import LiveVitalsWidget from './widgets/LiveVitalsWidget.svelte';
 	import HistoryChartWidget from './widgets/HistoryChartWidget.svelte';
 	import ProbeMetricWidget from './widgets/ProbeMetricWidget.svelte';
 	import StatusSummaryWidget from './widgets/StatusSummaryWidget.svelte';
@@ -28,6 +29,8 @@
 <svelte:boundary onerror={(e) => console.error('widget failed', widget.config.kind, e)}>
 	{#if config.kind === 'live-kpi'}
 		<LiveKpiWidget {conn} {config} {editing} />
+	{:else if config.kind === 'live-vitals'}
+		<LiveVitalsWidget {conn} {editing} />
 	{:else if config.kind === 'history-chart'}
 		<HistoryChartWidget {conn} {config} />
 	{:else if config.kind === 'probe-metric'}

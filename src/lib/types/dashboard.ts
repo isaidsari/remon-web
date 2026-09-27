@@ -5,6 +5,7 @@ import type { RangeKey } from '$lib/components/charts/range';
 
 export type WidgetKind =
 	| 'live-kpi'
+	| 'live-vitals'
 	| 'history-chart'
 	| 'probe-metric'
 	| 'status-summary'
@@ -21,6 +22,11 @@ export type LiveKpiSource = 'cpu' | 'memory' | 'disk-io' | 'network';
 export interface LiveKpiConfig {
 	kind: 'live-kpi';
 	source: LiveKpiSource;
+}
+
+/** All four live KPIs in one card. Config-less. */
+export interface LiveVitalsConfig {
+	kind: 'live-vitals';
 }
 
 /** History-API backed range chart. */
@@ -87,6 +93,7 @@ export interface AlertTimelineConfig {
 
 export type WidgetConfig =
 	| LiveKpiConfig
+	| LiveVitalsConfig
 	| HistoryChartConfig
 	| ProbeMetricConfig
 	| StatusSummaryConfig
