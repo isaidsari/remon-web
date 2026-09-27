@@ -8,6 +8,7 @@
 	import { WEB_VERSION } from '$lib/version';
 	import { m } from '$lib/paraglide/messages';
 	import Button from '$lib/components/ui/Button.svelte';
+	import BrandMark from './BrandMark.svelte';
 	import IconLock from '~icons/lucide/lock';
 	import IconChevronRight from '~icons/lucide/chevron-right';
 	import IconPanelLeft from '~icons/lucide/panel-left';
@@ -48,17 +49,20 @@
 				<IconPanelLeft class="size-[16px]" stroke-width="2" />
 			</button>
 		{/if}
-		<a href="/servers" class="group flex shrink-0 items-baseline gap-1.5">
-			<span
-				class="font-mono text-sm font-semibold tracking-[0.02em] text-[var(--color-fg)] transition-colors group-hover:text-[var(--color-accent)]"
-			>
-				remon
-			</span>
-			<span
-				class="text-2xs hidden font-mono text-[var(--color-fg-subtle)] sm:inline"
-				title={m.header_build_version_title()}
-			>
-				v{WEB_VERSION}
+		<a href="/servers" class="group flex shrink-0 items-center gap-2 text-[var(--color-fg)]">
+			<BrandMark />
+			<span class="flex items-baseline gap-1.5">
+				<span
+					class="font-mono text-sm font-semibold tracking-[0.02em] transition-colors group-hover:text-[var(--color-accent)]"
+				>
+					remon
+				</span>
+				<span
+					class="text-2xs hidden font-mono text-[var(--color-fg-subtle)] sm:inline"
+					title={m.header_build_version_title()}
+				>
+					v{WEB_VERSION}
+				</span>
 			</span>
 		</a>
 

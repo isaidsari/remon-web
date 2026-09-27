@@ -20,7 +20,7 @@ export const RESTING: MarkValues = [35, 60, 45];
 const TILE_BG = '#111113';
 const TILE_FG = '#ededf0';
 
-interface Geometry {
+export interface Geometry {
 	ys: readonly number[];
 	h: number;
 	x: number;
@@ -40,7 +40,7 @@ const TILE: Geometry = {
 	led: { cx: 47.5, r: 3.2 }
 };
 // Edge to edge, for 16px tabs where a tile's padding costs a fifth of the space.
-const BARE: Geometry = {
+export const BARE: Geometry = {
 	ys: [3, 24, 45],
 	h: 16,
 	x: 2,
