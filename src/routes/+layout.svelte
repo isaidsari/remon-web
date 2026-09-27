@@ -20,20 +20,16 @@
 	import { m } from '$lib/paraglide/messages';
 	import { tab } from '$lib/brand/tab.svelte';
 	import { faviconSvg, svgDataUrl } from '$lib/brand/mark';
-	import { clearBadge } from '$lib/utils/badge';
+	import { shareLocale } from '$lib/utils/push-cache';
+	import { getLocale } from '$lib/paraglide/runtime';
 
 	let { children } = $props();
 
 	const queryClient = createQueryClient();
 
-	// Looking at the app counts as having seen the alerts the badge was counting.
+	// Notifications are drawn by the service worker, which can't read localStorage.
 	$effect(() => {
-		const onVisible = () => {
-			if (document.visibilityState === 'visible') void clearBadge();
-		};
-		onVisible();
-		document.addEventListener('visibilitychange', onVisible);
-		return () => document.removeEventListener('visibilitychange', onVisible);
+		void shareLocale(getLocale());
 	});
 
 	// app.html's icon is the pre-hydration default; from here on it follows the tab state.

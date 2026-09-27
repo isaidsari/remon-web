@@ -1,6 +1,7 @@
 /// <reference lib="WebWorker" />
 import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching';
-import { readBadgeCount, showBadge, writeBadgeCount } from './lib/utils/badge';
+import { sharedLocale, showBadge, trackFiring } from './lib/utils/push-cache';
+import { renderPush, type PushPayload } from './lib/utils/push-render';
 
 declare const self: ServiceWorkerGlobalScope & typeof globalThis;
 
@@ -17,46 +18,30 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('push', (event) => {
-	let data: Record<string, string>;
+	let data: PushPayload | null = null;
 	try {
-		data = event.data ? event.data.json() : {};
+		data = event.data?.json() ?? null;
 	} catch {
-		data = { title: 'remon', body: event.data ? event.data.text() : '' };
+		// shown as a bare notice below
 	}
-	const title = data.title || 'remon';
-	const isCrit = data.severity === 'crit';
-	// Unknown severity falls back to crit: a mislabelled alert should look loud.
-	const icon =
-		data.event === 'resolved'
-			? '/notify-ok.png'
-			: data.severity === 'warn'
-				? '/notify-warn.png'
-				: '/notify-crit.png';
-	const options: NotificationOptions = {
-		body: data.body || '',
-		icon,
-		badge: '/badge-96.png',
-		tag: data.tag,
-		data,
-		requireInteraction: isCrit
-	};
 	event.waitUntil(
-		Promise.all([
-			self.registration.showNotification(title, options),
-			data.event === 'fired' ? bumpBadge() : Promise.resolve()
-		])
+		(async () => {
+			// A push must always show something, or the browser shows its own notice.
+			if (!data?.key) {
+				await self.registration.showNotification('remon', { badge: '/badge-96.png' });
+				return;
+			}
+			const { title, options, firing } = renderPush(data, await sharedLocale());
+			await self.registration.showNotification(title, options);
+			if (!firing) return;
+			try {
+				await showBadge(self.navigator, await trackFiring(firing.id, firing.on));
+			} catch {
+				// Badging is optional; the notification itself already went out.
+			}
+		})()
 	);
 });
-
-async function bumpBadge() {
-	try {
-		const n = (await readBadgeCount()) + 1;
-		await writeBadgeCount(n);
-		await showBadge(self.navigator, n);
-	} catch {
-		// Badging is optional; the notification itself already went out.
-	}
-}
 
 self.addEventListener('notificationclick', (event) => {
 	event.notification.close();
