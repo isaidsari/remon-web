@@ -47,8 +47,8 @@
 				aria-label={sidebar.open ? m.header_close_menu() : m.header_open_menu()}
 				aria-expanded={sidebar.open}
 				class={cn(
-					'-mx-2.5 grid size-11 shrink-0 place-items-center rounded-md text-[var(--color-fg)] transition md:hidden',
-					sidebar.open ? 'bg-[var(--color-surface-2)]' : 'hover:bg-[var(--color-surface-2)]'
+					'-mx-2.5 grid size-11 shrink-0 place-items-center rounded-md transition active:scale-90 md:hidden',
+					sidebar.open ? 'text-[var(--color-accent)]' : 'text-[var(--color-fg)]'
 				)}
 			>
 				<BrandMark />
