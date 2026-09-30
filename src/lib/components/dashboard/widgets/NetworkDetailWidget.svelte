@@ -2,6 +2,7 @@
 	import Card from '$lib/components/ui/Card.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import ByteValue from '$lib/components/ui/ByteValue.svelte';
+	import TweenedNumber from '$lib/components/ui/TweenedNumber.svelte';
 	import IfaceIcon from '$lib/components/overview/IfaceIcon.svelte';
 	import type { Connection } from '$lib/stores/connections.svelte';
 	import type { NetworkStats } from '$lib/types/api';
@@ -47,10 +48,10 @@
 		<span class="flex flex-col items-end gap-0.5 tabular-nums">
 			<span class="flex items-center gap-3 text-xs">
 				<span class="text-[var(--color-fg-muted)]" title={m.overview_iface_receive()}>
-					↓ {fmtBps(n.rx_bytes_per_sec)}
+					↓ <TweenedNumber value={n.rx_bytes_per_sec} format={(v) => fmtBps(v)} />
 				</span>
 				<span class="text-[var(--color-fg-muted)]" title={m.overview_iface_transmit()}>
-					↑ {fmtBps(n.tx_bytes_per_sec)}
+					↑ <TweenedNumber value={n.tx_bytes_per_sec} format={(v) => fmtBps(v)} />
 				</span>
 			</span>
 			<span class="flex items-center gap-3 text-xs text-[var(--color-fg-muted)]">

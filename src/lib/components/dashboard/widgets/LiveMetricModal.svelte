@@ -2,6 +2,7 @@
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
+	import TweenedNumber from '$lib/components/ui/TweenedNumber.svelte';
 	import SegmentedControl from '$lib/components/ui/SegmentedControl.svelte';
 	import HistoryChart, { type Series } from '$lib/components/charts/HistoryChart.svelte';
 	import ChartResolution from '$lib/components/charts/ChartResolution.svelte';
@@ -12,6 +13,7 @@
 	import DiskDetailWidget from './DiskDetailWidget.svelte';
 	import type { Connection } from '$lib/stores/connections.svelte';
 	import type { LiveKpiSource } from '$lib/types/dashboard';
+	import type { KpiView } from '$lib/dashboard/live-kpi';
 	import type { BatchSeries } from '$lib/types/api';
 	import { observedHistory, groupHistory } from '$lib/charts/observed-history';
 	import { metricColor, metricRamp } from '$lib/charts/chart-theme';
@@ -22,14 +24,12 @@
 	let {
 		conn,
 		source,
-		title,
-		current,
+		view,
 		onClose
 	}: {
 		conn: Connection | null;
 		source: LiveKpiSource;
-		title: string;
-		current: string;
+		view: KpiView;
 		onClose: () => void;
 	} = $props();
 	let range = $state('900');
@@ -98,7 +98,7 @@
 		if (data.resource === 'cpu')
 			return [
 				{
-					name: title,
+					name: view.label,
 					color: metricColor('cpu'),
 					...observedHistory(data.points, 'usage_percent', (p) => p.usage_percent)
 				}
@@ -106,7 +106,7 @@
 		if (data.resource === 'memory')
 			return [
 				{
-					name: title,
+					name: view.label,
 					color: metricColor('memory'),
 					...observedHistory(data.points, 'used_percent', (p) => p.used_percent)
 				}
@@ -152,13 +152,19 @@
 	let hasData = $derived(series.some((s) => s.data.ys.some(Number.isFinite)));
 </script>
 
-<Modal open {title} {onClose} width="lg">
-	<div class="mb-5 flex flex-wrap items-end justify-between gap-4">
-		<div>
+<Modal open title={view.label} {onClose} width="lg">
+	<!-- One row even on phones: the figure shrinks before the range picker wraps. -->
+	<div class="mb-5 flex items-end justify-between gap-3">
+		<div class="min-w-0">
 			<p class="text-xs text-[var(--color-fg-muted)]">{m.chart_range_now()}</p>
-			<p class="mt-1 font-mono text-2xl font-semibold tabular-nums">{current}</p>
+			<TweenedNumber
+				value={view.value}
+				format={view.format}
+				class="mt-1 block truncate font-mono text-xl font-semibold tabular-nums sm:text-2xl"
+			/>
 		</div>
 		<SegmentedControl
+			class="shrink-0"
 			value={range}
 			options={[
 				{ value: '900', label: m.overview_metric_15m() },

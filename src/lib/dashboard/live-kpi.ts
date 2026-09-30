@@ -103,8 +103,3 @@ export function kpiView(live: LiveStats | null, source: LiveKpiSource): KpiView 
 		min: 0
 	};
 }
-
-/** The value as the inspect dialog's heading shows it. */
-export function kpiCurrent(view: KpiView): string {
-	return view.value === null ? '—' : view.format(view.value);
-}

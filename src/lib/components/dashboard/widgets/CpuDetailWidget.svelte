@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Card from '$lib/components/ui/Card.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
+	import TweenedNumber from '$lib/components/ui/TweenedNumber.svelte';
 	import type { Connection } from '$lib/stores/connections.svelte';
 	import { cn } from '$lib/utils/cn';
 	import { fmtNumber, fmtPercent } from '$lib/utils/format';
@@ -71,7 +72,7 @@
 		<div class="shrink-0 text-right">
 			{#if cpu}
 				<p class="font-mono text-xl leading-none font-semibold tracking-tight tabular-nums">
-					{fmtPercent(cpu.usage_percent, 1)}
+					<TweenedNumber value={cpu.usage_percent} format={(v) => fmtPercent(v, 1)} />
 				</p>
 				<p class="text-2xs mt-1 text-[var(--color-fg-subtle)]">
 					{m.overview_cpu_usage()} · {m.overview_metric_cores_count({
@@ -88,7 +89,10 @@
 		<p class="mb-3 text-xs text-[var(--color-fg-muted)]">
 			{m.overview_cpu_busiest()}
 			<span class="ml-1 font-mono text-[var(--color-fg)]"
-				>#{busiest.core_index} · {fmtPercent(busiest.usage_percent, 0)}</span
+				>#{busiest.core_index} · <TweenedNumber
+					value={busiest.usage_percent}
+					format={(v) => fmtPercent(v, 0)}
+				/></span
 			>
 		</p>
 	{/if}
@@ -122,7 +126,7 @@
 								></span>
 							</span>
 							<span class="w-8 shrink-0 text-right text-[var(--color-fg)]">
-								{pct == null ? '—' : fmtPercent(pct, 0)}
+								<TweenedNumber value={pct} format={(v) => fmtPercent(v, 0)} />
 							</span>
 						</li>
 					{/each}
@@ -149,7 +153,9 @@
 				{#each loads as item (item.label)}
 					<div>
 						<dt class="text-2xs text-[var(--color-fg-muted)]">{item.label}</dt>
-						<dd class="text-[var(--color-fg)]">{fmtNumber(item.value)}</dd>
+						<dd class="text-[var(--color-fg)]">
+							<TweenedNumber value={item.value} format={(v) => fmtNumber(v)} />
+						</dd>
 					</div>
 				{/each}
 			</dl>
@@ -158,7 +164,9 @@
 					{#each times as t (t.label)}
 						<div class="flex items-baseline gap-1.5">
 							<dt class="text-[var(--color-fg-subtle)]">{t.label}</dt>
-							<dd class={timeTone(t.value!, t.warn, t.bad)}>{fmtPercent(t.value!, 1)}</dd>
+							<dd class={timeTone(t.value!, t.warn, t.bad)}>
+								<TweenedNumber value={t.value!} format={(v) => fmtPercent(v, 1)} />
+							</dd>
 						</div>
 					{/each}
 				</dl>

@@ -3,7 +3,7 @@
 	import LiveMetricModal from './LiveMetricModal.svelte';
 	import type { Connection } from '$lib/stores/connections.svelte';
 	import type { LiveKpiConfig } from '$lib/types/dashboard';
-	import { kpiCurrent, kpiView } from '$lib/dashboard/live-kpi';
+	import { kpiView } from '$lib/dashboard/live-kpi';
 	import { m } from '$lib/paraglide/messages';
 
 	interface Props {
@@ -52,11 +52,5 @@
 	{/if}
 </div>
 {#if expanded && !editing}
-	<LiveMetricModal
-		{conn}
-		source={config.source}
-		title={view.label}
-		current={kpiCurrent(view)}
-		onClose={() => (expanded = false)}
-	/>
+	<LiveMetricModal {conn} source={config.source} {view} onClose={() => (expanded = false)} />
 {/if}

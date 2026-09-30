@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Card from '$lib/components/ui/Card.svelte';
 	import ByteValue from '$lib/components/ui/ByteValue.svelte';
+	import TweenedNumber from '$lib/components/ui/TweenedNumber.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import type { Connection } from '$lib/stores/connections.svelte';
 	import { fmtBytes, fmtPercent } from '$lib/utils/format';
@@ -27,6 +28,13 @@
 	let swapTotal = $derived(memory?.swap_total_bytes ?? 0);
 	let swapUsed = $derived(memory?.swap_used_bytes ?? 0);
 	let swapPct = $derived(swapTotal > 0 ? (swapUsed / swapTotal) * 100 : 0);
+
+	// Same bands as the CPU and storage bars: grey until it matters.
+	function barColor(pct: number): string {
+		if (pct > 90) return 'var(--color-danger)';
+		if (pct > 75) return 'var(--color-warning)';
+		return 'var(--color-fg-subtle)';
+	}
 </script>
 
 <Card class="flex h-full flex-col" padding="sm">
@@ -78,13 +86,13 @@
 					<span class="text-[var(--color-fg-subtle)]">{m.overview_mem_swap()}</span>
 					<span class="font-mono text-[var(--color-fg-muted)] tabular-nums">
 						<ByteValue value={swapUsed} /> / <ByteValue value={swapTotal} />
-						<span class="ml-2">{fmtPercent(swapPct, 0)}</span>
+						<TweenedNumber value={swapPct} format={(v) => fmtPercent(v, 0)} class="ml-2" />
 					</span>
 				</div>
 				<div class="h-1.5 overflow-hidden rounded-full bg-[var(--color-surface-3)]">
 					<div
-						class="h-full rounded-full bg-[var(--color-warning)]"
-						style="width: {Math.min(100, swapPct)}%"
+						class="h-full rounded-full transition-[width] duration-300"
+						style="width: {Math.min(100, swapPct)}%; background: {barColor(swapPct)}"
 					></div>
 				</div>
 			</div>

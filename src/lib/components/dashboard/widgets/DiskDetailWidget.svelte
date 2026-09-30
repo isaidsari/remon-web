@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Card from '$lib/components/ui/Card.svelte';
 	import ByteValue from '$lib/components/ui/ByteValue.svelte';
+	import TweenedNumber from '$lib/components/ui/TweenedNumber.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import MountIcon from '$lib/components/overview/MountIcon.svelte';
 	import type { Connection } from '$lib/stores/connections.svelte';
@@ -50,7 +51,8 @@
 					<span class="truncate font-mono">{shortenMount(d.mount_point)}</span>
 				</span>
 				<span class="shrink-0 text-xs text-[var(--color-fg-muted)] tabular-nums">
-					R {fmtBps(d.read_bytes_per_sec, 0)} · W {fmtBps(d.write_bytes_per_sec, 0)}
+					R <TweenedNumber value={d.read_bytes_per_sec} format={(v) => fmtBps(v, 0)} /> · W
+					<TweenedNumber value={d.write_bytes_per_sec} format={(v) => fmtBps(v, 0)} />
 				</span>
 			</div>
 			<div
@@ -59,7 +61,7 @@
 				<span class="font-medium text-[var(--color-fg)]">
 					<ByteValue value={d.used_bytes} /> / <ByteValue value={d.total_bytes} />
 				</span>
-				<span>{fmtPercent(pct, 0)}</span>
+				<TweenedNumber value={pct} format={(v) => fmtPercent(v, 0)} />
 			</div>
 		</div>
 		<div class="h-1.5 overflow-hidden rounded-full bg-[var(--color-surface-3)]">

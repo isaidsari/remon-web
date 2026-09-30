@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { fmtBytes, fmtBytesDetail } from '$lib/utils/format';
+	import TweenedNumber from './TweenedNumber.svelte';
 	let {
 		value,
 		label = '',
@@ -8,4 +9,6 @@
 	let detail = $derived(`${label ? `${label}: ` : ''}${fmtBytesDetail(value)}`);
 </script>
 
-<span title={detail} aria-label={detail}>{fmtBytes(value, digits)}</span>
+<span title={detail} aria-label={detail}
+	><TweenedNumber {value} format={(v) => fmtBytes(v, digits)} /></span
+>
