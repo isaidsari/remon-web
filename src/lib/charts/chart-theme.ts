@@ -28,6 +28,8 @@ export interface ChartPalette {
 	tooltipText: string;
 	legendText: string;
 	axisText: string;
+	/** Multiplier on area-fill opacity; saturated fills read heavy on white. */
+	fillScale: number;
 }
 
 const DARK: ChartPalette = {
@@ -39,7 +41,8 @@ const DARK: ChartPalette = {
 	tooltipLabelBg: 'rgba(42,42,42,0.95)',
 	tooltipText: 'rgb(220,220,228)',
 	legendText: 'rgb(180,180,188)',
-	axisText: 'rgb(140,140,150)'
+	axisText: 'rgb(140,140,150)',
+	fillScale: 1
 };
 
 const LIGHT: ChartPalette = {
@@ -51,7 +54,8 @@ const LIGHT: ChartPalette = {
 	tooltipLabelBg: 'rgba(240,240,242,0.95)',
 	tooltipText: 'rgb(40,40,46)',
 	legendText: 'rgb(82,82,88)',
-	axisText: 'rgb(100,100,108)'
+	axisText: 'rgb(100,100,108)',
+	fillScale: 0.55
 };
 
 export function chartPalette(): ChartPalette {
@@ -77,7 +81,7 @@ const METRIC_HUES: Record<ChartTheme, Record<MetricKey, string>> = {
 	light: {
 		cpu: '#2563eb',
 		memory: '#059669',
-		disk: '#a66b0a',
+		disk: '#c2680a',
 		network: '#0891b2',
 		probe: '#0284c7'
 	}
@@ -107,14 +111,15 @@ const RAMP: { turn: number; level: number }[] = [
 /** The card the series is drawn on, and how far a colour may drift from it. */
 const SURFACE: Record<ChartTheme, { bg: string; min: number; max: number }> = {
 	dark: { bg: '#171717', min: 3.2, max: 12.5 },
-	light: { bg: '#ffffff', min: 3, max: 11 }
+	light: { bg: '#ffffff', min: 2.2, max: 8 }
 };
 
 /** Re-lightens a hue until it sits `level` of the way up the card's legible
  *  contrast band. Luminance rises with lightness, so a bisection lands it. */
 function atLevel(h: number, s: number, level: number, theme: ChartTheme): string {
 	const { bg, min, max } = SURFACE[theme];
-	const want = min + level * (max - min);
+	// Light runs the band backwards so the high steps come out as pale tints, as on dark.
+	const want = min + (theme === 'light' ? 1 - level : level) * (max - min);
 	let lo = 4;
 	let hi = 96;
 	let best = hslToHex(h, s, 50);
@@ -154,7 +159,7 @@ export function metricRamp(key: MetricKey, count: number): string[] {
 		return atLevel(
 			h + step.turn + wrap,
 			s,
-			key === 'disk' ? Math.min(step.level, 0.65) : step.level,
+			key === 'disk' && theme === 'dark' ? Math.min(step.level, 0.65) : step.level,
 			theme
 		);
 	});

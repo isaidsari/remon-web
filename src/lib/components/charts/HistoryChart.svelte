@@ -91,6 +91,7 @@
 	let observer: ResizeObserver | null = null;
 
 	function gradientFor(c: string): LinearGradientObject {
+		const k = chartPalette().fillScale;
 		return {
 			type: 'linear',
 			x: 0,
@@ -98,8 +99,8 @@
 			x2: 0,
 			y2: 1,
 			colorStops: [
-				{ offset: 0, color: rgbAt(c, 0.45) },
-				{ offset: 0.6, color: rgbAt(c, 0.12) },
+				{ offset: 0, color: rgbAt(c, 0.45 * k) },
+				{ offset: 0.6, color: rgbAt(c, 0.12 * k) },
 				{ offset: 1, color: rgbAt(c, 0) }
 			],
 			global: false
