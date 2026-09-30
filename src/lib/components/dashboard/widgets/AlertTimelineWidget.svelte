@@ -90,11 +90,12 @@
 </script>
 
 <Card class="flex h-full flex-col overflow-hidden" padding="none">
-	<div class="flex items-center gap-2 px-4 pt-3.5 pb-1">
+	<div class="flex items-center gap-2 px-4 pt-4 pb-2">
 		<h2 class="flex-1 text-sm font-semibold text-[var(--color-fg)]">{m.overview_events_title()}</h2>
+		<!-- Negative margin keeps the 44px tap target from pushing the title down. -->
 		<a
 			href={conn ? `/servers/${conn.serverId}/events` : '#'}
-			class="group -mr-2 inline-flex min-h-11 items-center gap-1 rounded-md px-2 text-xs text-[var(--color-fg-subtle)] transition-colors hover:text-[var(--color-fg)] focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]"
+			class="group -my-3 -mr-2 inline-flex min-h-11 items-center gap-1 rounded-md px-2 text-xs text-[var(--color-fg-subtle)] transition-colors hover:text-[var(--color-fg)] focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]"
 		>
 			{m.overview_events_all()}
 			<IconArrowRight
