@@ -75,6 +75,22 @@ test('simultaneous sign-in callers wait for the same login', async () => {
 	expect(calls).toBe(1);
 });
 
+test('an expired session with a refresh token renews instead of logging in again', async () => {
+	const connection = makeConnection();
+	let logins = 0;
+	connection.client.login = async () => {
+		logins++;
+		return { ...tokens, expires_in: 0 };
+	};
+	await connection.login();
+	expect(connection.isAuthenticated).toBe(false);
+	connection.client.refresh = async () => ({ ...tokens, access_token: 'rotated' });
+	await connection.ensureSignedIn();
+	expect(logins).toBe(1);
+	expect(connection.accessToken).toBe('rotated');
+	expect(connection.isAuthenticated).toBe(true);
+});
+
 test('late failed refresh does not erase tokens received from another tab', async () => {
 	const connection = makeConnection();
 	connection.client.login = async () => tokens;

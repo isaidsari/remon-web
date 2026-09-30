@@ -164,6 +164,10 @@ export class Connection {
 	// also handles 'error' state — branching only on 'idle' left stuck connections after outages
 	async ensureSignedIn(): Promise<void> {
 		if (this.isAuthenticated) return;
+		if (this.loginPending) return this.loginPending;
+		// A held refresh token (e.g. a resumed tab whose timer is late) renews
+		// the pair; logging in with the device credential is the fallback.
+		if (this.state.refreshToken) return this.refresh();
 		return this.login();
 	}
 
