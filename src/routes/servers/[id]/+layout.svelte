@@ -308,18 +308,12 @@
 						onmouseenter={() => prefetch(item.path)}
 						onfocus={() => prefetch(item.path)}
 						class={cn(
-							'group text-md relative flex items-center gap-3 rounded-[var(--radius-input)] px-3 py-2.5 transition-all duration-[var(--dur-fast)] ease-[var(--ease-snap)]',
+							'group text-md flex items-center gap-3 rounded-[var(--radius-input)] px-3 py-2.5 transition-all duration-[var(--dur-fast)] ease-[var(--ease-snap)]',
 							active
 								? 'bg-[var(--color-surface)] text-[var(--color-fg)]'
 								: 'text-[var(--color-fg-muted)] hover:bg-[var(--color-surface)]/60 hover:text-[var(--color-fg)]'
 						)}
 					>
-						{#if active}
-							<span
-								class="absolute inset-y-1.5 left-0 w-[2.5px] rounded-r-full bg-[var(--color-accent)]"
-								aria-hidden="true"
-							></span>
-						{/if}
 						<Icon
 							class={cn(
 								'size-[17px] shrink-0 transition-colors',
