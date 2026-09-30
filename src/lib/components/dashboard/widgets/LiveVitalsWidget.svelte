@@ -5,7 +5,7 @@
 	import LiveMetricModal from './LiveMetricModal.svelte';
 	import type { Connection } from '$lib/stores/connections.svelte';
 	import type { LiveKpiSource } from '$lib/types/dashboard';
-	import { LIVE_KPI_SOURCES, kpiCurrent, kpiView } from '$lib/dashboard/live-kpi';
+	import { LIVE_KPI_SOURCES, kpiView } from '$lib/dashboard/live-kpi';
 	import { m } from '$lib/paraglide/messages';
 
 	interface Props {
@@ -31,9 +31,8 @@
 					: 'focus-within:bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-2)]'}"
 			>
 				<span
-					class="text-2xs flex items-center gap-1.5 px-4 font-mono font-medium tracking-[0.08em] text-[var(--color-fg-muted)]"
+					class="text-2xs px-4 font-mono font-medium tracking-[0.08em] text-[var(--color-fg-muted)]"
 				>
-					<span class="size-1.5 shrink-0 rounded-full" style:background={view.color}></span>
 					{view.label}
 				</span>
 				<div class="mt-1.5 px-4">
@@ -84,8 +83,7 @@
 	<LiveMetricModal
 		{conn}
 		source={inspecting}
-		title={inspected.label}
-		current={kpiCurrent(inspected)}
+		view={inspected}
 		onClose={() => (inspecting = null)}
 	/>
 {/if}
