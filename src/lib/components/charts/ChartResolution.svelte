@@ -26,8 +26,9 @@
 	);
 </script>
 
-{#if chart}
-	<p class="text-2xs mb-2 text-[var(--color-fg-subtle)]" title={details}>
+<!-- Always takes its line, so the chart does not jump down once metadata arrives. -->
+<p class="text-2xs mb-2 min-h-[1.5em] text-[var(--color-fg-subtle)]" title={details}>
+	{#if chart}
 		{chart.bucket_seconds === 0
 			? m.history_raw_samples()
 			: m.history_bucket_size({ interval: fmtDuration(chart.bucket_seconds) })}
@@ -35,5 +36,5 @@
 			· {m.history_missing_coverage()}
 		{:else if chart.degraded}
 			· {m.history_reduced_detail()}{/if}
-	</p>
-{/if}
+	{/if}
+</p>
