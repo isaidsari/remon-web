@@ -1336,5 +1336,13 @@
 	"metrics_other_resolution_label": "Other charts: {value}",
 	"settings_push_level_label": "which alerts",
 	"settings_push_level_all": "warnings and critical",
-	"settings_push_level_crit": "critical only"
+	"settings_push_level_crit": "critical only",
+	"overview_host_hostname": "hostname",
+	"overview_host_os": "os",
+	"overview_host_uptime": "up {duration}",
+	"overview_host_kernel": "kernel {version}",
+	"overview_host_disk": "disk {size}",
+	"overview_host_disks": "disk {size} · {count} drives",
+	"overview_host_copy": "Copy hostname",
+	"overview_host_copied": "Hostname copied"
 }

@@ -1336,5 +1336,13 @@
 	"metrics_other_resolution_label": "Diğer grafikler: {value}",
 	"settings_push_level_label": "hangi uyarılar",
 	"settings_push_level_all": "uyarı ve kritik",
-	"settings_push_level_crit": "yalnızca kritik"
+	"settings_push_level_crit": "yalnızca kritik",
+	"overview_host_hostname": "sunucu adı",
+	"overview_host_os": "sistem",
+	"overview_host_uptime": "{duration} açık",
+	"overview_host_kernel": "çekirdek {version}",
+	"overview_host_disk": "disk {size}",
+	"overview_host_disks": "disk {size} · {count} sürücü",
+	"overview_host_copy": "Sunucu adını kopyala",
+	"overview_host_copied": "Sunucu adı kopyalandı"
 }
