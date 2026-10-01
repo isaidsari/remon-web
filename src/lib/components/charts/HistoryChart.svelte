@@ -319,7 +319,8 @@
 				},
 				backgroundColor: palette.tooltipBg,
 				borderColor: palette.tooltipBorder,
-				textStyle: { color: palette.tooltipText, fontSize: 12 },
+				// ECharts sets values at 900 otherwise; too heavy for the avg/min/max line.
+				textStyle: { color: palette.tooltipText, fontSize: 12, fontWeight: 500 },
 				valueFormatter: fmtValue ? (v: unknown) => fmtValue(v as number) : undefined
 			},
 			legend: {
