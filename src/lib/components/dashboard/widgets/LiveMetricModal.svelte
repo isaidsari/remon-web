@@ -16,7 +16,7 @@
 	import type { KpiView } from '$lib/dashboard/live-kpi';
 	import type { BatchSeries } from '$lib/types/api';
 	import { observedHistory, groupHistory } from '$lib/charts/observed-history';
-	import { metricColor, metricRamp } from '$lib/charts/chart-theme';
+	import { metricColor, metricPair, metricRamp } from '$lib/charts/chart-theme';
 	import { isContainerMount } from '$lib/utils/netClassify';
 	import { fmtPercent, fmtBps } from '$lib/utils/format';
 	import { m } from '$lib/paraglide/messages';
@@ -112,16 +112,19 @@
 				}
 			];
 		if (data.resource === 'network') {
-			const colors = metricRamp('network', 2);
+			const colors = metricPair('network');
 			return [
 				{
 					name: m.overview_iface_receive(),
 					color: colors[0],
+					fill: true,
 					...observedHistory(data.totals, 'rx_bytes_per_sec', (p) => p.rx_bytes_per_sec)
 				},
 				{
 					name: m.overview_iface_transmit(),
 					color: colors[1],
+					fill: true,
+					mirror: true,
 					...observedHistory(data.totals, 'tx_bytes_per_sec', (p) => p.tx_bytes_per_sec)
 				}
 			];

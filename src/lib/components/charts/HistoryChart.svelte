@@ -7,6 +7,8 @@
 		data: TimeSeries;
 		color: string;
 		fill?: boolean;
+		/** Plotted below zero, labelled by magnitude (TX under RX). */
+		mirror?: boolean;
 		/** Aligned to data; NULL entries are raw points or explicit gaps. */
 		buckets?: (ObservedBucket | null)[];
 		summary?: {
@@ -80,7 +82,15 @@
 		class: klass = ''
 	}: Props = $props();
 
-	let tickFormatter = $derived(axisFormatter ?? valueFormatter);
+	let hasMirror = $derived(series.some((s) => s.mirror));
+	const magnitude =
+		(f: ((v: number | null) => string) | undefined) =>
+		(v: number | null): string =>
+			f ? f(v == null ? v : Math.abs(v)) : String(v == null ? '' : Math.abs(v));
+	let fmtValue = $derived(hasMirror ? magnitude(valueFormatter) : valueFormatter);
+	let tickFormatter = $derived(
+		hasMirror ? magnitude(axisFormatter ?? valueFormatter) : (axisFormatter ?? valueFormatter)
+	);
 	let rangeMode = $state<'auto' | 'hide'>('auto');
 	let focusedSeries = $state(0);
 	let hasRanges = $derived(series.some((s) => s.buckets?.some((b) => b != null)));
@@ -90,20 +100,37 @@
 	let chart: ECharts | null = null;
 	let observer: ResizeObserver | null = null;
 
-	function gradientFor(c: string): LinearGradientObject {
+	// Mirrored fills are densest at the peak too, so the gradient runs bottom-up.
+	function gradientFor(c: string, mirrored = false): LinearGradientObject {
 		const k = chartPalette().fillScale;
 		return {
 			type: 'linear',
 			x: 0,
-			y: 0,
+			y: mirrored ? 1 : 0,
 			x2: 0,
-			y2: 1,
+			y2: mirrored ? 0 : 1,
 			colorStops: [
 				{ offset: 0, color: rgbAt(c, 0.45 * k) },
 				{ offset: 0.6, color: rgbAt(c, 0.12 * k) },
 				{ offset: 1, color: rgbAt(c, 0) }
 			],
 			global: false
+		};
+	}
+
+	function negated(s: Series): Series {
+		if (!s.mirror) return s;
+		return {
+			...s,
+			data: { xs: s.data.xs, ys: s.data.ys.map((y) => -y) },
+			buckets: s.buckets?.map(
+				(b) =>
+					b && {
+						...b,
+						min: b.max == null ? null : -b.max,
+						max: b.min == null ? null : -b.min
+					}
+			)
 		};
 	}
 
@@ -118,8 +145,9 @@
 	}
 
 	function buildOption(): EChartsCoreOption {
+		const plotted = series.map(negated);
 		const extrema = showRanges
-			? series.flatMap(
+			? plotted.flatMap(
 					(s) =>
 						s.buckets?.flatMap((b) =>
 							b && b.min != null && b.max != null ? [b.min, b.max] : []
@@ -128,7 +156,8 @@
 			: [];
 		const rangeMin = extrema.length ? Math.min(...extrema) : Infinity;
 		const rangeMax = extrema.length ? Math.max(...extrema) : -Infinity;
-		const seriesArr: Record<string, unknown>[] = series.map((s, index) => {
+		const seriesArr: Record<string, unknown>[] = plotted.map((s, index) => {
+			const source = series[index];
 			// Bucket-end duplicates extend the line; they are not extra measurements.
 			const isObservation = (i: number) =>
 				Number.isFinite(s.data.ys[i]) && (!s.buckets?.[i] || s.data.xs[i] === s.buckets[i]!.start);
@@ -147,7 +176,7 @@
 				animation: false,
 				lineStyle: { color: s.color, width: 1.5 },
 				itemStyle: { color: s.color },
-				areaStyle: s.fill ? { color: gradientFor(s.color), opacity: 1 } : undefined,
+				areaStyle: s.fill ? { color: gradientFor(s.color, s.mirror), opacity: 1 } : undefined,
 				emphasis: { focus: 'series' as const, lineStyle: { width: 2.25 } },
 				connectNulls: false,
 				markArea:
@@ -179,8 +208,8 @@
 					? {
 							// Older buckets without extrema show only the available value.
 							valueFormatter: (v: number, index: number) => {
-								const value = valueFormatter ? valueFormatter(v) : String(v);
-								const bucket = s.buckets?.[index];
+								const value = fmtValue ? fmtValue(v) : String(v);
+								const bucket = source.buckets?.[index];
 								if (!bucket || bucket.min == null || bucket.max == null) return value;
 								const fmt = (n: number) => (valueFormatter ? valueFormatter(n) : String(n));
 								return compact
@@ -196,28 +225,49 @@
 			};
 		});
 
+		const palette = chartPalette();
+		if (hasMirror && seriesArr.length > 0) {
+			seriesArr[0].markLine = {
+				symbol: ['none', 'none'],
+				silent: true,
+				animation: false,
+				data: [
+					{
+						yAxis: 0,
+						lineStyle: { color: palette.axisLine, type: 'solid', width: 1 },
+						label: { show: false },
+						emphasis: { disabled: true }
+					}
+				]
+			};
+		}
+
 		// Marks must attach to a series, so the overlay rides on the first one.
 		if (seriesArr.length > 0 && annotations.length > 0) {
 			const severityColor = statusColors();
 			const lines = annotations.filter((a) => a.endTs == null);
 			const bands = annotations.filter((a) => a.endTs != null);
 			if (lines.length > 0) {
+				const zero = seriesArr[0].markLine as { data?: unknown[] } | undefined;
 				seriesArr[0].markLine = {
 					symbol: ['none', 'none'],
 					animation: false,
-					data: lines.map((a) => ({
-						xAxis: a.ts * 1000,
-						name: a.label,
-						lineStyle: { color: severityColor[a.severity], type: 'dashed', width: 1 },
-						label: {
-							show: false,
-							formatter: '{b}',
-							position: 'insideEndTop',
-							color: severityColor[a.severity],
-							fontSize: 10
-						},
-						emphasis: { label: { show: true } }
-					}))
+					data: [
+						...(zero?.data ?? []),
+						...lines.map((a) => ({
+							xAxis: a.ts * 1000,
+							name: a.label,
+							lineStyle: { color: severityColor[a.severity], type: 'dashed', width: 1 },
+							label: {
+								show: false,
+								formatter: '{b}',
+								position: 'insideEndTop',
+								color: severityColor[a.severity],
+								fontSize: 10
+							},
+							emphasis: { label: { show: true } }
+						}))
+					]
 				};
 			}
 			if (bands.length > 0) {
@@ -241,7 +291,6 @@
 			}
 		}
 
-		const palette = chartPalette();
 		// One series needs no legend: the card title already names what is plotted.
 		const hasLegend = series.length > 1;
 		return {
@@ -271,7 +320,7 @@
 				backgroundColor: palette.tooltipBg,
 				borderColor: palette.tooltipBorder,
 				textStyle: { color: palette.tooltipText, fontSize: 12 },
-				valueFormatter: valueFormatter ? (v: unknown) => valueFormatter(v as number) : undefined
+				valueFormatter: fmtValue ? (v: unknown) => fmtValue(v as number) : undefined
 			},
 			legend: {
 				right: hasRanges && !compact ? 160 : undefined,
@@ -292,7 +341,8 @@
 				min: timeWindow ? timeWindow.start * 1000 : undefined,
 				max: timeWindow ? timeWindow.end * 1000 : undefined,
 				boundaryGap: false,
-				axisLine: { lineStyle: { color: palette.axisLine } },
+				// onZero would drag the time labels up to the mirror's midline.
+				axisLine: { onZero: !hasMirror, lineStyle: { color: palette.axisLine } },
 				axisLabel: { color: palette.axisText, fontSize: 10, hideOverlap: true },
 				splitLine: { show: false }
 			},
@@ -302,9 +352,10 @@
 				nameTextStyle: { color: palette.axisText, fontSize: 10 },
 				// scale:true frees the axis from the zero baseline so small deltas are visible.
 				scale: relativeScale,
+				// A zero floor would clip the mirrored half.
 				min:
-					yMin ??
-					(relativeScale && Number.isFinite(rangeMin)
+					(hasMirror ? undefined : yMin) ??
+					((relativeScale || hasMirror) && Number.isFinite(rangeMin)
 						? (v: { min: number }) => Math.min(v.min, rangeMin)
 						: undefined),
 				max:
@@ -323,8 +374,8 @@
 				// decimal and all, next to axis labels that went through the locale.
 				axisPointer: {
 					label: {
-						formatter: valueFormatter
-							? (p: { value: number | string }) => valueFormatter(Number(p.value)) ?? ''
+						formatter: fmtValue
+							? (p: { value: number | string }) => fmtValue(Number(p.value)) ?? ''
 							: undefined
 					}
 				},

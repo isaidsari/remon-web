@@ -16,7 +16,7 @@
 	import IconHistory from '~icons/lucide/history';
 	import StatStrip from '$lib/components/charts/StatStrip.svelte';
 	import { RANGE_SECONDS, type RangeKey } from '$lib/components/charts/range';
-	import { metricColor, metricRamp } from '$lib/charts/chart-theme';
+	import { metricColor, metricPair, metricRamp } from '$lib/charts/chart-theme';
 	import PressureCard from '$lib/components/metrics/PressureCard.svelte';
 	import ComponentsCard from '$lib/components/metrics/ComponentsCard.svelte';
 	import MetricPanel from '$lib/components/metrics/MetricPanel.svelte';
@@ -409,7 +409,7 @@
 				}));
 		});
 	});
-	const NET_RAMP = metricRamp('network', 2);
+	const NET_RAMP = metricPair('network');
 
 	let networkSeries = $derived.by((): Series[] => {
 		if (!network) return [];
@@ -417,11 +417,14 @@
 			{
 				name: 'RX',
 				color: NET_RAMP[0],
+				fill: true,
 				...observedHistory(network.totals, 'rx_bytes_per_sec', (p) => p.rx_bytes_per_sec)
 			},
 			{
 				name: 'TX',
 				color: NET_RAMP[1],
+				fill: true,
+				mirror: true,
 				...observedHistory(network.totals, 'tx_bytes_per_sec', (p) => p.tx_bytes_per_sec)
 			}
 		];

@@ -13,7 +13,7 @@
 	import OsIcon from './OsIcon.svelte';
 	import { connectionTone } from '$lib/utils/connTone';
 	import { m } from '$lib/paraglide/messages';
-	import { metricColor, metricRamp } from '$lib/charts/chart-theme';
+	import { metricColor, metricPair } from '$lib/charts/chart-theme';
 
 	interface Props {
 		profile: ServerProfile;
@@ -115,8 +115,8 @@
 		return 'text-[var(--color-fg)]';
 	}
 
-	// Rx and tx share the network hue, one step apart.
-	const [rxColor, txColor] = metricRamp('network', 2);
+	// Rx and tx: the network hue and its darker step.
+	const [rxColor, txColor] = metricPair('network');
 	const metricColors = {
 		cpu: metricColor('cpu'),
 		mem: metricColor('memory'),

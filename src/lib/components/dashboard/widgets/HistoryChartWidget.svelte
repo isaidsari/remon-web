@@ -2,7 +2,7 @@
 	import HistoryChart, { type Series } from '$lib/components/charts/HistoryChart.svelte';
 	import ChartResolution from '$lib/components/charts/ChartResolution.svelte';
 	import { chartPointBudget } from '$lib/charts/point-budget';
-	import { metricColor, metricRamp } from '$lib/charts/chart-theme';
+	import { metricColor, metricPair, metricRamp } from '$lib/charts/chart-theme';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import { RANGE_SECONDS } from '$lib/components/charts/range';
@@ -31,7 +31,7 @@
 
 	// One line per mount, all of them steps of the disk hue; rx/tx likewise.
 	const DISK_PALETTE = metricRamp('disk', 5);
-	const NET_COLORS = metricRamp('network', 2);
+	const NET_COLORS = metricPair('network');
 
 	async function fetchData() {
 		if (!conn?.isAuthenticated) return;
@@ -122,11 +122,14 @@
 			{
 				name: 'RX',
 				color: NET_COLORS[0],
+				fill: true,
 				...observedHistory(p.totals, 'rx_bytes_per_sec', (x) => x.rx_bytes_per_sec)
 			},
 			{
 				name: 'TX',
 				color: NET_COLORS[1],
+				fill: true,
+				mirror: true,
 				...observedHistory(p.totals, 'tx_bytes_per_sec', (x) => x.tx_bytes_per_sec)
 			}
 		];

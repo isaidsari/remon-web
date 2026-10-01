@@ -1,6 +1,6 @@
 import type { LiveStats, TimeSeries } from '$lib/stores/livestats.svelte';
 import type { LiveKpiSource } from '$lib/types/dashboard';
-import { metricColor, metricRamp } from '$lib/charts/chart-theme';
+import { metricColor, metricPair } from '$lib/charts/chart-theme';
 import { fmtBps, fmtBytes, fmtPercent } from '$lib/utils/format';
 import { m } from '$lib/paraglide/messages';
 
@@ -69,8 +69,8 @@ export function kpiView(live: LiveStats | null, source: LiveKpiSource): KpiView 
 		};
 	}
 	if (source === 'disk-io') {
-		// Read/write are two steps of the metric's own hue.
-		const [readColor, writeColor] = metricRamp('disk', 2);
+		// Read/write: the disk hue and its darker step.
+		const [readColor, writeColor] = metricPair('disk');
 		// Server already strips container overlay mounts from the live feed.
 		const disks = live?.disks ?? [];
 		const read = disks.reduce((s, d) => s + (d.read_bytes_per_sec ?? 0), 0);
@@ -88,7 +88,7 @@ export function kpiView(live: LiveStats | null, source: LiveKpiSource): KpiView 
 			min: 0
 		};
 	}
-	const [rxColor, txColor] = metricRamp('network', 2);
+	const [rxColor, txColor] = metricPair('network');
 	const network = live?.network ?? [];
 	const rx = network.reduce((s, n) => s + n.rx_bytes_per_sec, 0);
 	const tx = network.reduce((s, n) => s + n.tx_bytes_per_sec, 0);

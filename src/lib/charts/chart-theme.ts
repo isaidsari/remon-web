@@ -148,6 +148,12 @@ export function statusColors() {
 	return STATUS[activeTheme()];
 }
 
+/** In/out halves of one metric (rx/tx, read/write): the hue and its darker step. */
+export function metricPair(key: MetricKey): [string, string] {
+	const ramp = metricRamp(key, 3);
+	return [ramp[0], ramp[2]];
+}
+
 export function metricRamp(key: MetricKey, count: number): string[] {
 	const theme = activeTheme();
 	const base = METRIC_HUES[theme][key];
