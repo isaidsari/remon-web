@@ -114,10 +114,10 @@
 		for (const y of tail(data.ys)) if (Number.isFinite(y) && y > peak) peak = y;
 		if (extra) for (const y of tail(extra.data.ys)) if (Number.isFinite(y) && y > peak) peak = y;
 		if (peak <= 0) return stableMax;
-		const target = peak * 1.25;
+		const target = peak * 1.15;
 		if (stableMax === undefined || target > stableMax) {
 			stableMax = target;
-		} else if (target < stableMax * 0.5) {
+		} else if (target < stableMax * 0.75) {
 			stableMax = target; // burst scrolled out — let scale shrink
 		}
 		return stableMax;
