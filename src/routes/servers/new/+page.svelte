@@ -41,20 +41,9 @@
 		}
 	});
 
-	let pairExpiresAt = $state(0);
-	let now = $state(Date.now());
 	let pairingCode = $state('');
 	let deviceName = $state('');
 	let pairError = $state<string | null>(null);
-
-	$effect(() => {
-		if (step !== 2 && step !== 3) return;
-		const id = setInterval(() => (now = Date.now()), 250);
-		return () => clearInterval(id);
-	});
-
-	let secondsLeft = $derived(Math.max(0, Math.ceil((pairExpiresAt * 1000 - now) / 1000)));
-	let expired = $derived(step >= 2 && pairExpiresAt > 0 && secondsLeft <= 0);
 
 	let client: ApiClient | null = null;
 
@@ -87,7 +76,8 @@
 			await probe.health();
 			client = probe;
 			baseUrl = norm;
-			await initiatePairing();
+			pairError = null;
+			step = 2;
 		} catch (err) {
 			if (err instanceof ApiError) {
 				urlError = err.userMessage;
@@ -96,26 +86,6 @@
 			}
 		} finally {
 			busy = false;
-		}
-	}
-
-	async function initiatePairing() {
-		if (!client) return;
-		pairError = null;
-		try {
-			const res = await client.pairInitiate();
-			pairExpiresAt = res.expires_at;
-			step = 2;
-		} catch (err) {
-			if (err instanceof ApiError && err.code === 'ALREADY_EXISTS') {
-				pairError = m.pair_error_already_open();
-				step = 2;
-				pairExpiresAt = 0;
-			} else if (err instanceof ApiError) {
-				urlError = err.userMessage;
-			} else {
-				urlError = m.pair_error_init_failed();
-			}
 		}
 	}
 
@@ -184,11 +154,10 @@
 		}
 	}
 
-	async function retry() {
-		pairExpiresAt = 0;
+	function back() {
 		pairingCode = '';
 		pairError = null;
-		await initiatePairing();
+		step = 1;
 	}
 
 	// Factory value of `server_config.server_name` (see 0001_schema.sql).
@@ -324,31 +293,12 @@
 					<p class="mt-1 text-[var(--color-fg-muted)]">
 						{m.pair_info_description()}
 					</p>
+					<code
+						class="mt-2.5 block overflow-x-auto rounded-md bg-[var(--color-surface-2)] px-2.5 py-1.5 font-mono text-xs whitespace-nowrap text-[var(--color-fg)]"
+						>sudo remon-server pair</code
+					>
 				</div>
 			</div>
-
-			{#if pairExpiresAt > 0 && !expired}
-				<div class="mb-5 flex items-center justify-between text-xs text-[var(--color-fg-muted)]">
-					<span>{m.pair_code_expires_in()}</span>
-					<span class="font-mono text-sm text-[var(--color-fg)] tabular-nums">
-						{Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')}
-					</span>
-				</div>
-				<div class="mb-5 h-1 overflow-hidden rounded-full bg-[var(--color-surface-3)]">
-					<div
-						class="h-full bg-[var(--color-accent)] transition-all"
-						style="width: {Math.min(100, (secondsLeft / 300) * 100)}%"
-					></div>
-				</div>
-			{/if}
-
-			{#if expired}
-				<div
-					class="mb-5 rounded-[var(--radius-input)] border border-[var(--color-warning)]/40 bg-[var(--color-warning)]/10 p-4 text-sm text-[var(--color-fg)]"
-				>
-					{m.pair_code_expired()}
-				</div>
-			{/if}
 
 			{#if pairError}
 				<div
@@ -369,24 +319,17 @@
 						maxlength={8}
 						class="font-mono text-lg tracking-[0.4em]"
 						autofocus
-						disabled={expired}
 						required
 					/>
 				</Field>
 				<Field label={m.pair_field_device_label()} hint={m.pair_field_device_hint()} for="dname">
-					<Input
-						id="dname"
-						bind:value={deviceName}
-						placeholder="My laptop"
-						disabled={expired}
-						required
-					/>
+					<Input id="dname" bind:value={deviceName} placeholder="My laptop" required />
 				</Field>
 				<div class="flex items-center justify-between gap-2 pt-2">
-					<Button variant="ghost" onclick={retry} disabled={busy}>
-						{expired ? m.pair_step2_button_restart() : m.pair_step2_button_new_code()}
+					<Button variant="ghost" onclick={back} disabled={busy}>
+						{m.pair_step2_button_back()}
 					</Button>
-					<Button type="submit" loading={busy} disabled={busy || expired}>
+					<Button type="submit" loading={busy} disabled={busy}>
 						{m.pair_step2_button_pair()}
 					</Button>
 				</div>

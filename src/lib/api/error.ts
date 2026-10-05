@@ -119,9 +119,7 @@ function humanize(code: ApiErrorCode, fallback: string): string {
 		case 'DEVICE_INACTIVE':
 			return 'This device has been deactivated by the server.';
 		case 'PAIRING_EXPIRED':
-			return 'Pairing code expired or wrong. Restart the pairing flow.';
-		case 'ALREADY_EXISTS':
-			return 'A pairing window is already open. Wait for it to expire or finish it.';
+			return 'Pairing code expired or wrong. Get a new code and try again.';
 		case 'CONFLICT':
 			// The server names REST endpoints; a button-presser needs the UI.
 			if (isSelfTargetMessage(code, fallback)) {

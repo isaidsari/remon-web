@@ -177,6 +177,26 @@
 		if (conn.isAuthenticated) void fetchSessions();
 	});
 
+	let pairCode = $state<string | null>(null);
+	let pairExpiresAt = $state(0);
+	let pairBusy = $state(false);
+	let pairError = $state<string | null>(null);
+	let pairSecondsLeft = $derived(Math.max(0, Math.ceil(pairExpiresAt - now / 1000)));
+
+	async function openPairing() {
+		pairBusy = true;
+		pairError = null;
+		try {
+			const res = await conn.client.pairOpen();
+			pairCode = res.pairing_code;
+			pairExpiresAt = res.expires_at;
+		} catch (e) {
+			pairError = e instanceof ApiError ? e.userMessage : String(e);
+		} finally {
+			pairBusy = false;
+		}
+	}
+
 	function startRename(s: SessionInfo) {
 		editingId = s.id;
 		editingName = s.name;
@@ -576,6 +596,43 @@
 				{/each}
 			</ul>
 		{/if}
+	</Card>
+
+	<Card padding="md" class="mb-5">
+		<p class="mb-3 text-xs tracking-wide text-[var(--color-fg-muted)]">
+			{m.settings_pair_eyebrow()}
+		</p>
+		<p class="mb-3 max-w-md text-xs text-[var(--color-fg-muted)]">
+			{m.settings_pair_description()}
+		</p>
+		{#if pairCode && pairSecondsLeft > 0}
+			<div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+				<span class="font-mono text-2xl font-semibold tracking-[0.3em] text-[var(--color-fg)]">
+					{pairCode}
+				</span>
+				<span class="text-2xs text-[var(--color-fg-subtle)] tabular-nums">
+					{m.settings_pair_expires({
+						time: `${Math.floor(pairSecondsLeft / 60)}:${String(pairSecondsLeft % 60).padStart(2, '0')}`
+					})}
+				</span>
+			</div>
+		{:else if pairCode}
+			<p class="text-xs text-[var(--color-fg-subtle)]">{m.settings_pair_expired()}</p>
+		{/if}
+		{#if pairError}
+			<p class="mt-2 text-xs text-[var(--color-danger)]">{pairError}</p>
+		{/if}
+		<div class="mt-3">
+			<Button
+				size="sm"
+				variant="secondary"
+				onclick={openPairing}
+				loading={pairBusy}
+				disabled={pairBusy || !conn.isAuthenticated}
+			>
+				{pairCode ? m.settings_pair_new_code() : m.settings_pair_button()}
+			</Button>
+		</div>
 	</Card>
 
 	<Card padding="md" class="mb-5">

@@ -69,7 +69,7 @@ import type {
 	NotificationChannelResponse,
 	PairCompleteRequest,
 	PairCompleteResponse,
-	PairingInitiateResponse,
+	PairingOpenResponse,
 	PressureHistoryResponse,
 	PressureResource,
 	ProbeDetail,
@@ -267,11 +267,10 @@ export class ApiClient {
 		return this.request<ReadyResponse>('/ready', { auth: false });
 	}
 
-	pairInitiate(): Promise<PairingInitiateResponse> {
-		return this.request<PairingInitiateResponse>('/auth/pair/initiate', {
-			method: 'POST',
-			auth: false
-		});
+	/** Opens a pairing window for another device and returns its code.
+	 *  Replaces any window already open. */
+	pairOpen(): Promise<PairingOpenResponse> {
+		return this.request<PairingOpenResponse>('/auth/pair/open', { method: 'POST' });
 	}
 
 	pairComplete(req: PairCompleteRequest): Promise<PairCompleteResponse> {

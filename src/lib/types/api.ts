@@ -15,7 +15,6 @@ export type ApiErrorCode =
 	| 'DEVICE_NOT_FOUND'
 	| 'DEVICE_INACTIVE'
 	| 'NOT_FOUND'
-	| 'ALREADY_EXISTS'
 	| 'CONFLICT'
 	| 'PAIRING_EXPIRED'
 	| 'PROCESS_KILL_FAILED'
@@ -72,8 +71,8 @@ export interface LogsResponse {
 	entries: LogEntry[];
 }
 
-export interface PairingInitiateResponse {
-	message: string;
+export interface PairingOpenResponse {
+	pairing_code: string;
 	/** Unix epoch (seconds) at which the pairing window expires. */
 	expires_at: number;
 }
