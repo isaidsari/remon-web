@@ -100,6 +100,16 @@ export async function errorFromResponse(res: Response): Promise<ApiError> {
 		});
 	}
 
+	if (status === 413) {
+		// tower-http's body limit, also plain text.
+		return new ApiError({
+			code: 'INTERNAL_ERROR',
+			status,
+			userMessage: 'Request too large for the server.',
+			serverMessage: textBody ?? 'payload too large'
+		});
+	}
+
 	return new ApiError({
 		code: 'INTERNAL_ERROR',
 		status,

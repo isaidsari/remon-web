@@ -11,6 +11,7 @@
 	import { confirm as confirmDialog } from '$lib/stores/confirm.svelte';
 	import { ApiError } from '$lib/api/error';
 	import { StreamUnsupportedError } from '$lib/api/client';
+	import { replayHistory } from '$lib/assistant/replay';
 	import { cn } from '$lib/utils/cn';
 	import { m } from '$lib/paraglide/messages';
 	import type { ProposedAction } from '$lib/types/api';
@@ -276,12 +277,9 @@
 		const ctrl = new AbortController();
 		aborter = ctrl;
 		try {
-			// Replay finished turns so follow-ups ("do all of those") resolve;
-			// the daemon is stateless and caps/clips what it accepts.
-			const history = entries
-				.filter((e) => e !== entry && !e.error && e.answer)
-				.slice(-12)
-				.map((e) => ({ question: e.question, answer: e.answer }));
+			// Replay finished turns so follow-ups ("do all of those") resolve,
+			// trimmed to what the stateless daemon keeps anyway.
+			const history = replayHistory(entries.filter((e) => e !== entry && !e.error && e.answer));
 			const opts = {
 				history,
 				signal: ctrl.signal
