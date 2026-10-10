@@ -1,7 +1,7 @@
 import type { RangeKey } from '$lib/components/charts/range';
 
-// Widgets on a 12-column grid, stored in the vault so they travel with the
-// profile and need no backend support.
+// The built-in cards. A screen draws one through its `widget` node; the
+// config is what that node carries.
 
 export type WidgetKind =
 	| 'live-kpi'
@@ -106,17 +106,10 @@ export type WidgetConfig =
 
 export interface Widget {
 	id: string;
-	/** Grid placement on a 12-column grid; units are grid cells. */
+	/** Size in dashboard cells (76px rows); x/y only matter to a grid. */
 	x: number;
 	y: number;
 	w: number;
 	h: number;
 	config: WidgetConfig;
 }
-
-export interface DashboardLayout {
-	version: 1;
-	widgets: Widget[];
-}
-
-export const DASHBOARD_COLUMNS = 12;

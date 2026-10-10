@@ -1,4 +1,4 @@
-import type { DashboardLayout, WidgetKind } from '$lib/types/dashboard';
+import type { WidgetKind } from '$lib/types/dashboard';
 import { m } from '$lib/paraglide/messages';
 
 export interface WidgetMeta {
@@ -77,8 +77,3 @@ export const WIDGET_META: Record<WidgetKind, WidgetMeta> = {
 		needsLive: false
 	}
 };
-
-/** True if any widget in the layout needs the live SSE stream. */
-export function layoutNeedsLive(layout: DashboardLayout): boolean {
-	return layout.widgets.some((w) => WIDGET_META[w.config.kind]?.needsLive === true);
-}

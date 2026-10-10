@@ -95,6 +95,7 @@ import type {
 	UpdateConfigRequest,
 	UpdateRetentionRequest
 } from '$lib/types/api';
+import type { QueryRequest, QueryResponse } from '$lib/types/screen';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { ApiError, errorFromResponse, errorFromThrown } from './error';
 
@@ -408,6 +409,15 @@ export class ApiClient {
 	metricsBatch(q: BatchMetricsQuery, opts: Cancellable = {}): Promise<BatchMetricsResponse> {
 		return this.request<BatchMetricsResponse>('/metrics/batch', {
 			query: { ...q, limit: q.limit ?? 5000 },
+			signal: opts.signal
+		});
+	}
+
+	/** A screen's data: many metric queries, one result each. See docs/screens.md. */
+	query(req: QueryRequest, opts: Cancellable = {}): Promise<QueryResponse> {
+		return this.request<QueryResponse>('/query', {
+			method: 'POST',
+			body: req,
 			signal: opts.signal
 		});
 	}
@@ -912,11 +922,13 @@ export class ApiClient {
 			signal?: AbortSignal;
 			history?: AssistantHistoryTurn[];
 			dev?: AssistantDevOverrides;
+			/** The screen being looked at, so the answer can edit it. */
+			screen?: unknown;
 		}
 	): Promise<AssistantAskResponse> {
 		return this.request<AssistantAskResponse>('/assistant', {
 			method: 'POST',
-			body: { question, history: opts?.history ?? [], dev: opts?.dev },
+			body: { question, history: opts?.history ?? [], dev: opts?.dev, screen: opts?.screen },
 			signal: opts?.signal,
 			timeoutMs: 150_000
 		});
@@ -931,6 +943,7 @@ export class ApiClient {
 			signal?: AbortSignal;
 			history?: AssistantHistoryTurn[];
 			dev?: AssistantDevOverrides;
+			screen?: unknown;
 			onStep?: (step: AssistantStreamStep) => void;
 			onDelta?: (text: string) => void;
 		} = {}
@@ -957,7 +970,12 @@ export class ApiClient {
 				'content-type': 'application/json',
 				authorization: `Bearer ${token}`
 			},
-			body: JSON.stringify({ question, history: opts.history ?? [], dev: opts.dev }),
+			body: JSON.stringify({
+				question,
+				history: opts.history ?? [],
+				dev: opts.dev,
+				screen: opts.screen
+			}),
 			signal: opts.signal,
 			// An answer in flight should survive a backgrounded tab.
 			openWhenHidden: true,

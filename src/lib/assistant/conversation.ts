@@ -9,6 +9,9 @@ export interface StoredTurn {
 	question: string;
 	answer: string;
 	error?: string | null;
+	/** Screens drawn under the answer, raw as received, so a later build that
+	 *  draws more still draws them. Absent on turns saved before screens. */
+	screens?: unknown[];
 }
 
 export interface Conversation {
@@ -51,6 +54,12 @@ export function toMarkdown(conversation: Conversation): string {
 		lines.push(`## ${turn.question}`, '');
 		if (turn.error) lines.push(`> ${turn.error}`, '');
 		else lines.push(turn.answer, '');
+		// The screens are live; a transcript can only name them.
+		const titles = (turn.screens ?? [])
+			.map((s) => (typeof s === 'object' && s !== null ? (s as { title?: unknown }).title : null))
+			.filter((t): t is string => typeof t === 'string' && t !== '');
+		for (const title of titles) lines.push(`- _${title}_`);
+		if (titles.length) lines.push('');
 	}
 	return lines.join('\n').trimEnd() + '\n';
 }

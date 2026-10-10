@@ -1477,9 +1477,17 @@ export interface AssistantTraceStep {
 	usage?: Record<string, number>;
 }
 
+/** A screen the assistant composed. Untrusted until parsed; see docs/screens.md. */
+export interface AssistantScreen {
+	id: string;
+	screen: unknown;
+}
+
 export interface AssistantAskResponse {
 	answer: string;
 	proposals: ProposedAction[];
+	/** Absent on daemons older than composed screens. */
+	screens?: AssistantScreen[];
 	trace?: AssistantTraceStep[];
 }
 

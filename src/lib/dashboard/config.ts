@@ -1,34 +1,14 @@
 import { RANGE_SECONDS } from '$lib/components/charts/range';
 import { LIVE_KPI_SOURCES } from './live-kpi';
-import type { DashboardLayout, Widget, WidgetConfig } from '$lib/types/dashboard';
-import { DASHBOARD_COLUMNS } from '$lib/types/dashboard';
+import type { WidgetConfig } from '$lib/types/dashboard';
+
+// The built-in cards' configs, as a screen's `widget` node carries them. A
+// node arrives from the daemon, a URL or the vault, so it is checked here
+// before WidgetHost sees it.
 
 const HISTORY_RESOURCES = ['cpu', 'memory', 'disk', 'network'] as const;
 const HISTORY_RANGES = Object.keys(RANGE_SECONDS) as Array<keyof typeof RANGE_SECONDS>;
 const STATUS_SUMMARIES = ['host', 'services', 'containers', 'alerts'] as const;
-
-export function widgetId(): string {
-	return crypto.randomUUID();
-}
-
-function widget(x: number, y: number, w: number, h: number, config: WidgetConfig): Widget {
-	return { id: widgetId(), x, y, w, h, config };
-}
-
-/** Starting layout for a fresh or migrated profile. */
-export function defaultDashboard(): DashboardLayout {
-	return {
-		version: 1,
-		widgets: [
-			widget(0, 0, 12, 2, { kind: 'live-vitals' }),
-			widget(0, 2, 8, 4, { kind: 'history-chart', resource: 'cpu', range: '1h' }),
-			widget(8, 2, 4, 4, { kind: 'alert-timeline' }),
-			widget(0, 6, 6, 4, { kind: 'history-chart', resource: 'memory', range: '1h' }),
-			widget(6, 6, 6, 4, { kind: 'history-chart', resource: 'network', range: '1h' }),
-			widget(0, 10, 12, 4, { kind: 'history-chart', resource: 'disk', range: '1h' })
-		]
-	};
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null;
@@ -38,12 +18,8 @@ function isStringIn<T extends string>(value: unknown, allowed: readonly T[]): va
 	return typeof value === 'string' && allowed.includes(value as T);
 }
 
-function cleanInt(value: unknown, fallback: number, min: number, max = Number.MAX_SAFE_INTEGER) {
-	const n = typeof value === 'number' && Number.isFinite(value) ? Math.trunc(value) : fallback;
-	return Math.min(max, Math.max(min, n));
-}
-
-function normalizeConfig(input: unknown): WidgetConfig | null {
+/** One untrusted widget config, or null when this build cannot draw it. */
+export function normalizeConfig(input: unknown): WidgetConfig | null {
 	if (!isRecord(input)) return null;
 	if (input.kind === 'live-kpi' && isStringIn(input.source, LIVE_KPI_SOURCES)) {
 		return { kind: 'live-kpi', source: input.source };
@@ -97,30 +73,5 @@ function normalizeConfig(input: unknown): WidgetConfig | null {
 				? input.labelKey
 				: undefined,
 		viz: input.viz === 'scalar' ? 'scalar' : 'chart'
-	};
-}
-
-function normalizeWidget(input: unknown): Widget | null {
-	if (!isRecord(input)) return null;
-	const config = normalizeConfig(input.config);
-	if (!config) return null;
-	const x = cleanInt(input.x, 0, 0, DASHBOARD_COLUMNS - 1);
-	const w = cleanInt(input.w, 1, 1, DASHBOARD_COLUMNS - x);
-	return {
-		id: typeof input.id === 'string' && input.id.trim() !== '' ? input.id : widgetId(),
-		x,
-		y: cleanInt(input.y, 0, 0),
-		w,
-		h: cleanInt(input.h, 2, 1),
-		config
-	};
-}
-
-/** Sanitize persisted dashboard JSON before rendering or saving it again. */
-export function normalizeDashboard(input: unknown): DashboardLayout {
-	if (!isRecord(input) || !Array.isArray(input.widgets)) return defaultDashboard();
-	return {
-		version: 1,
-		widgets: input.widgets.map(normalizeWidget).filter((w): w is Widget => w !== null)
 	};
 }

@@ -17,6 +17,10 @@
 	import type { ProposedAction } from '$lib/types/api';
 	import Markdown from '$lib/components/assistant/Markdown.svelte';
 	import HistoryPanel from '$lib/components/assistant/HistoryPanel.svelte';
+	import ScreenView from '$lib/components/screen/ScreenView.svelte';
+	import { encodeScreen, parseScreen } from '$lib/screen/spec';
+	import type { Screen } from '$lib/types/screen';
+	import IconExternalLink from '~icons/lucide/external-link';
 	import { vault } from '$lib/vault/store.svelte';
 	import { deriveTitle, type Conversation, type StoredTurn } from '$lib/assistant/conversation';
 	import { deleteConversation, listConversations, saveConversation } from '$lib/assistant/history';
@@ -46,6 +50,9 @@
 		error: string | null;
 		loading: boolean;
 		proposals: Proposal[];
+		/** Composed screens under the answer. `raw` is what gets saved, so a
+		 *  later build that draws more still draws an old turn's screen. */
+		screens: { raw: unknown; screen: Screen }[];
 		startedAt?: number;
 		/** Tool currently running on the server (streaming asks only) — shown
 		 * next to the thinking dots, never persisted past the turn. */
@@ -69,7 +76,20 @@
 	function turnsOf(list: Entry[]): StoredTurn[] {
 		return list
 			.filter((e) => !e.loading && (e.answer || e.error))
-			.map((e) => ({ question: e.question, answer: e.answer, error: e.error }));
+			.map((e) => ({
+				question: e.question,
+				answer: e.answer,
+				error: e.error,
+				...(e.screens.length > 0 && { screens: e.screens.map((s) => s.raw) })
+			}));
+	}
+
+	/** Whatever a response or a saved turn holds; what does not parse is dropped. */
+	function toScreens(raws: unknown[] | undefined): Entry['screens'] {
+		return (raws ?? []).flatMap((raw) => {
+			const screen = parseScreen(raw);
+			return screen ? [{ raw, screen }] : [];
+		});
 	}
 
 	/** Carry the old single conversation over once, then stop reading that key. */
@@ -233,7 +253,8 @@
 			answer: t.answer,
 			error: t.error ?? null,
 			loading: false,
-			proposals: []
+			proposals: [],
+			screens: toScreens(t.screens)
 		}));
 		activeId = found.id;
 		historyOpen = false;
@@ -269,6 +290,7 @@
 			error: null,
 			loading: true,
 			proposals: [],
+			screens: [],
 			startedAt: Date.now()
 		});
 		const entry = entries[entries.length - 1];
@@ -311,6 +333,7 @@
 			}
 			entry.answer = res.answer;
 			entry.proposals = (res.proposals ?? []).map((p) => ({ ...p, state: 'pending' }));
+			entry.screens = toScreens(res.screens?.map((s) => s.screen));
 		} catch (e) {
 			// A stop is not a failure: drop the pending turn and hand the
 			// question back so it can be edited and re-sent.
@@ -550,6 +573,26 @@
 									{m.assistant_copy()}
 								</button>
 							</div>
+
+							{#each entry.screens as s, si (si)}
+								<section class="space-y-2">
+									<div class="flex items-center gap-2 px-0.5">
+										<h3
+											class="min-w-0 flex-1 truncate text-xs font-medium text-[var(--color-fg-muted)]"
+										>
+											{s.screen.title}
+										</h3>
+										<a
+											href={`/servers/${id}/screen?s=${encodeScreen(s.screen)}`}
+											class="text-2xs inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-1 text-[var(--color-fg-faint)] transition-colors duration-[var(--dur-fast)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)]"
+										>
+											<IconExternalLink class="size-3" />
+											{m.screen_open_page()}
+										</a>
+									</div>
+									<ScreenView screen={s.screen} {conn} />
+								</section>
+							{/each}
 						{/if}
 
 						{#each entry.proposals as p, pi (pi)}

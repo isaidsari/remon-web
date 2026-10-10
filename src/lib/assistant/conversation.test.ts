@@ -96,6 +96,22 @@ describe('toMarkdown', () => {
 		expect(md).toContain('> daemon unreachable');
 	});
 
+	it('names the screens drawn under an answer', () => {
+		const md = toMarkdown(
+			conv({
+				turns: [
+					{
+						question: 'show cpu',
+						answer: 'it peaked at noon',
+						screens: [{ title: 'CPU, last 6h', root: {} }, { nope: true }]
+					}
+				]
+			})
+		);
+		expect(md).toContain('it peaked at noon\n\n- _CPU, last 6h_\n');
+		expect(md.endsWith('\n\n')).toBe(false);
+	});
+
 	it('ends with exactly one newline', () => {
 		const md = toMarkdown(conv());
 		expect(md.endsWith('\n')).toBe(true);

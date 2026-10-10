@@ -1,5 +1,3 @@
-import type { DashboardLayout } from './dashboard';
-
 export interface ServerProfile {
 	id: string;
 	name: string;
@@ -12,16 +10,17 @@ export interface ServerProfile {
 	notes?: string;
 	/** Per-server accent hex (#rrggbb) — visual differentiation between servers. */
 	accent?: string;
-	/** Customizable overview layout. Absent on v1 vaults / fresh profiles → a default is generated on first render. */
-	dashboard?: DashboardLayout;
+	/** The overview page as a screen spec (docs/screens.md). Raw, parsed on
+	 *  read; absent until first edited, which shows the default. */
+	home?: unknown;
 	createdAt: number;
 }
 
 /** Current persisted vault schema version. */
-export const VAULT_SCHEMA_VERSION = 2;
+export const VAULT_SCHEMA_VERSION = 3;
 
 export interface VaultData {
-	schemaVersion: 1 | 2;
+	schemaVersion: 1 | 2 | 3;
 	servers: ServerProfile[];
 	createdAt: number;
 }
@@ -32,8 +31,19 @@ export const EMPTY_VAULT_DATA: VaultData = {
 	createdAt: 0
 };
 
-/** Forward-migrate a decrypted vault. v1→v2 only bumps the version marker. */
+/**
+ * Forward-migrate a decrypted vault. v1→v2 only bumped the version marker.
+ * v2→v3 drops the grid `dashboard` layouts: the overview became a screen, and
+ * old layouts are reset to the default rather than converted.
+ */
 export function migrateVaultData(data: VaultData): VaultData {
 	if (data.schemaVersion >= VAULT_SCHEMA_VERSION) return data;
-	return { ...data, schemaVersion: VAULT_SCHEMA_VERSION };
+	return {
+		...data,
+		schemaVersion: VAULT_SCHEMA_VERSION,
+		servers: data.servers.map((s) => {
+			const { dashboard: _dropped, ...rest } = s as ServerProfile & { dashboard?: unknown };
+			return rest;
+		})
+	};
 }
