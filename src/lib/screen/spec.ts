@@ -1,12 +1,15 @@
 import type {
 	Agg,
 	Column,
+	Mark,
+	MarkSeverity,
 	Query,
 	RangeName,
 	Screen,
 	ScreenNode,
 	SeriesSpec,
-	Tab
+	Tab,
+	TimeWindow
 } from '$lib/types/screen';
 
 // Specs reach the client from the daemon (validated there) but also from a
@@ -102,6 +105,19 @@ function node(v: unknown, depth: number): ScreenNode {
 		}
 		case 'widget':
 			return { type: 'widget', config: v.config, ...(str(v.title) && { title: str(v.title) }) };
+		case 'events': {
+			const kinds = strings(v.kinds);
+			const sources = strings(v.sources);
+			return {
+				type: 'events',
+				title: str(v.title),
+				...(kinds.length && { kinds }),
+				...(sources.length && { sources })
+			};
+		}
+		case 'note':
+			if (!str(v.text).trim()) break;
+			return { type: 'note', text: str(v.text) };
 	}
 	return { type: 'unsupported', kind: kind || '?' };
 }
@@ -114,10 +130,43 @@ function rangeOf(v: Record<string, unknown>): { range?: RangeName } {
 /** Untrusted JSON → a drawable screen, or null when it is not one at all. */
 export function parseScreen(input: unknown): Screen | null {
 	if (!isRecord(input) || !isRecord(input.root)) return null;
+	const window = timeWindow(input.window);
+	const marks = (Array.isArray(input.marks) ? input.marks : [])
+		.map(mark)
+		.filter((m): m is Mark => m !== null);
 	return {
 		title: str(input.title),
 		range: range(input.range) ?? '1h',
+		...(window && { window }),
+		...(marks.length && { marks }),
 		root: node(input.root, 1)
+	};
+}
+
+function strings(v: unknown): string[] {
+	return Array.isArray(v) ? v.filter((s): s is string => typeof s === 'string' && s !== '') : [];
+}
+
+function isTime(v: unknown): v is number {
+	return typeof v === 'number' && Number.isInteger(v) && v > 0;
+}
+
+function timeWindow(v: unknown): TimeWindow | null {
+	if (!isRecord(v) || !isTime(v.start) || !isTime(v.end) || v.end <= v.start) return null;
+	return { start: v.start, end: v.end };
+}
+
+const SEVERITIES: readonly MarkSeverity[] = ['info', 'warn', 'error'];
+
+function mark(v: unknown): Mark | null {
+	if (!isRecord(v) || !isTime(v.at)) return null;
+	return {
+		at: v.at,
+		...(isTime(v.until) && v.until > v.at && { until: v.until }),
+		label: str(v.label),
+		severity: SEVERITIES.includes(v.severity as MarkSeverity)
+			? (v.severity as MarkSeverity)
+			: 'warn'
 	};
 }
 

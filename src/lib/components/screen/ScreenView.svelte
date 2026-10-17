@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Connection } from '$lib/stores/connections.svelte';
 	import type { QueryResult, Screen, ScreenNode as Node } from '$lib/types/screen';
-	import { planQueries } from '$lib/screen/plan';
+	import { planQueries, spanQuery } from '$lib/screen/plan';
 	import type { ScreenEdit } from '$lib/screen/edit';
 	import { normalizeConfig } from '$lib/dashboard/config';
 	import { WIDGET_META } from '$lib/dashboard/registry';
@@ -31,7 +31,7 @@
 		const next = new Map<string, QueryResult>();
 		try {
 			const answers = await Promise.all(
-				plan.map((p) => conn.client.query({ range: p.range, queries: p.queries }))
+				plan.map((p) => conn.client.query({ ...spanQuery(p), queries: p.queries }))
 			);
 			for (const answer of answers) for (const r of answer.results) next.set(r.id, r);
 		} catch (e) {
@@ -49,6 +49,9 @@
 		if (!conn.isAuthenticated) return;
 		results = null;
 		void load();
+		// A fixed window is history: read once, nothing to refresh (its stats
+		// too; only live cards keep moving, on their own feed).
+		if (screen.window) return () => ++requestId;
 		const timer = setInterval(load, 60_000);
 		return () => {
 			++requestId;
@@ -80,4 +83,4 @@
 	});
 </script>
 
-<ScreenNode node={screen.root} path="root" range={screen.range} {results} {conn} {edit} />
+<ScreenNode node={screen.root} path="root" {screen} {results} {conn} {edit} />

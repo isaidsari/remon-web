@@ -5,6 +5,7 @@
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import ScreenView from '$lib/components/screen/ScreenView.svelte';
 	import { decodeScreen } from '$lib/screen/spec';
+	import { spanLabel } from '$lib/screen/plan';
 	import { m } from '$lib/paraglide/messages';
 
 	// A composed screen as a page of its own. The spec rides in `?s=` as
@@ -18,7 +19,10 @@
 
 <div class="px-4 py-6 md:px-8 md:py-8">
 	{#if screen}
-		<PageHeader title={screen.title} />
+		<PageHeader
+			title={screen.title}
+			subtitle={screen.window ? spanLabel({ window: screen.window }) : undefined}
+		/>
 		<ScreenView {screen} {conn} />
 	{:else}
 		<Banner variant="danger">{m.screen_invalid_link()}</Banner>

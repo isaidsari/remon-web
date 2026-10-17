@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Connection } from '$lib/stores/connections.svelte';
-	import type { QueryResult, RangeName, ScreenNode } from '$lib/types/screen';
-	import { childPath, tabPath } from '$lib/screen/plan';
+	import type { QueryResult, Screen, ScreenNode } from '$lib/types/screen';
+	import { childPath, spanLabel, spanOf, tabPath } from '$lib/screen/plan';
 	import type { ScreenEdit } from '$lib/screen/edit';
 	import { cn } from '$lib/utils/cn';
 	import Self from './ScreenNode.svelte';
@@ -10,6 +10,8 @@
 	import TablePanel from './TablePanel.svelte';
 	import WidgetPanel from './WidgetPanel.svelte';
 	import UnsupportedPanel from './UnsupportedPanel.svelte';
+	import EventsPanel from './EventsPanel.svelte';
+	import NotePanel from './NotePanel.svelte';
 	import { m } from '$lib/paraglide/messages';
 	import IconArrowUp from '~icons/lucide/arrow-up';
 	import IconArrowDown from '~icons/lucide/arrow-down';
@@ -18,13 +20,14 @@
 	interface Props {
 		node: ScreenNode;
 		path: string;
-		range: RangeName;
+		/** The whole screen: its time (range or window) and marks reach every panel. */
+		screen: Screen;
 		results: Map<string, QueryResult> | null;
 		conn: Connection;
 		edit?: ScreenEdit;
 	}
 
-	let { node, path, range, results, conn, edit }: Props = $props();
+	let { node, path, screen, results, conn, edit }: Props = $props();
 
 	const TOOL =
 		'grid size-7 place-items-center rounded-md bg-[var(--color-surface-3)] text-[var(--color-fg-muted)] shadow-[0_0_0_1px_var(--color-border)] transition-colors hover:text-[var(--color-fg)] disabled:opacity-40 disabled:hover:text-[var(--color-fg-muted)]';
@@ -86,7 +89,7 @@
 							</button>
 						</div>
 					{/if}
-					<Self node={child} path={at} {range} {results} {conn} {edit} />
+					<Self node={child} path={at} {screen} {results} {conn} {edit} />
 				</div>
 			{/each}
 		</div>
@@ -114,7 +117,7 @@
 				<Self
 					node={node.tabs[activeTab].child}
 					path={tabPath(path, activeTab)}
-					{range}
+					{screen}
 					{results}
 					{conn}
 					{edit}
@@ -125,9 +128,10 @@
 		<LinePanel
 			title={node.title}
 			specs={node.series}
-			range={node.range ?? range}
+			range={spanLabel(spanOf(screen, node.range))}
 			{path}
 			{results}
+			marks={screen.marks}
 		/>
 	{:else if node.type === 'stat'}
 		<StatPanel title={node.title} {path} {results} />
@@ -136,12 +140,23 @@
 			title={node.title}
 			columns={node.columns}
 			limit={node.limit}
-			range={node.range ?? range}
+			range={spanLabel(spanOf(screen, node.range))}
 			{path}
 			{results}
 		/>
 	{:else if node.type === 'widget'}
 		<WidgetPanel config={node.config} {path} {conn} />
+	{:else if node.type === 'events'}
+		<EventsPanel
+			title={node.title}
+			kinds={node.kinds}
+			sources={node.sources}
+			span={spanOf(screen)}
+			label={spanLabel(spanOf(screen))}
+			{conn}
+		/>
+	{:else if node.type === 'note'}
+		<NotePanel text={node.text} />
 	{:else}
 		<UnsupportedPanel kind={node.kind} />
 	{/if}

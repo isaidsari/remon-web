@@ -1161,6 +1161,7 @@
 	"screen_invalid_link": "this screen link is broken or incomplete.",
 	"screen_move_earlier": "move earlier",
 	"screen_move_later": "move later",
+	"screen_no_events": "nothing happened in this window",
 	"home_ask_placeholder": "change this page, e.g. “add disk I/O, drop network”",
 	"home_ask_submit": "change",
 	"home_preview": "preview: not saved yet",

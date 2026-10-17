@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'bun:test';
-import { columnId, lineSeries, planQueries, seriesId, statValue, tableRows } from './plan';
+import {
+	columnId,
+	lineSeries,
+	planQueries,
+	seriesId,
+	spanLabel,
+	spanOf,
+	spanQuery,
+	statValue,
+	tableRows
+} from './plan';
 import type { Column, QueryResult, Screen } from '$lib/types/screen';
 
 const cpu = { namespace: 'process', field: 'cpu_percent' };
@@ -29,8 +39,8 @@ describe('planQueries', () => {
 			}
 		};
 		const plan = planQueries(screen);
-		const day = plan.find((p) => p.range === '24h')!;
-		const hour = plan.find((p) => p.range === '1h')!;
+		const day = plan.find((p) => 'range' in p && p.range === '24h')!;
+		const hour = plan.find((p) => 'range' in p && p.range === '1h')!;
 		expect(day.queries).toEqual([{ ...cpu, id: 'root.children[0]/s0', mode: 'series' }]);
 		expect(hour.queries.map((q) => [q.id, q.mode, q.limit])).toEqual([
 			['root.children[1]', 'latest', undefined],
@@ -125,5 +135,31 @@ describe('tableRows', () => {
 			['mid', 20, 1024]
 		]);
 		expect(out.units).toEqual(['percent', 'bytes']);
+	});
+});
+
+describe('spans', () => {
+	it('reads a fixed window unless a panel names its own range', () => {
+		const window = { start: 1_000_000, end: 1_003_600 };
+		const screen: Screen = {
+			title: 'x',
+			range: '1h',
+			window,
+			root: {
+				type: 'grid',
+				columns: 1,
+				children: [
+					{ type: 'line', title: 'then', series: [{ query: cpu }] },
+					{ type: 'line', title: 'now', series: [{ query: cpu }], range: '6h' }
+				]
+			}
+		};
+		const plan = planQueries(screen);
+		expect(plan.map((p) => spanQuery(p))).toEqual([
+			{ start: 1_000_000, end: 1_003_600 },
+			{ range: '6h' }
+		]);
+		expect(spanOf(screen)).toEqual({ window });
+		expect(spanLabel({ range: '6h' })).toBe('6h');
 	});
 });

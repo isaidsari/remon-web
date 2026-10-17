@@ -1,11 +1,14 @@
 <script lang="ts">
-	import HistoryChart, { type Series } from '$lib/components/charts/HistoryChart.svelte';
+	import HistoryChart, {
+		type ChartAnnotation,
+		type Series
+	} from '$lib/components/charts/HistoryChart.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import { categoricalColors } from '$lib/charts/chart-theme';
 	import { lineSeries, seriesId } from '$lib/screen/plan';
 	import { formatAxis, formatValue } from '$lib/screen/format';
-	import type { QueryResult, SeriesSpec } from '$lib/types/screen';
+	import type { Mark, QueryResult, SeriesSpec } from '$lib/types/screen';
 	import { m } from '$lib/paraglide/messages';
 	import PanelError from './PanelError.svelte';
 
@@ -15,9 +18,20 @@
 		range: string;
 		path: string;
 		results: Map<string, QueryResult> | null;
+		/** Moments drawn on the chart: the screen's marks. */
+		marks?: Mark[];
 	}
 
-	let { title, specs, range, path, results }: Props = $props();
+	let { title, specs, range, path, results, marks = [] }: Props = $props();
+
+	let annotations = $derived(
+		marks.map((mk): ChartAnnotation => ({
+			ts: mk.at,
+			...(mk.until !== undefined && { endTs: mk.until }),
+			label: mk.label,
+			severity: mk.severity
+		}))
+	);
 
 	let data = $derived(results ? lineSeries(specs, path, results) : null);
 	let chart = $derived(results?.get(seriesId(path, 0))?.chart);
@@ -52,6 +66,7 @@
 					compact
 					height={200}
 					{series}
+					{annotations}
 					timeWindow={chart
 						? { start: chart.aligned.start, end: Math.min(chart.aligned.end, chart.as_of) }
 						: undefined}

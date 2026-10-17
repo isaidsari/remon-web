@@ -1161,6 +1161,7 @@
 	"screen_invalid_link": "bu ekran bağlantısı bozuk ya da eksik.",
 	"screen_move_earlier": "öne al",
 	"screen_move_later": "geri al",
+	"screen_no_events": "bu aralıkta bir olay yok",
 	"home_ask_placeholder": "bu sayfayı değiştir, ör. “disk I/O ekle, ağı kaldır”",
 	"home_ask_submit": "değiştir",
 	"home_preview": "önizleme: henüz kaydedilmedi",

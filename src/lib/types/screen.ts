@@ -37,12 +37,35 @@ export type ScreenNode =
 	| { type: 'stat'; title: string; query: Query }
 	| { type: 'table'; title: string; columns: Column[]; limit?: number; range?: RangeName }
 	| { type: 'widget'; title?: string; config: unknown }
+	/** What happened in the screen's time: alerts, host events, incidents. */
+	| { type: 'events'; title: string; kinds?: string[]; sources?: string[] }
+	/** A finding in words (markdown); the panels around it carry the numbers. */
+	| { type: 'note'; text: string }
 	/** A node this build cannot draw; kept so the rest of the screen still can. */
 	| { type: 'unsupported'; kind: string };
+
+/** A fixed past stretch, unix seconds. */
+export interface TimeWindow {
+	start: number;
+	end: number;
+}
+
+export type MarkSeverity = 'info' | 'warn' | 'error';
+
+/** A moment drawn on every chart; `until` makes it a stretch. */
+export interface Mark {
+	at: number;
+	until?: number;
+	label: string;
+	severity: MarkSeverity;
+}
 
 export interface Screen {
 	title: string;
 	range: RangeName;
+	/** Fixes the screen on a past stretch instead of `range` ending now. */
+	window?: TimeWindow;
+	marks?: Mark[];
 	root: ScreenNode;
 }
 

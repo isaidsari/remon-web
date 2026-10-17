@@ -88,3 +88,37 @@ describe('encodeScreen', () => {
 		expect(decodeScreen(btoa('{"nope":1}'))).toBeNull();
 	});
 });
+
+describe('investigation fields', () => {
+	it('keeps a valid window, marks, events and notes; drops broken ones', () => {
+		const s = parseScreen({
+			title: 'disk alert',
+			window: { start: 100, end: 2000 },
+			marks: [
+				{ at: 500, label: 'fired', severity: 'error' },
+				{ at: 600, until: 550, label: 'backwards' },
+				{ label: 'no time' }
+			],
+			root: {
+				type: 'grid',
+				children: [
+					{ type: 'note', text: 'backup filled the disk' },
+					{ type: 'note', text: '  ' },
+					{ type: 'events', title: 'e', kinds: ['alert_fired', 3], sources: [] }
+				]
+			}
+		})!;
+		expect(s.window).toEqual({ start: 100, end: 2000 });
+		expect(s.marks).toEqual([
+			{ at: 500, label: 'fired', severity: 'error' },
+			{ at: 600, label: 'backwards', severity: 'warn' }
+		]);
+		const kids = (s.root as { children: unknown[] }).children;
+		expect(kids[0]).toEqual({ type: 'note', text: 'backup filled the disk' });
+		expect(kids[1]).toEqual({ type: 'unsupported', kind: 'note' });
+		expect(kids[2]).toEqual({ type: 'events', title: 'e', kinds: ['alert_fired'] });
+		expect(
+			parseScreen({ title: 'x', window: { start: 5, end: 5 }, root: kids[0] })?.window
+		).toBeUndefined();
+	});
+});

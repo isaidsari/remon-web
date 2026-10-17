@@ -6,7 +6,8 @@ import type {
 	RangeName,
 	Screen,
 	ScreenNode,
-	SeriesSpec
+	SeriesSpec,
+	TimeWindow
 } from '$lib/types/screen';
 
 // Everything between a spec and pixels that is not drawing: which requests a
@@ -20,9 +21,35 @@ const DEFAULT_TABLE_ROWS = 10;
 /** Later table columns must cover every row the first one ranks in. */
 const TABLE_LOOKUP_LIMIT = 50;
 
-export interface PlannedRequest {
-	range: RangeName;
-	queries: QueryItem[];
+/** When a panel reads: a named range ending now, or the screen's fixed window. */
+export type Span = { range: RangeName } | { window: TimeWindow };
+
+export type PlannedRequest = Span & { queries: QueryItem[] };
+
+/** A panel's own range wins; otherwise the screen's window, then its range. */
+export function spanOf(screen: Screen, own?: RangeName): Span {
+	if (own) return { range: own };
+	return screen.window ? { window: screen.window } : { range: screen.range };
+}
+
+/** `POST /query`'s window fields for a span. */
+export function spanQuery(span: Span): { range: RangeName } | { start: number; end: number } {
+	return 'window' in span
+		? { start: span.window.start, end: span.window.end }
+		: { range: span.range };
+}
+
+/** What a panel header shows for its time. */
+export function spanLabel(span: Span): string {
+	if ('range' in span) return span.range;
+	const fmt = (t: number) =>
+		new Date(t * 1000).toLocaleString(undefined, {
+			month: 'short',
+			day: 'numeric',
+			hour: '2-digit',
+			minute: '2-digit'
+		});
+	return `${fmt(span.window.start)} – ${fmt(span.window.end)}`;
 }
 
 export const childPath = (path: string, i: number) => `${path}.children[${i}]`;
@@ -33,11 +60,12 @@ export const statId = (path: string) => path;
 
 /** One request per window the screen uses, split at the per-request cap. */
 export function planQueries(screen: Screen): PlannedRequest[] {
-	const byRange = new Map<RangeName, QueryItem[]>();
-	const add = (range: RangeName, q: QueryItem) => {
-		const list = byRange.get(range) ?? [];
-		list.push(q);
-		byRange.set(range, list);
+	const bySpan = new Map<string, { span: Span; queries: QueryItem[] }>();
+	const add = (span: Span, q: QueryItem) => {
+		const key = JSON.stringify(span);
+		const group = bySpan.get(key) ?? { span, queries: [] };
+		group.queries.push(q);
+		bySpan.set(key, group);
 	};
 
 	const walk = (node: ScreenNode, path: string) => {
@@ -50,17 +78,18 @@ export function planQueries(screen: Screen): PlannedRequest[] {
 				break;
 			case 'line':
 				node.series.forEach((s, i) =>
-					add(node.range ?? screen.range, { ...s.query, id: seriesId(path, i), mode: 'series' })
+					add(spanOf(screen, node.range), { ...s.query, id: seriesId(path, i), mode: 'series' })
 				);
 				break;
 			case 'stat':
-				add(screen.range, { ...node.query, id: statId(path), mode: 'latest' });
+				// Current by definition; grouped with the screen only to share a request.
+				add(spanOf(screen), { ...node.query, id: statId(path), mode: 'latest' });
 				break;
 			case 'table':
 				node.columns.forEach((c, i) => {
 					const current = (c.agg ?? 'current') === 'current';
 					const { limit: _ignored, ...query } = c.query;
-					add(node.range ?? screen.range, {
+					add(spanOf(screen, node.range), {
 						...query,
 						id: columnId(path, i),
 						mode: current ? 'latest' : 'summary',
@@ -75,9 +104,9 @@ export function planQueries(screen: Screen): PlannedRequest[] {
 	walk(screen.root, 'root');
 
 	const out: PlannedRequest[] = [];
-	for (const [range, queries] of byRange) {
+	for (const { span, queries } of bySpan.values()) {
 		for (let i = 0; i < queries.length; i += MAX_PER_REQUEST) {
-			out.push({ range, queries: queries.slice(i, i + MAX_PER_REQUEST) });
+			out.push({ ...span, queries: queries.slice(i, i + MAX_PER_REQUEST) });
 		}
 	}
 	return out;
