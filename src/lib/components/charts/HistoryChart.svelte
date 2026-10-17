@@ -217,7 +217,7 @@
 											(i === 0 || all[i - 1]?.start !== b.start)
 									)
 									.map((b) => [
-										{ xAxis: b!.start * 1000, yAxis: b!.min },
+										{ xAxis: b!.start * 1000, yAxis: b!.min, emphasis: { disabled: true } },
 										{ xAxis: b!.end * 1000, yAxis: b!.max }
 									])
 							}
@@ -301,9 +301,12 @@
 			}
 			if (bands.length > 0) {
 				const observed = seriesArr[0].markArea as { data?: unknown[] } | undefined;
+				// A band's name is printed at the top of the plot by default, and
+				// bands close in time printed theirs over one another. Like the
+				// instants, a band names itself only while hovered — one at a time.
 				seriesArr[0].markArea = {
 					...observed,
-					silent: true,
+					silent: false,
 					animation: false,
 					data: [
 						...(observed?.data ?? []),
@@ -311,7 +314,17 @@
 							{
 								xAxis: a.ts * 1000,
 								name: a.label,
-								itemStyle: { color: rgbAt(severityColor[a.severity], 0.08) }
+								itemStyle: { color: rgbAt(severityColor[a.severity], 0.08) },
+								label: { show: false },
+								emphasis: {
+									label: {
+										show: true,
+										position: 'insideTop',
+										color: severityColor[a.severity],
+										fontSize: 10
+									},
+									itemStyle: { color: rgbAt(severityColor[a.severity], 0.16) }
+								}
 							},
 							{ xAxis: (a.endTs ?? a.ts) * 1000 }
 						])
