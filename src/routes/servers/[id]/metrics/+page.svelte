@@ -5,6 +5,7 @@
 	import { useServer } from '$lib/server-scope';
 	import { cpuUsageHistory, cpuUsageStats } from '$lib/charts/cpu-history';
 	import { observedHistory, groupHistory } from '$lib/charts/observed-history';
+	import { bandOf, drawsBaseline, type BaselineBand } from '$lib/charts/baseline';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import HistoryChart, {
 		type Series,
@@ -29,6 +30,7 @@
 	import { m } from '$lib/paraglide/messages';
 	import { classifyInterface, isContainerMount, type IfaceClass } from '$lib/utils/netClassify';
 	import type {
+		BaselineQuery,
 		ChartMetadata,
 		ComponentsHistoryResponse,
 		CpuHistoryResponse,
@@ -88,6 +90,49 @@
 	let netUsage = $state<NetworkUsageResponse | null>(null);
 	// Same contract: null against a daemon that does not serve the endpoint.
 	let diskForecast = $state<DiskForecastResponse | null>(null);
+	// Learned usual ranges by series key. Empty against a daemon without the
+	// endpoint, while it is still learning, and on charts too fine for a band.
+	let baselines = $state<Record<string, BaselineBand>>({});
+
+	const baselineKey = (q: Pick<BaselineQuery, 'namespace' | 'field' | 'mount_point'>) =>
+		q.mount_point ? `${q.namespace}.${q.field}|${q.mount_point}` : `${q.namespace}.${q.field}`;
+
+	/** After the charts land, since whether a band fits depends on their buckets. */
+	async function fetchBaselines(q: { start: number; end: number }, signal: AbortSignal) {
+		const wanted: BaselineQuery[] = [];
+		if (drawsBaseline(cpu?.chart)) wanted.push({ namespace: 'cpu', field: 'usage_percent' });
+		if (drawsBaseline(network?.chart)) {
+			wanted.push(
+				{ namespace: 'network_total', field: 'rx_bytes_per_sec' },
+				{ namespace: 'network_total', field: 'tx_bytes_per_sec' }
+			);
+		}
+		if (drawsBaseline(disk?.chart)) {
+			const mounts = new Set(
+				(disk?.points ?? []).map((p) => p.mount_point).filter((mp) => !isDockerMount(mp))
+			);
+			for (const mount_point of mounts) {
+				for (const field of ['read_bytes_per_sec', 'write_bytes_per_sec']) {
+					wanted.push({ namespace: 'disk', field, mount_point });
+				}
+			}
+		}
+		const got = await Promise.all(
+			wanted.map((w) =>
+				conn.client
+					.baseline({ ...w, ...q }, { signal })
+					.then(bandOf)
+					.catch(() => null)
+			)
+		);
+		if (signal.aborted) return;
+		const next: Record<string, BaselineBand> = {};
+		wanted.forEach((w, i) => {
+			const band = got[i];
+			if (band) next[baselineKey(w)] = band;
+		});
+		baselines = next;
+	}
 
 	// Below this the gap is big enough to change what an operator concludes
 	// from the number; above it, the caveat is noise on every single load.
@@ -208,6 +253,7 @@
 			netUsage = usage;
 			resolution = res;
 			lastFetched = Date.now();
+			void fetchBaselines(q, signal);
 		} catch (e) {
 			// An abort means we were superseded, not that the fetch failed.
 			if (signal.aborted) return;
@@ -288,7 +334,8 @@
 			{
 				name: m.metrics_series_usage(),
 				...cpuUsageHistory(cpu.points),
-				color: CPU_RAMP[0]
+				color: CPU_RAMP[0],
+				baseline: baselines['cpu.usage_percent']
 			}
 		];
 		if (hasAny(cpu.points, (p) => p.user_percent)) {
@@ -405,7 +452,10 @@
 				.map((s, j) => ({
 					name: mount + ' · ' + s.name,
 					color: DISK_PALETTE[(i * 2 + j) % DISK_PALETTE.length],
-					...observedHistory(points, s.field, (p) => p[s.field])
+					...observedHistory(points, s.field, (p) => p[s.field]),
+					// Learned for bytes only; IOPS and utilisation have no band.
+					baseline:
+						baselines[baselineKey({ namespace: 'disk', field: s.field, mount_point: mount })]
 				}));
 		});
 	});
@@ -418,14 +468,16 @@
 				name: 'RX',
 				color: NET_RAMP[0],
 				fill: true,
-				...observedHistory(network.totals, 'rx_bytes_per_sec', (p) => p.rx_bytes_per_sec)
+				...observedHistory(network.totals, 'rx_bytes_per_sec', (p) => p.rx_bytes_per_sec),
+				baseline: baselines['network_total.rx_bytes_per_sec']
 			},
 			{
 				name: 'TX',
 				color: NET_RAMP[1],
 				fill: true,
 				mirror: true,
-				...observedHistory(network.totals, 'tx_bytes_per_sec', (p) => p.tx_bytes_per_sec)
+				...observedHistory(network.totals, 'tx_bytes_per_sec', (p) => p.tx_bytes_per_sec),
+				baseline: baselines['network_total.tx_bytes_per_sec']
 			}
 		];
 	});

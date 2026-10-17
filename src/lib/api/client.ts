@@ -9,6 +9,8 @@ import type {
 	AssistantDevOverrides,
 	AssistantHistoryTurn,
 	AssistantStreamStep,
+	BaselineQuery,
+	BaselineResponse,
 	BatchMetricsQuery,
 	BatchMetricsResponse,
 	CaptureIncidentRequest,
@@ -362,6 +364,15 @@ export class ApiClient {
 		opts: Cancellable = {}
 	): Promise<DiskForecastResponse> {
 		return this.request<DiskForecastResponse>('/metrics/disk/forecast', {
+			query: { ...q },
+			signal: opts.signal
+		});
+	}
+
+	/** What is normal for one host series at each time of day, learned on the
+	 *  daemon. 404s on a daemon older than the endpoint. */
+	baseline(q: BaselineQuery, opts: Cancellable = {}): Promise<BaselineResponse> {
+		return this.request<BaselineResponse>('/metrics/baseline', {
 			query: { ...q },
 			signal: opts.signal
 		});

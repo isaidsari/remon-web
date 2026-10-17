@@ -1,6 +1,7 @@
 <script lang="ts" module>
 	import type { TimeSeries } from '$lib/stores/livestats.svelte';
 	import type { ObservedBucket } from '$lib/charts/cpu-history';
+	import type { BaselineBand } from '$lib/charts/baseline';
 
 	export interface Series {
 		name: string;
@@ -19,6 +20,8 @@
 			p95: number | null;
 		};
 		showPercentile?: boolean;
+		/** The learned usual range for this time of day, shaded behind the line. */
+		baseline?: BaselineBand | null;
 	}
 
 	/** An instant, or a shaded band when `endTs` is set. Unix seconds. */
@@ -36,6 +39,7 @@
 	import { loadEcharts } from '$lib/charts/echarts-lazy';
 	import { chartPalette, statusColors } from '$lib/charts/chart-theme';
 	import { rgbAt } from '$lib/charts/color';
+	import { bandOver, outsideBand } from '$lib/charts/baseline';
 	import { tabVisible } from '$lib/utils/visibility.svelte';
 	import { m } from '$lib/paraglide/messages';
 
@@ -95,6 +99,10 @@
 	let focusedSeries = $state(0);
 	let hasRanges = $derived(series.some((s) => s.buckets?.some((b) => b != null)));
 	let showRanges = $derived(rangeMode !== 'hide');
+	let hasBaseline = $derived(series.some((s) => s.baseline));
+	let showBaseline = $state(true);
+	// Same rule as the observed ranges: past three series, only the focused one.
+	const bandVisible = (index: number) => series.length <= 3 || index === focusedSeries;
 
 	let container: HTMLDivElement | null = $state(null);
 	let chart: ECharts | null = null;
@@ -154,6 +162,16 @@
 						) ?? []
 				)
 			: [];
+		// The usual range must fit on the axis too, or its edge is clipped away.
+		if (showBaseline) {
+			series.forEach((s, i) => {
+				if (!s.baseline || !bandVisible(i)) return;
+				for (const p of s.baseline.points) {
+					if (s.mirror) extrema.push(-p.high, -p.low);
+					else extrema.push(p.low, p.high);
+				}
+			});
+		}
 		const rangeMin = extrema.length ? Math.min(...extrema) : Infinity;
 		const rangeMax = extrema.length ? Math.max(...extrema) : -Infinity;
 		const seriesArr: Record<string, unknown>[] = plotted.map((s, index) => {
@@ -204,24 +222,35 @@
 									])
 							}
 						: undefined,
-				tooltip: s.buckets
-					? {
-							// Older buckets without extrema show only the available value.
-							valueFormatter: (v: number, index: number) => {
-								const value = fmtValue ? fmtValue(v) : String(v);
-								const bucket = source.buckets?.[index];
-								if (!bucket || bucket.min == null || bucket.max == null) return value;
-								const fmt = (n: number) => (valueFormatter ? valueFormatter(n) : String(n));
-								return compact
-									? m.overview_history_values({
-											avg: value,
-											min: fmt(bucket.min),
-											max: fmt(bucket.max)
-										})
-									: `${value} (${fmt(bucket.min)}–${fmt(bucket.max)})`;
+				tooltip:
+					s.buckets || source.baseline
+						? {
+								// Older buckets without extrema show only the available value.
+								valueFormatter: (v: number, dataIndex: number) => {
+									const value = fmtValue ? fmtValue(v) : String(v);
+									const bucket = source.buckets?.[dataIndex];
+									const fmt = (n: number) => (valueFormatter ? valueFormatter(n) : String(n));
+									const observed =
+										!bucket || bucket.min == null || bucket.max == null
+											? value
+											: compact
+												? m.overview_history_values({
+														avg: value,
+														min: fmt(bucket.min),
+														max: fmt(bucket.max)
+													})
+												: `${value} (${fmt(bucket.min)}–${fmt(bucket.max)})`;
+									const x = source.data.xs[dataIndex];
+									const usual =
+										source.baseline && showBaseline && bandVisible(index) && x != null
+											? bandOver(source.baseline, bucket?.start ?? x, bucket?.end ?? x + 1)
+											: null;
+									return usual
+										? `${observed} · ${m.history_usual_range_value({ low: fmt(usual.low), high: fmt(usual.high) })}`
+										: observed;
+								}
 							}
-						}
-					: undefined
+						: undefined
 			};
 		});
 
@@ -291,8 +320,78 @@
 			}
 		}
 
+		// The usual range rides behind its series as a stacked pair (low, then the
+		// height above it) so ECharts fills between the two edges. Each point holds
+		// until the next, so the edges are steps, not slopes. `all` lets a mirrored
+		// band stack its negative low and positive height.
+		const bandSeries: Record<string, unknown>[] = [];
+		if (showBaseline) {
+			series.forEach((source, index) => {
+				const band = source.baseline;
+				if (!band || band.points.length === 0 || !bandVisible(index)) return;
+				const edges = band.points.map((p) =>
+					source.mirror ? ([-p.high, -p.low] as const) : ([p.low, p.high] as const)
+				);
+				edges.push(edges[edges.length - 1]);
+				const xs = [
+					...band.points.map((p) => p.ts),
+					band.points[band.points.length - 1].ts + band.step
+				];
+				const edge = {
+					type: 'line' as const,
+					stack: `baseline-${index}`,
+					stackStrategy: 'all',
+					step: 'end',
+					symbol: 'none',
+					silent: true,
+					animation: false,
+					z: 1,
+					tooltip: { show: false },
+					emphasis: { disabled: true },
+					lineStyle: { color: rgbAt(source.color, 0.35), width: 1, type: 'dashed' }
+				};
+				bandSeries.push(
+					{
+						...edge,
+						name: `baseline-low-${index}`,
+						data: xs.map((x, i) => [x * 1000, edges[i][0]])
+					},
+					{
+						...edge,
+						name: `baseline-high-${index}`,
+						data: xs.map((x, i) => [x * 1000, edges[i][1] - edges[i][0]]),
+						areaStyle: { color: rgbAt(source.color, compact ? 0.06 : 0.1) }
+					}
+				);
+
+				// Where the line stays outside long enough to mean something, it is
+				// redrawn over itself in the warning colour.
+				const runs = outsideBand(source.data.xs, source.data.ys, source.buckets, band);
+				if (runs.length === 0) return;
+				const line = plotted[index];
+				const inside = (x: number) => runs.some((r) => x >= r.start && x <= r.end);
+				bandSeries.push({
+					type: 'line' as const,
+					name: `baseline-outside-${index}`,
+					data: line.data.xs.map((x, i) => [
+						x * 1000,
+						inside(x) && Number.isFinite(line.data.ys[i]) ? line.data.ys[i] : null
+					]),
+					symbol: 'none',
+					silent: true,
+					animation: false,
+					connectNulls: false,
+					z: 3,
+					tooltip: { show: false },
+					emphasis: { disabled: true },
+					lineStyle: { color: statusColors().warn, width: 2.25 }
+				});
+			});
+		}
+
 		// One series needs no legend: the card title already names what is plotted.
 		const hasLegend = series.length > 1;
+		const hasToggles = (hasRanges || hasBaseline) && !compact;
 		return {
 			animation: false,
 			// outerBoundsMode 'same' lets the axis labels shrink the plot to fit
@@ -303,7 +402,7 @@
 			grid: {
 				left: 4,
 				right: 10,
-				top: hasLegend || (hasRanges && !compact) ? 30 : 10,
+				top: hasLegend || hasToggles ? 30 : 10,
 				bottom: 4,
 				outerBoundsMode: 'same',
 				outerBoundsContain: 'axisLabel'
@@ -324,8 +423,10 @@
 				valueFormatter: fmtValue ? (v: unknown) => fmtValue(v as number) : undefined
 			},
 			legend: {
-				right: hasRanges && !compact ? 160 : undefined,
+				right: hasToggles ? (hasRanges && hasBaseline ? 280 : 160) : undefined,
 				show: hasLegend,
+				// Only the plotted series; the band's own series are not things to toggle.
+				data: series.map((s) => s.name),
 				// Scrolls instead of wrapping: a second legend row would sit on the plot,
 				// because the grid reserves one row's worth of space and no more.
 				type: 'scroll',
@@ -409,7 +510,7 @@
 			},
 			// toolbox must exist for `brush` to be addressable, but we hide it.
 			toolbox: { show: false, feature: { brush: {} } },
-			series: seriesArr
+			series: [...seriesArr, ...bandSeries]
 		};
 	}
 
@@ -492,10 +593,12 @@
 		void series.length;
 		void annotations.length;
 		void showRanges;
+		void showBaseline;
 		void focusedSeries;
 		for (const s of series) {
 			void s.data.xs.length;
 			void s.data.ys.length;
+			void s.baseline?.points.length;
 		}
 		const visible = tabVisible();
 		if (!chart || !visible) return;
@@ -504,17 +607,33 @@
 </script>
 
 <div class="relative {klass}">
-	{#if hasRanges && !compact}
-		<button
-			type="button"
-			class="text-2xs absolute top-0 right-2 z-10 rounded px-1.5 py-0.5 text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-2)]"
-			aria-pressed={showRanges}
-			title={m.history_range_explanation()}
-			onclick={() => (rangeMode = showRanges ? 'hide' : 'auto')}
-		>
-			{showRanges ? '▣' : '□'}
-			{m.history_observed_range()}
-		</button>
+	{#if (hasRanges || hasBaseline) && !compact}
+		<div class="absolute top-0 right-2 z-10 flex gap-1">
+			{#if hasBaseline}
+				<button
+					type="button"
+					class="text-2xs rounded px-1.5 py-0.5 text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-2)]"
+					aria-pressed={showBaseline}
+					title={m.history_usual_range_explanation()}
+					onclick={() => (showBaseline = !showBaseline)}
+				>
+					{showBaseline ? '▣' : '□'}
+					{m.history_usual_range()}
+				</button>
+			{/if}
+			{#if hasRanges}
+				<button
+					type="button"
+					class="text-2xs rounded px-1.5 py-0.5 text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-2)]"
+					aria-pressed={showRanges}
+					title={m.history_range_explanation()}
+					onclick={() => (rangeMode = showRanges ? 'hide' : 'auto')}
+				>
+					{showRanges ? '▣' : '□'}
+					{m.history_observed_range()}
+				</button>
+			{/if}
+		</div>
 	{/if}
 	<!-- height={0} opts into a fill-parent container so the chart can size to a flex/grid cell. -->
 	<div

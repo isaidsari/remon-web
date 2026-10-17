@@ -328,6 +328,39 @@ export interface DiskForecastResponse {
 	mounts: DiskForecastMount[];
 }
 
+export interface BaselineQuery {
+	namespace: 'cpu' | 'network_total' | 'disk';
+	field: string;
+	/** Required for `disk`, whose baselines are learned per volume. */
+	mount_point?: string;
+	start?: number;
+	end?: number;
+}
+
+/** The expected range over `[ts, ts + step_seconds)`. */
+export interface BaselinePoint {
+	ts: number;
+	median: number;
+	low: number;
+	high: number;
+}
+
+/** What is normal for one host series at each time of day. Too little history
+ *  is `learning` with no points, not an error. */
+export interface BaselineResponse {
+	namespace: string;
+	field: string;
+	mount_point?: string;
+	start: number;
+	end: number;
+	level: 'daily' | 'recent' | 'learning';
+	samples: number;
+	ready_at?: number;
+	fitted_at: number | null;
+	step_seconds: number;
+	points: BaselinePoint[];
+}
+
 export interface NetworkPoint extends HistoryStatistics {
 	timestamp: number;
 	interface_name: string;
