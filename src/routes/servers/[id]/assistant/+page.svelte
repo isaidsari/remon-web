@@ -483,12 +483,12 @@
 	>
 		<div
 			class={cn(
-				'mx-auto flex min-h-full w-full max-w-3xl flex-col pb-6',
+				'mx-auto flex min-h-full w-full max-w-6xl flex-col pb-6',
 				entries.length > 0 && 'gap-8'
 			)}
 		>
 			{#if entries.length === 0}
-				<div class="w-full">
+				<div class="mx-auto w-full max-w-3xl">
 					<p class="text-xs font-medium text-[var(--color-fg-muted)]">
 						{m.assistant_empty_hint()}
 					</p>
@@ -519,7 +519,7 @@
 			{#each entries as entry, i (entry)}
 				<div class="enter group space-y-4">
 					<!-- Questions use the same neutral surfaces as the rest of the app. -->
-					<div class="flex justify-end">
+					<div class="mx-auto flex w-full max-w-3xl justify-end">
 						<div
 							class="text-md max-w-[85%] rounded-[var(--radius-card)] bg-[var(--color-surface)] px-4 py-3 leading-relaxed break-words whitespace-pre-wrap text-[var(--color-fg)] shadow-[var(--shadow-flat)] md:max-w-[75%]"
 						>
@@ -528,8 +528,12 @@
 					</div>
 
 					<!-- Assistant turn: full-width prose, no bubble — markdown tables
-					     and code get the whole column, which matters on mobile -->
-					<div class="min-w-0 space-y-3">
+					     and code get the whole column, which matters on mobile.
+					     Prose keeps a reading width; screens (.screen-wide) take the
+					     page's, since a grid of charts in a text column is cramped. -->
+					<div
+						class="min-w-0 space-y-3 [&>*:not(.screen-wide)]:mx-auto [&>*:not(.screen-wide)]:w-full [&>*:not(.screen-wide)]:max-w-3xl"
+					>
 						{#if entry.loading}
 							{#if entry.answer}
 								<!-- Answer text streaming in — rendered live, replaced by
@@ -575,7 +579,7 @@
 							</div>
 
 							{#each entry.screens as s, si (si)}
-								<section class="space-y-2">
+								<section class="screen-wide space-y-2">
 									<div class="flex items-center gap-2 px-0.5">
 										<h3
 											class="min-w-0 flex-1 truncate text-xs font-medium text-[var(--color-fg-muted)]"
