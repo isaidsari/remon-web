@@ -310,13 +310,17 @@
 	<Switch
 		checked={rule.enabled}
 		onchange={() => toggleEnabled(rule)}
-		disabled={acting !== null}
+		disabled={acting !== null || !conn.can('admin')}
 		label={rule.enabled ? m.alerts_action_disable() : m.alerts_action_enable()}
 	/>
-	<IconButton label={m.alerts_action_edit()} onclick={() => openEdit(rule)}>
-		<IconPencil class="size-[13px]" stroke-width="2" />
-	</IconButton>
-	{#if isSilenced(rule)}
+	{#if conn.can('admin')}
+		<IconButton label={m.alerts_action_edit()} onclick={() => openEdit(rule)}>
+			<IconPencil class="size-[13px]" stroke-width="2" />
+		</IconButton>
+	{/if}
+	{#if !conn.can('operator')}
+		<!-- silencing is an operator action -->
+	{:else if isSilenced(rule)}
 		<IconButton
 			label={m.alerts_action_unsilence()}
 			onclick={() => unsilenceRule(rule)}
@@ -329,14 +333,16 @@
 			<IconBellOff class="size-[13px]" stroke-width="2" />
 		</IconButton>
 	{/if}
-	<IconButton
-		tone="danger"
-		label={m.alerts_action_delete()}
-		onclick={() => deleteRule(rule)}
-		loading={acting === `delete:${rule.id}`}
-	>
-		<IconTrash class="size-[13px]" stroke-width="2" />
-	</IconButton>
+	{#if conn.can('admin')}
+		<IconButton
+			tone="danger"
+			label={m.alerts_action_delete()}
+			onclick={() => deleteRule(rule)}
+			loading={acting === `delete:${rule.id}`}
+		>
+			<IconTrash class="size-[13px]" stroke-width="2" />
+		</IconButton>
+	{/if}
 {/snippet}
 
 {#snippet severityBadge(sev: AlertSeverity)}
@@ -408,7 +414,9 @@
 		<Button variant="secondary" size="sm" onclick={fetchAll} loading={busy}>
 			{m.alerts_action_refresh()}
 		</Button>
-		<Button size="sm" onclick={openCreate}>{m.alerts_action_new_rule()}</Button>
+		{#if conn.can('admin')}
+			<Button size="sm" onclick={openCreate}>{m.alerts_action_new_rule()}</Button>
+		{/if}
 	</PageHeader>
 
 	<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

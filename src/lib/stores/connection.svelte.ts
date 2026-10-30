@@ -4,7 +4,8 @@
 import { ApiClient } from '$lib/api/client';
 import { ApiError } from '$lib/api/error';
 import type { ServerProfile } from '$lib/types/profile';
-import type { SystemInfoResponse } from '$lib/types/api';
+import type { Role, SystemInfoResponse } from '$lib/types/api';
+import { atLeast } from '$lib/access';
 import { LiveStats } from './livestats.svelte';
 
 /** Refresh slightly before exp so an in-flight request never sees an expired token. */
@@ -50,6 +51,7 @@ export class Connection {
 	private channel: BroadcastChannel | null = null;
 	private _systemInfo = $state<{ data: SystemInfoResponse; fetchedAt: number } | null>(null);
 	private _systemInfoInflight: Promise<SystemInfoResponse> | null = null;
+	private _role = $state<Role | null>(null);
 	private offEnv: Array<() => void> = [];
 	private loginPending: Promise<void> | null = null;
 	private refreshPending: Promise<void> | null = null;
@@ -131,6 +133,30 @@ export class Connection {
 	async refreshSystemInfo(): Promise<SystemInfoResponse> {
 		this._systemInfo = null;
 		return this.fetchSystemInfo();
+	}
+
+	/** This device's role on the server; null until read after sign-in. */
+	get role(): Role | null {
+		return this._role;
+	}
+
+	/** Whether the role is known and includes `need`. The server still decides. */
+	can(need: Role): boolean {
+		return this._role !== null && atLeast(this._role, need);
+	}
+
+	/** Re-read the role, as each new token pair does. */
+	async loadRole(): Promise<void> {
+		const revision = this.revision;
+		let role: Role;
+		try {
+			role = (await this.client.me()).role;
+		} catch (e) {
+			// A server without roles has no /me, and every device there may do everything.
+			const legacy = e instanceof ApiError && (e.status === 404 || e.status === 405);
+			role = legacy ? 'admin' : 'viewer';
+		}
+		if (revision === this.revision) this._role = role;
 	}
 
 	get serverId(): string {
@@ -261,6 +287,7 @@ export class Connection {
 		this.state.status = 'authenticated';
 		this.state.error = null;
 		this.scheduleRefresh();
+		void this.loadRole();
 
 		this.channel?.postMessage({
 			type: 'tokens',
@@ -284,6 +311,7 @@ export class Connection {
 		this.state.status = 'authenticated';
 		this.state.error = null;
 		this.scheduleRefresh();
+		void this.loadRole();
 	}
 
 	private scheduleRefresh() {
@@ -313,6 +341,7 @@ export class Connection {
 		this.state.refreshToken = null;
 		this.state.expiresAt = 0;
 		this.state.status = 'idle';
+		this._role = null;
 	}
 
 	dispose(): void {

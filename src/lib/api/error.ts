@@ -1,16 +1,21 @@
-import type { ApiErrorCode, ErrorResponseBody } from '$lib/types/api';
+import type { ApiErrorCode, ErrorResponseBody, Role } from '$lib/types/api';
+import { roleLabel } from '$lib/access';
+import { m } from '$lib/paraglide/messages';
 
 export class ApiError extends Error {
 	readonly code: ApiErrorCode | 'NETWORK' | 'TIMEOUT' | 'PARSE' | 'CORS_OR_OFFLINE';
 	readonly status: number;
 	readonly userMessage: string;
 	readonly serverMessage: string;
+	/** Set on `ROLE_REQUIRED`: the least role the call needs. */
+	readonly requiredRole: Role | null;
 
 	constructor(args: {
 		code: ApiError['code'];
 		status: number;
 		userMessage: string;
 		serverMessage?: string;
+		requiredRole?: Role;
 	}) {
 		super(args.serverMessage ?? args.userMessage);
 		this.name = 'ApiError';
@@ -18,6 +23,7 @@ export class ApiError extends Error {
 		this.status = args.status;
 		this.userMessage = args.userMessage;
 		this.serverMessage = args.serverMessage ?? args.userMessage;
+		this.requiredRole = args.requiredRole ?? null;
 	}
 
 	get isAuthError(): boolean {
@@ -45,7 +51,12 @@ export class ApiError extends Error {
 
 	/** 403: authenticated but caller lacks privilege (systemd PolicyKit / Windows UAC). */
 	get isForbidden(): boolean {
-		return this.code === 'FORBIDDEN' || this.status === 403;
+		return this.code === 'FORBIDDEN' || (this.status === 403 && !this.isRoleRequired);
+	}
+
+	/** 403: this device's role is below what the call needs. */
+	get isRoleRequired(): boolean {
+		return this.code === 'ROLE_REQUIRED';
 	}
 
 	/** Plain-text 429 from tower-governor on /auth/* — code lives only in HTTP status. */
@@ -82,11 +93,15 @@ export async function errorFromResponse(res: Response): Promise<ApiError> {
 	}
 
 	if (body && body.error) {
+		const requiredRole = body.error.required_role;
 		return new ApiError({
 			code: body.error.code,
 			status,
-			userMessage: humanize(body.error.code, body.error.message),
-			serverMessage: body.error.message
+			userMessage: requiredRole
+				? m.error_role_required({ role: roleLabel(requiredRole) })
+				: humanize(body.error.code, body.error.message),
+			serverMessage: body.error.message,
+			requiredRole
 		});
 	}
 

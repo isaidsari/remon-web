@@ -306,9 +306,11 @@
 			<option value="10s">10s</option>
 		</Select>
 		<RefreshButton onclick={fetchList} {loading} label={m.probes_refresh()} />
-		<Button variant="primary" size="sm" onclick={reload} loading={reloading}>
-			{m.probes_reload_manifests()}
-		</Button>
+		{#if conn.can('admin')}
+			<Button variant="primary" size="sm" onclick={reload} loading={reloading}>
+				{m.probes_reload_manifests()}
+			</Button>
+		{/if}
 	</PageHeader>
 
 	{#if error}

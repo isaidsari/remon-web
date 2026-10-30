@@ -63,6 +63,7 @@ import type {
 	ListServicesQuery,
 	ListServicesResponse,
 	ListSessionsResponse,
+	MeResponse,
 	ListTimersResponse,
 	MemoryHistoryResponse,
 	MetricsRangeQuery,
@@ -72,6 +73,8 @@ import type {
 	PairCompleteRequest,
 	PairCompleteResponse,
 	PairingOpenResponse,
+	Role,
+	UpdateSessionRequest,
 	PressureHistoryResponse,
 	PressureResource,
 	ProbeDetail,
@@ -270,10 +273,13 @@ export class ApiClient {
 		return this.request<ReadyResponse>('/ready', { auth: false });
 	}
 
-	/** Opens a pairing window for another device and returns its code.
+	/** Opens a pairing window for a device of `role` and returns its code.
 	 *  Replaces any window already open. */
-	pairOpen(): Promise<PairingOpenResponse> {
-		return this.request<PairingOpenResponse>('/auth/pair/open', { method: 'POST' });
+	pairOpen(role: Role): Promise<PairingOpenResponse> {
+		return this.request<PairingOpenResponse>('/auth/pair/open', {
+			method: 'POST',
+			body: { role }
+		});
 	}
 
 	pairComplete(req: PairCompleteRequest): Promise<PairCompleteResponse> {
@@ -709,14 +715,20 @@ export class ApiClient {
 		});
 	}
 
+	/** The calling device and its role. */
+	me(): Promise<MeResponse> {
+		return this.request<MeResponse>('/me', { bypassCache: true });
+	}
+
 	listSessions(): Promise<ListSessionsResponse> {
 		return this.request<ListSessionsResponse>('/me/sessions');
 	}
 
-	renameSession(id: string, name: string): Promise<void> {
+	/** Rename a device, change its role, or both. */
+	updateSession(id: string, req: UpdateSessionRequest): Promise<void> {
 		return this.request<void>(`/me/sessions/${encodeURIComponent(id)}`, {
 			method: 'PATCH',
-			body: { name },
+			body: req,
 			parse: 'none',
 			bypassCache: true
 		});

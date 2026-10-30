@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { useServer } from '$lib/server-scope';
+	import { roleLabel } from '$lib/access';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
@@ -352,250 +353,258 @@
 	</PageHeader>
 
 	{#if form && original}
-		<form
-			class="flex flex-col gap-5"
-			onsubmit={(e) => {
-				e.preventDefault();
-				save();
-			}}
-		>
-			<Card>
-				<p class="mb-4 text-xs tracking-wide text-[var(--color-fg-muted)]">
-					{m.config_section_general()}
-				</p>
-				<Field
-					label={m.config_field_server_name_label()}
-					hint={m.config_field_server_name_hint_notify()}
-					error={serverNameError}
-					for="server-name"
-				>
-					<Input
-						id="server-name"
-						bind:value={form.server_name}
-						placeholder={m.config_field_server_name_placeholder()}
-						required
-					/>
-				</Field>
-			</Card>
-
-			<Card>
-				<p class="mb-4 text-xs tracking-wide text-[var(--color-fg-muted)]">
-					{m.config_section_collector_intervals()}
-				</p>
-				<div class="flex flex-col gap-5">
-					{@render intervalField(
-						m.config_interval_label_stats(),
-						m.config_interval_hint_stats(),
-						'stats',
-						form.stats_ms,
-						(v) => (form!.stats_ms = v),
-						presets,
-						MIN_INTERVAL_MS
-					)}
-					{@render intervalField(
-						m.config_interval_label_processes(),
-						m.config_interval_hint_processes(),
-						'processes',
-						form.processes_ms,
-						(v) => (form!.processes_ms = v),
-						presets,
-						MIN_INTERVAL_MS
-					)}
-					{@render intervalField(
-						m.config_interval_label_docker(),
-						m.config_interval_hint_docker(),
-						'docker',
-						form.docker_ms,
-						(v) => (form!.docker_ms = v),
-						presets,
-						MIN_INTERVAL_MS
-					)}
-					{@render intervalField(
-						m.config_interval_label_smart(),
-						m.config_interval_hint_smart(),
-						'smart',
-						form.smart_ms,
-						(v) => (form!.smart_ms = v),
-						smartPresets,
-						MIN_SMART_INTERVAL_MS
-					)}
-				</div>
-			</Card>
-
-			<Card>
-				<p class="mb-4 text-xs tracking-wide text-[var(--color-fg-muted)]">
-					{m.config_section_background_workers()}
-				</p>
-				<div class="flex flex-col gap-5">
-					{@render intervalField(
-						m.config_interval_label_rollup(),
-						m.config_interval_hint_rollup(),
-						'rollup',
-						form.rollup_ms,
-						(v) => (form!.rollup_ms = v),
-						presets,
-						MIN_INTERVAL_MS
-					)}
-					{@render intervalField(
-						m.config_interval_label_retention(),
-						m.config_interval_hint_retention(),
-						'retention',
-						form.retention_ms,
-						(v) => (form!.retention_ms = v),
-						presets,
-						MIN_INTERVAL_MS
-					)}
-				</div>
-			</Card>
-
-			{#if validationError}
-				<p class="text-sm text-[var(--color-danger)]">{validationError}</p>
-			{/if}
-
-			<div class="flex items-center justify-end gap-2">
-				<span class="mr-auto text-xs text-[var(--color-fg-subtle)]">
-					{Object.keys(diff).length === 1
-						? m.config_fields_changed_one()
-						: m.config_fields_changed_other({ count: Object.keys(diff).length })}
-				</span>
-				<Button variant="ghost" onclick={reset} disabled={!dirty || saving}
-					>{m.config_reset()}</Button
-				>
-				<Button type="submit" disabled={!dirty || !!validationError || saving} loading={saving}>
-					{m.config_save()}
-				</Button>
-			</div>
-		</form>
-
-		{#if resolutions}
-			<Card class="mt-5">
-				<p class="mb-1 text-xs tracking-wide text-[var(--color-fg-muted)]">
-					{m.config_section_resolutions()}
-				</p>
-				<p class="mb-4 max-w-lg text-xs text-[var(--color-fg-muted)]">
-					{m.config_resolutions_description()}
-				</p>
-				<ul class="flex flex-col gap-2">
-					{#each resolutions as r (r.name)}
-						{@const locked = lockReason(r)}
-						<li class="flex items-center gap-3 rounded-md bg-[var(--color-surface-2)] px-3 py-2">
-							<span class="text-md w-10 font-mono text-[var(--color-fg)]">{r.name}</span>
-							<span class="text-2xs font-mono text-[var(--color-fg-subtle)]">
-								{fmtIntervalSecs(r.interval_seconds)}
-							</span>
-							{#if r.rollup_from}
-								<span class="text-2xs text-[var(--color-fg-faint)]">
-									← {r.rollup_from}
-								</span>
-							{/if}
-							<span class="ml-auto"></span>
-							{#if locked}
-								<span
-									class="text-2xs max-w-56 truncate text-[var(--color-fg-subtle)]"
-									title={locked}
-								>
-									{locked}
-								</span>
-							{/if}
-							<button
-								type="button"
-								onclick={() => toggleResolution(r)}
-								disabled={!!locked || resolutionBusy === r.name}
-								class={cn(
-									'text-2xs rounded-full px-2.5 py-0.5 font-mono tracking-wide transition',
-									r.enabled
-										? 'bg-[var(--color-success)]/15 text-[var(--color-success)]'
-										: 'bg-[var(--color-fg-subtle)]/15 text-[var(--color-fg-subtle)]',
-									locked ? 'cursor-not-allowed opacity-60' : 'hover:opacity-80'
-								)}
-							>
-								{r.enabled ? m.config_resolution_enabled() : m.config_resolution_disabled()}
-							</button>
-						</li>
-					{/each}
-				</ul>
-			</Card>
+		{#if !conn.can('admin')}
+			<p class="mb-4 text-xs text-[var(--color-fg-subtle)]">
+				{m.config_read_only({ role: roleLabel('admin') })}
+			</p>
 		{/if}
+		<!-- Disabling the fieldset turns every input and button in it off at once. -->
+		<fieldset disabled={!conn.can('admin')} class="contents">
+			<form
+				class="flex flex-col gap-5"
+				onsubmit={(e) => {
+					e.preventDefault();
+					save();
+				}}
+			>
+				<Card>
+					<p class="mb-4 text-xs tracking-wide text-[var(--color-fg-muted)]">
+						{m.config_section_general()}
+					</p>
+					<Field
+						label={m.config_field_server_name_label()}
+						hint={m.config_field_server_name_hint_notify()}
+						error={serverNameError}
+						for="server-name"
+					>
+						<Input
+							id="server-name"
+							bind:value={form.server_name}
+							placeholder={m.config_field_server_name_placeholder()}
+							required
+						/>
+					</Field>
+				</Card>
 
-		{#if retOriginal}
-			<Card class="mt-5">
-				<p class="mb-1 text-xs tracking-wide text-[var(--color-fg-muted)]">
-					{m.config_section_retention()}
-				</p>
-				<p class="mb-4 max-w-lg text-xs text-[var(--color-fg-muted)]">
-					{m.config_retention_description()}
-				</p>
+				<Card>
+					<p class="mb-4 text-xs tracking-wide text-[var(--color-fg-muted)]">
+						{m.config_section_collector_intervals()}
+					</p>
+					<div class="flex flex-col gap-5">
+						{@render intervalField(
+							m.config_interval_label_stats(),
+							m.config_interval_hint_stats(),
+							'stats',
+							form.stats_ms,
+							(v) => (form!.stats_ms = v),
+							presets,
+							MIN_INTERVAL_MS
+						)}
+						{@render intervalField(
+							m.config_interval_label_processes(),
+							m.config_interval_hint_processes(),
+							'processes',
+							form.processes_ms,
+							(v) => (form!.processes_ms = v),
+							presets,
+							MIN_INTERVAL_MS
+						)}
+						{@render intervalField(
+							m.config_interval_label_docker(),
+							m.config_interval_hint_docker(),
+							'docker',
+							form.docker_ms,
+							(v) => (form!.docker_ms = v),
+							presets,
+							MIN_INTERVAL_MS
+						)}
+						{@render intervalField(
+							m.config_interval_label_smart(),
+							m.config_interval_hint_smart(),
+							'smart',
+							form.smart_ms,
+							(v) => (form!.smart_ms = v),
+							smartPresets,
+							MIN_SMART_INTERVAL_MS
+						)}
+					</div>
+				</Card>
 
-				<div class="overflow-x-auto">
-					<table class="w-full min-w-[480px] text-sm">
-						<thead>
-							<tr class="text-2xs text-left tracking-wide text-[var(--color-fg-subtle)]">
-								<th class="pr-4 pb-2 font-normal">{m.config_retention_header_resource()}</th>
-								{#each RESOLUTION_ORDER as res (res)}
-									<th class="pr-3 pb-2 font-normal">{res}</th>
-								{/each}
-							</tr>
-						</thead>
-						<tbody>
-							{#each retResources as resource (resource)}
-								<tr class="border-t border-[var(--color-border)]/60">
-									<td class="py-1.5 pr-4 font-mono text-xs text-[var(--color-fg)]">
-										{resource}
-									</td>
-									{#each RESOLUTION_ORDER as resolution (resolution)}
-										{@const cell = retCell(resource, resolution)}
-										<td class="py-1.5 pr-3">
-											{#if cell}
-												{@const key = retKey(resource, resolution)}
-												<select
-													value={retForm[key]}
-													onchange={(e) =>
-														(retForm[key] = Number((e.target as HTMLSelectElement).value))}
-													class={cn(
-														'rounded-md border bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-xs',
-														retForm[key] !== cell.keep_seconds
-															? 'border-[var(--color-accent)] text-[var(--color-accent)]'
-															: 'border-[var(--color-border)] text-[var(--color-fg-muted)]'
-													)}
-												>
-													{#each keepOptions(retForm[key]) as opt (opt)}
-														<option value={opt}>{fmtKeep(opt)}</option>
-													{/each}
-												</select>
-											{:else}
-												<span class="text-2xs text-[var(--color-fg-faint)]">—</span>
-											{/if}
-										</td>
-									{/each}
-								</tr>
-							{/each}
-						</tbody>
-					</table>
-				</div>
+				<Card>
+					<p class="mb-4 text-xs tracking-wide text-[var(--color-fg-muted)]">
+						{m.config_section_background_workers()}
+					</p>
+					<div class="flex flex-col gap-5">
+						{@render intervalField(
+							m.config_interval_label_rollup(),
+							m.config_interval_hint_rollup(),
+							'rollup',
+							form.rollup_ms,
+							(v) => (form!.rollup_ms = v),
+							presets,
+							MIN_INTERVAL_MS
+						)}
+						{@render intervalField(
+							m.config_interval_label_retention(),
+							m.config_interval_hint_retention(),
+							'retention',
+							form.retention_ms,
+							(v) => (form!.retention_ms = v),
+							presets,
+							MIN_INTERVAL_MS
+						)}
+					</div>
+				</Card>
 
-				<div class="mt-4 flex items-center justify-end gap-2">
+				{#if validationError}
+					<p class="text-sm text-[var(--color-danger)]">{validationError}</p>
+				{/if}
+
+				<div class="flex items-center justify-end gap-2">
 					<span class="mr-auto text-xs text-[var(--color-fg-subtle)]">
-						{retDiff.length === 1
+						{Object.keys(diff).length === 1
 							? m.config_fields_changed_one()
-							: m.config_fields_changed_other({ count: retDiff.length })}
+							: m.config_fields_changed_other({ count: Object.keys(diff).length })}
 					</span>
-					<Button
-						variant="ghost"
-						onclick={resetRetention}
-						disabled={retDiff.length === 0 || retSaving}
+					<Button variant="ghost" onclick={reset} disabled={!dirty || saving}
+						>{m.config_reset()}</Button
 					>
-						{m.config_reset()}
-					</Button>
-					<Button
-						onclick={saveRetention}
-						disabled={retDiff.length === 0 || retSaving}
-						loading={retSaving}
-					>
+					<Button type="submit" disabled={!dirty || !!validationError || saving} loading={saving}>
 						{m.config_save()}
 					</Button>
 				</div>
-			</Card>
-		{/if}
+			</form>
+
+			{#if resolutions}
+				<Card class="mt-5">
+					<p class="mb-1 text-xs tracking-wide text-[var(--color-fg-muted)]">
+						{m.config_section_resolutions()}
+					</p>
+					<p class="mb-4 max-w-lg text-xs text-[var(--color-fg-muted)]">
+						{m.config_resolutions_description()}
+					</p>
+					<ul class="flex flex-col gap-2">
+						{#each resolutions as r (r.name)}
+							{@const locked = lockReason(r)}
+							<li class="flex items-center gap-3 rounded-md bg-[var(--color-surface-2)] px-3 py-2">
+								<span class="text-md w-10 font-mono text-[var(--color-fg)]">{r.name}</span>
+								<span class="text-2xs font-mono text-[var(--color-fg-subtle)]">
+									{fmtIntervalSecs(r.interval_seconds)}
+								</span>
+								{#if r.rollup_from}
+									<span class="text-2xs text-[var(--color-fg-faint)]">
+										← {r.rollup_from}
+									</span>
+								{/if}
+								<span class="ml-auto"></span>
+								{#if locked}
+									<span
+										class="text-2xs max-w-56 truncate text-[var(--color-fg-subtle)]"
+										title={locked}
+									>
+										{locked}
+									</span>
+								{/if}
+								<button
+									type="button"
+									onclick={() => toggleResolution(r)}
+									disabled={!!locked || resolutionBusy === r.name}
+									class={cn(
+										'text-2xs rounded-full px-2.5 py-0.5 font-mono tracking-wide transition',
+										r.enabled
+											? 'bg-[var(--color-success)]/15 text-[var(--color-success)]'
+											: 'bg-[var(--color-fg-subtle)]/15 text-[var(--color-fg-subtle)]',
+										locked ? 'cursor-not-allowed opacity-60' : 'hover:opacity-80'
+									)}
+								>
+									{r.enabled ? m.config_resolution_enabled() : m.config_resolution_disabled()}
+								</button>
+							</li>
+						{/each}
+					</ul>
+				</Card>
+			{/if}
+
+			{#if retOriginal}
+				<Card class="mt-5">
+					<p class="mb-1 text-xs tracking-wide text-[var(--color-fg-muted)]">
+						{m.config_section_retention()}
+					</p>
+					<p class="mb-4 max-w-lg text-xs text-[var(--color-fg-muted)]">
+						{m.config_retention_description()}
+					</p>
+
+					<div class="overflow-x-auto">
+						<table class="w-full min-w-[480px] text-sm">
+							<thead>
+								<tr class="text-2xs text-left tracking-wide text-[var(--color-fg-subtle)]">
+									<th class="pr-4 pb-2 font-normal">{m.config_retention_header_resource()}</th>
+									{#each RESOLUTION_ORDER as res (res)}
+										<th class="pr-3 pb-2 font-normal">{res}</th>
+									{/each}
+								</tr>
+							</thead>
+							<tbody>
+								{#each retResources as resource (resource)}
+									<tr class="border-t border-[var(--color-border)]/60">
+										<td class="py-1.5 pr-4 font-mono text-xs text-[var(--color-fg)]">
+											{resource}
+										</td>
+										{#each RESOLUTION_ORDER as resolution (resolution)}
+											{@const cell = retCell(resource, resolution)}
+											<td class="py-1.5 pr-3">
+												{#if cell}
+													{@const key = retKey(resource, resolution)}
+													<select
+														value={retForm[key]}
+														onchange={(e) =>
+															(retForm[key] = Number((e.target as HTMLSelectElement).value))}
+														class={cn(
+															'rounded-md border bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-xs',
+															retForm[key] !== cell.keep_seconds
+																? 'border-[var(--color-accent)] text-[var(--color-accent)]'
+																: 'border-[var(--color-border)] text-[var(--color-fg-muted)]'
+														)}
+													>
+														{#each keepOptions(retForm[key]) as opt (opt)}
+															<option value={opt}>{fmtKeep(opt)}</option>
+														{/each}
+													</select>
+												{:else}
+													<span class="text-2xs text-[var(--color-fg-faint)]">—</span>
+												{/if}
+											</td>
+										{/each}
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+
+					<div class="mt-4 flex items-center justify-end gap-2">
+						<span class="mr-auto text-xs text-[var(--color-fg-subtle)]">
+							{retDiff.length === 1
+								? m.config_fields_changed_one()
+								: m.config_fields_changed_other({ count: retDiff.length })}
+						</span>
+						<Button
+							variant="ghost"
+							onclick={resetRetention}
+							disabled={retDiff.length === 0 || retSaving}
+						>
+							{m.config_reset()}
+						</Button>
+						<Button
+							onclick={saveRetention}
+							disabled={retDiff.length === 0 || retSaving}
+							loading={retSaving}
+						>
+							{m.config_save()}
+						</Button>
+					</div>
+				</Card>
+			{/if}
+		</fieldset>
 	{:else if busy}
 		<Card padding="lg">
 			<p class="text-sm text-[var(--color-fg-muted)]">{m.config_loading()}</p>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { useServer } from '$lib/server-scope';
+	import { roleLabel } from '$lib/access';
 	import { tabParam } from '$lib/utils/tab';
 	import DataTable from '$lib/components/ui/DataTable.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
@@ -118,7 +119,7 @@
 		if (!conn.isAuthenticated || countsPrimed) return;
 		countsPrimed = true;
 		if (tab !== 'timers') void fetchTimers();
-		if (tab !== 'cron') void fetchCron();
+		if (tab !== 'cron' && conn.can('operator')) void fetchCron();
 	});
 
 	let needle = $derived(q.trim().toLowerCase());
@@ -249,10 +250,13 @@
 
 	let canStreamLogs = $derived(serviceBackend === 'systemd');
 
+	// Crontab lines carry heartbeat ping URLs, so cron is an operator read.
 	const tabsConfig = $derived([
 		{ key: 'services' as const, label: m.section_services(), count: services.length },
 		{ key: 'timers' as const, label: m.services_tab_timers(), count: timers.length },
-		{ key: 'cron' as const, label: m.services_tab_cron(), count: cronJobs.length }
+		...(conn.can('operator')
+			? [{ key: 'cron' as const, label: m.services_tab_cron(), count: cronJobs.length }]
+			: [])
 	]);
 
 	const stateOptions: (ServiceState | 'all')[] = [
@@ -304,7 +308,9 @@
 {#snippet serviceActions(s: ServiceDto)}
 	{@const running = s.state === 'running' || s.state === 'reloading'}
 	{@const busy = acting !== null}
-	{#if running}
+	{#if !conn.can('operator')}
+		<!-- nothing this role may do -->
+	{:else if running}
 		<IconButton
 			size="sm"
 			label={m.services_action_stop()}
@@ -343,7 +349,9 @@
 			<IconPlay class="size-[13px]" stroke-width="2" />
 		</IconButton>
 	{/if}
-	{#if s.enabled_at_boot === true}
+	{#if !conn.can('admin')}
+		<!-- boot behaviour is an admin change -->
+	{:else if s.enabled_at_boot === true}
 		<IconButton
 			size="sm"
 			label={m.services_action_disable_at_boot()}
@@ -390,7 +398,11 @@
 			{m.services_action_collapse()}
 		</button>
 	</div>
-	{#if canStreamLogs && conn}
+	{#if !conn.can('operator')}
+		<p class="text-xs text-[var(--color-fg-muted)]">
+			{m.error_role_required({ role: roleLabel('operator') })}
+		</p>
+	{:else if canStreamLogs && conn}
 		<LogStream {conn} path={`/services/${s.name}/logs`} initialTail={100} />
 	{:else}
 		<p class="text-xs text-[var(--color-fg-muted)]">
@@ -554,6 +566,7 @@
 						<Switch
 							checked={t.enabled_at_boot === true}
 							onchange={() => toggleTimer(t)}
+							disabled={!conn.can('admin')}
 							label={t.enabled_at_boot === true
 								? m.services_action_disable_at_boot()
 								: m.services_action_enable_at_boot()}

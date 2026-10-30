@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { useServer } from '$lib/server-scope';
+	import { roleLabel } from '$lib/access';
 	import Button from '$lib/components/ui/Button.svelte';
 	import DataTable from '$lib/components/ui/DataTable.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
@@ -91,6 +92,8 @@
 	}
 
 	async function ensurePings(checkId: number, bust = false) {
+		// Fail pings carry job output, an operator read.
+		if (!conn.can('operator')) return;
 		if (!bust && pingsCache[checkId]) return;
 		pingsLoading[checkId] = true;
 		try {
@@ -326,10 +329,12 @@
 			<option value="10s">10s</option>
 		</Select>
 		<RefreshButton onclick={() => fetchList(true)} {loading} label={m.heartbeats_refresh()} />
-		<Button variant="primary" size="sm" onclick={openCreate}>
-			<IconPlus class="size-[14px]" stroke-width="2.25" />
-			{m.heartbeats_new_check()}
-		</Button>
+		{#if conn.can('admin')}
+			<Button variant="primary" size="sm" onclick={openCreate}>
+				<IconPlus class="size-[14px]" stroke-width="2.25" />
+				{m.heartbeats_new_check()}
+			</Button>
+		{/if}
 	</PageHeader>
 
 	{#if error}
@@ -444,7 +449,9 @@
 								</div>
 
 								<div class="flex flex-wrap items-center gap-2">
-									{#if c.paused}
+									{#if !conn.can('operator')}
+										<!-- pausing is an operator action -->
+									{:else if c.paused}
 										<Button variant="secondary" size="sm" onclick={() => resume(c)}>
 											{m.heartbeats_action_resume()}
 										</Button>
@@ -453,15 +460,17 @@
 											{m.heartbeats_action_pause()}
 										</Button>
 									{/if}
-									<Button variant="secondary" size="sm" onclick={() => openEdit(c)}>
-										{m.heartbeats_action_edit()}
-									</Button>
-									<Button variant="secondary" size="sm" onclick={() => rotateSlug(c)}>
-										{m.heartbeats_action_rotate()}
-									</Button>
-									<Button variant="ghost" size="sm" onclick={() => remove(c)}>
-										<span class="text-[var(--color-danger)]">{m.heartbeats_delete()}</span>
-									</Button>
+									{#if conn.can('admin')}
+										<Button variant="secondary" size="sm" onclick={() => openEdit(c)}>
+											{m.heartbeats_action_edit()}
+										</Button>
+										<Button variant="secondary" size="sm" onclick={() => rotateSlug(c)}>
+											{m.heartbeats_action_rotate()}
+										</Button>
+										<Button variant="ghost" size="sm" onclick={() => remove(c)}>
+											<span class="text-[var(--color-danger)]">{m.heartbeats_delete()}</span>
+										</Button>
+									{/if}
 								</div>
 
 								<div>
@@ -470,7 +479,11 @@
 									>
 										{m.heartbeats_pings_title()}
 									</h3>
-									{#if pingsLoading[c.id]}
+									{#if !conn.can('operator')}
+										<p class="text-xs text-[var(--color-fg-subtle)]">
+											{m.error_role_required({ role: roleLabel('operator') })}
+										</p>
+									{:else if pingsLoading[c.id]}
 										<p class="text-xs text-[var(--color-fg-subtle)]">…</p>
 									{:else if pings && 'error' in pings}
 										<p class="text-xs text-[var(--color-danger)]">{pings.error}</p>

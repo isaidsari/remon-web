@@ -1,4 +1,5 @@
 import type { Component } from 'svelte';
+import type { Role } from '$lib/types/api';
 import { m } from '$lib/paraglide/messages';
 import IconLayoutDashboard from '~icons/lucide/layout-dashboard';
 import IconBotMessageSquare from '~icons/lucide/bot-message-square';
@@ -22,14 +23,21 @@ export interface NavItem {
 	path: string;
 	label: () => string;
 	icon: Component;
+	/** Least role the page needs; viewer when absent. */
+	role?: Role;
 }
 
 /** The one list the sidebar and the breadcrumb both read. */
 export const NAV_ITEMS: NavItem[] = [
 	{ path: '', label: m.section_overview, icon: IconLayoutDashboard },
-	{ path: '/assistant', label: m.section_assistant, icon: IconBotMessageSquare },
+	{
+		path: '/assistant',
+		label: m.section_assistant,
+		icon: IconBotMessageSquare,
+		role: 'operator'
+	},
 	{ path: '/metrics', label: m.section_metrics, icon: IconLineChart },
-	{ path: '/processes', label: m.section_processes, icon: IconList },
+	{ path: '/processes', label: m.section_processes, icon: IconList, role: 'operator' },
 	{ path: '/services', label: m.section_services, icon: IconActivity },
 	{ path: '/probes', label: m.section_probes, icon: IconStethoscope },
 	{ path: '/heartbeats', label: m.section_heartbeats, icon: IconHeartPulse },
@@ -38,8 +46,8 @@ export const NAV_ITEMS: NavItem[] = [
 	{ path: '/actions', label: m.section_actions, icon: IconZap },
 	{ path: '/events', label: m.section_events, icon: IconScrollText },
 	{ path: '/incidents', label: m.section_incidents, icon: IconCamera },
-	{ path: '/logs', label: m.section_logs, icon: IconFileText },
-	{ path: '/notifications', label: m.section_notifications, icon: IconBell },
+	{ path: '/logs', label: m.section_logs, icon: IconFileText, role: 'operator' },
+	{ path: '/notifications', label: m.section_notifications, icon: IconBell, role: 'admin' },
 	{ path: '/config', label: m.section_config, icon: IconSettings },
 	{ path: '/settings', label: m.section_settings, icon: IconSlidersHorizontal }
 ];

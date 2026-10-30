@@ -1341,5 +1341,22 @@
 	"overview_host_disk": "disk {size}",
 	"overview_host_disks": "disk {size} · {count} sürücü",
 	"overview_host_copy": "Sunucu adını kopyala",
-	"overview_host_copied": "Sunucu adı kopyalandı"
+	"overview_host_copied": "Sunucu adı kopyalandı",
+	"role_viewer": "izleyici",
+	"role_operator": "operatör",
+	"role_admin": "yönetici",
+	"role_viewer_hint": "metrikleri, alarmları ve olayları görür. log okumaz, hiçbir şeyi değiştirmez.",
+	"role_operator_hint": "ek olarak log okur, servis yeniden başlatır, süreç sonlandırır, alarm susturur.",
+	"role_admin_hint": "ek olarak cihaz eşler; kural, kanal ve yapılandırmayı düzenler; kabuk açar.",
+	"role_page_title": "bu cihaz için kullanılamaz",
+	"role_page_description": "bu sayfa {role} rolü gerektirir. bir yönetici bu cihazın rolünü ayarlardan değiştirebilir.",
+	"error_role_required": "bunun için {role} rolü gerekir.",
+	"settings_pairing_role": "rol",
+	"settings_pair_role_label": "yeni cihazın rolü",
+	"settings_pair_role_placeholder": "bir rol seç",
+	"settings_pair_code_role": "{role} rolündeki bir cihaz için",
+	"settings_devices_role_label": "{name} rolü",
+	"settings_toast_role_changed": "{name} artık {role}",
+	"settings_toast_role_change_failed": "rol değiştirilemedi",
+	"config_read_only": "salt okunur. yapılandırmayı değiştirmek {role} rolü gerektirir."
 }

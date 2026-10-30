@@ -266,63 +266,67 @@
 	{@const running = c.state === 'running'}
 	{@const paused = c.state === 'paused'}
 	{@const busy = acting !== null}
-	{#if !running && !paused}
+	{#if conn.can('operator')}
+		{#if !running && !paused}
+			<IconButton
+				label={m.docker_action_start()}
+				onclick={() => start(c)}
+				disabled={busy}
+				loading={acting === `start:${c.id}`}
+			>
+				<IconPlay class="size-[14px]" stroke-width="2" />
+			</IconButton>
+		{/if}
+		{#if running}
+			<IconButton
+				label={m.docker_action_pause()}
+				onclick={() => pause(c)}
+				disabled={busy}
+				loading={acting === `pause:${c.id}`}
+			>
+				<IconPause class="size-[14px]" stroke-width="2" />
+			</IconButton>
+			<IconButton
+				label={m.docker_action_stop()}
+				onclick={() => stop(c)}
+				disabled={busy}
+				loading={acting === `stop:${c.id}`}
+			>
+				<IconSquare class="size-[14px]" stroke-width="2" />
+			</IconButton>
+		{/if}
+		{#if paused}
+			<IconButton
+				label={m.docker_action_resume()}
+				onclick={() => unpause(c)}
+				disabled={busy}
+				loading={acting === `unpause:${c.id}`}
+			>
+				<IconPlay class="size-[14px]" stroke-width="2" />
+			</IconButton>
+		{/if}
+		{#if running || paused}
+			<IconButton
+				label={m.docker_action_restart()}
+				onclick={() => restart(c)}
+				disabled={busy}
+				loading={acting === `restart:${c.id}`}
+			>
+				<IconRefresh class="size-[14px]" stroke-width="2" />
+			</IconButton>
+		{/if}
+	{/if}
+	{#if conn.can('admin')}
 		<IconButton
-			label={m.docker_action_start()}
-			onclick={() => start(c)}
+			tone="danger"
+			label={m.docker_action_delete()}
+			onclick={() => remove(c)}
 			disabled={busy}
-			loading={acting === `start:${c.id}`}
+			loading={acting === `delete:${c.id}`}
 		>
-			<IconPlay class="size-[14px]" stroke-width="2" />
+			<IconTrash class="size-[14px]" stroke-width="2" />
 		</IconButton>
 	{/if}
-	{#if running}
-		<IconButton
-			label={m.docker_action_pause()}
-			onclick={() => pause(c)}
-			disabled={busy}
-			loading={acting === `pause:${c.id}`}
-		>
-			<IconPause class="size-[14px]" stroke-width="2" />
-		</IconButton>
-		<IconButton
-			label={m.docker_action_stop()}
-			onclick={() => stop(c)}
-			disabled={busy}
-			loading={acting === `stop:${c.id}`}
-		>
-			<IconSquare class="size-[14px]" stroke-width="2" />
-		</IconButton>
-	{/if}
-	{#if paused}
-		<IconButton
-			label={m.docker_action_resume()}
-			onclick={() => unpause(c)}
-			disabled={busy}
-			loading={acting === `unpause:${c.id}`}
-		>
-			<IconPlay class="size-[14px]" stroke-width="2" />
-		</IconButton>
-	{/if}
-	{#if running || paused}
-		<IconButton
-			label={m.docker_action_restart()}
-			onclick={() => restart(c)}
-			disabled={busy}
-			loading={acting === `restart:${c.id}`}
-		>
-			<IconRefresh class="size-[14px]" stroke-width="2" />
-		</IconButton>
-	{/if}
-	<IconButton
-		tone="danger"
-		label={m.docker_action_delete()}
-		onclick={() => remove(c)}
-		disabled={busy}
-		loading={acting === `delete:${c.id}`}
-	>
-		<IconTrash class="size-[14px]" stroke-width="2" />
-	</IconButton>
 {/snippet}
 
 <div class="px-4 py-6 md:px-8 md:py-8">
@@ -374,7 +378,9 @@
 					bind:value={q}
 					class="w-full sm:w-64"
 				/>
-				{#if tab === 'containers'}
+				{#if !conn.can('admin')}
+					<!-- pruning is an admin change -->
+				{:else if tab === 'containers'}
 					<Button variant="ghost" size="sm" onclick={pruneContainers} class="shrink-0">
 						{m.docker_action_prune_stopped()}
 					</Button>
@@ -496,15 +502,17 @@
 						</td>
 						<td class="actions">
 							<div class="flex items-center gap-1.5 md:justify-end">
-								<IconButton
-									tone="danger"
-									label={m.docker_action_delete()}
-									onclick={() => deleteImage(img)}
-									disabled={acting !== null}
-									loading={acting === `image-delete:${img.id}`}
-								>
-									<IconTrash class="size-[14px]" stroke-width="2" />
-								</IconButton>
+								{#if conn.can('admin')}
+									<IconButton
+										tone="danger"
+										label={m.docker_action_delete()}
+										onclick={() => deleteImage(img)}
+										disabled={acting !== null}
+										loading={acting === `image-delete:${img.id}`}
+									>
+										<IconTrash class="size-[14px]" stroke-width="2" />
+									</IconButton>
+								{/if}
 							</div>
 						</td>
 					</tr>

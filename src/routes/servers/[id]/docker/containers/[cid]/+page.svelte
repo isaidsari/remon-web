@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { useServer } from '$lib/server-scope';
+	import { roleLabel } from '$lib/access';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import Card from '$lib/components/ui/Card.svelte';
@@ -185,56 +186,60 @@
 		</div>
 
 		<div class="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
-			{#if stopped}
-				<Button size="sm" onclick={start} loading={acting === 'start'} disabled={!!acting}>
-					{m.docker_container_action_start()}
-				</Button>
+			{#if conn.can('operator')}
+				{#if stopped}
+					<Button size="sm" onclick={start} loading={acting === 'start'} disabled={!!acting}>
+						{m.docker_container_action_start()}
+					</Button>
+				{/if}
+				{#if running}
+					<Button
+						variant="secondary"
+						size="sm"
+						onclick={pause}
+						loading={acting === 'pause'}
+						disabled={!!acting}
+					>
+						{m.docker_container_action_pause()}
+					</Button>
+					<Button
+						variant="secondary"
+						size="sm"
+						onclick={stop}
+						loading={acting === 'stop'}
+						disabled={!!acting}
+					>
+						{m.docker_container_action_stop()}
+					</Button>
+				{/if}
+				{#if paused}
+					<Button size="sm" onclick={unpause} loading={acting === 'unpause'} disabled={!!acting}>
+						{m.docker_container_action_resume()}
+					</Button>
+				{/if}
+				{#if running || paused}
+					<Button
+						variant="secondary"
+						size="sm"
+						onclick={restart}
+						loading={acting === 'restart'}
+						disabled={!!acting}
+					>
+						{m.docker_container_action_restart()}
+					</Button>
+				{/if}
 			{/if}
-			{#if running}
+			{#if conn.can('admin')}
 				<Button
-					variant="secondary"
+					variant="danger"
 					size="sm"
-					onclick={pause}
-					loading={acting === 'pause'}
+					onclick={remove}
+					loading={acting === 'delete'}
 					disabled={!!acting}
 				>
-					{m.docker_container_action_pause()}
-				</Button>
-				<Button
-					variant="secondary"
-					size="sm"
-					onclick={stop}
-					loading={acting === 'stop'}
-					disabled={!!acting}
-				>
-					{m.docker_container_action_stop()}
+					{m.docker_container_action_delete()}
 				</Button>
 			{/if}
-			{#if paused}
-				<Button size="sm" onclick={unpause} loading={acting === 'unpause'} disabled={!!acting}>
-					{m.docker_container_action_resume()}
-				</Button>
-			{/if}
-			{#if running || paused}
-				<Button
-					variant="secondary"
-					size="sm"
-					onclick={restart}
-					loading={acting === 'restart'}
-					disabled={!!acting}
-				>
-					{m.docker_container_action_restart()}
-				</Button>
-			{/if}
-			<Button
-				variant="danger"
-				size="sm"
-				onclick={remove}
-				loading={acting === 'delete'}
-				disabled={!!acting}
-			>
-				{m.docker_container_action_delete()}
-			</Button>
 		</div>
 	</header>
 
@@ -392,7 +397,11 @@
 					{m.docker_container_logs_via_sse()} · /sse/docker/containers/{shortId(cid)}/logs/stream
 				</span>
 			</div>
-			{#if conn.isAuthenticated}
+			{#if !conn.can('operator')}
+				<p class="text-sm text-[var(--color-fg-subtle)]">
+					{m.error_role_required({ role: roleLabel('operator') })}
+				</p>
+			{:else if conn.isAuthenticated}
 				<LogStream {conn} path={`/docker/containers/${cid}/logs/stream`} />
 			{/if}
 		</Card>
@@ -406,7 +415,11 @@
 					{m.docker_container_console_via_ws()} · /ws/docker/containers/{shortId(cid)}/exec
 				</span>
 			</div>
-			{#if conn.isAuthenticated && running}
+			{#if !conn.can('admin')}
+				<p class="text-sm text-[var(--color-fg-subtle)]">
+					{m.error_role_required({ role: roleLabel('admin') })}
+				</p>
+			{:else if conn.isAuthenticated && running}
 				<!-- xterm is ~360 KB of this route's parse weight; keep it off the shell. -->
 				{#await import('$lib/components/docker/Terminal.svelte') then { default: Terminal }}
 					<Terminal {conn} containerId={cid} />

@@ -1341,5 +1341,22 @@
 	"overview_host_disk": "disk {size}",
 	"overview_host_disks": "disk {size} · {count} drives",
 	"overview_host_copy": "Copy hostname",
-	"overview_host_copied": "Hostname copied"
+	"overview_host_copied": "Hostname copied",
+	"role_viewer": "viewer",
+	"role_operator": "operator",
+	"role_admin": "admin",
+	"role_viewer_hint": "sees metrics, alerts and events. no logs, changes nothing.",
+	"role_operator_hint": "also reads logs, restarts services, kills processes, silences alerts.",
+	"role_admin_hint": "also pairs devices, edits rules, channels and config, opens a shell.",
+	"role_page_title": "not available to this device",
+	"role_page_description": "this page needs the {role} role. an admin can change this device's role in settings.",
+	"error_role_required": "this needs the {role} role.",
+	"settings_pairing_role": "role",
+	"settings_pair_role_label": "role for the new device",
+	"settings_pair_role_placeholder": "choose a role",
+	"settings_pair_code_role": "for a device with the {role} role",
+	"settings_devices_role_label": "role of {name}",
+	"settings_toast_role_changed": "{name} is now {role}",
+	"settings_toast_role_change_failed": "role change failed",
+	"config_read_only": "read only. changing configuration needs the {role} role."
 }

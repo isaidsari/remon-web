@@ -19,6 +19,10 @@
 	<Banner variant="info" title={m.error_not_supported_title()} class={klass}>
 		{error.userMessage}
 	</Banner>
+{:else if error.isRoleRequired}
+	<Banner variant="warning" title={m.role_page_title()} class={klass}>
+		{error.userMessage}
+	</Banner>
 {:else if error.isForbidden}
 	<Banner variant="warning" title={m.error_forbidden_title()} class={klass}>
 		{error.userMessage}

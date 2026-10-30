@@ -88,10 +88,13 @@
 			const [cat, binds, runList, ruleList] = await Promise.all([
 				client.request<ActionCatalogResponse>('/actions', opts),
 				client.request<{ bindings: ActionBindingDto[] }>('/actions/bindings', opts),
-				client.request<{ runs: ActionRunDto[] }>('/actions/runs', {
-					...opts,
-					query: { limit: RUNS_PAGE }
-				}),
+				// Runs carry script output, an operator read.
+				conn.can('operator')
+					? client.request<{ runs: ActionRunDto[] }>('/actions/runs', {
+							...opts,
+							query: { limit: RUNS_PAGE }
+						})
+					: Promise.resolve({ runs: [] as ActionRunDto[] }),
 				client.request<{ rules: AlertRuleDto[] }>('/alerts', opts)
 			]);
 			catalog = cat;
@@ -392,19 +395,21 @@
 			<option value="10s">10s</option>
 		</Select>
 		<RefreshButton onclick={() => fetchAll(true)} {loading} label={m.actions_refresh()} />
-		<Button variant="secondary" size="sm" onclick={reloadScripts} disabled={unsupported}>
-			<IconRotateCw class="size-[14px]" stroke-width="2.25" />
-			{m.actions_reload_scripts()}
-		</Button>
-		<Button
-			variant="primary"
-			size="sm"
-			onclick={openCreate}
-			disabled={unsupported || rules.length === 0}
-		>
-			<IconPlus class="size-[14px]" stroke-width="2.25" />
-			{m.actions_new_binding()}
-		</Button>
+		{#if conn.can('admin')}
+			<Button variant="secondary" size="sm" onclick={reloadScripts} disabled={unsupported}>
+				<IconRotateCw class="size-[14px]" stroke-width="2.25" />
+				{m.actions_reload_scripts()}
+			</Button>
+			<Button
+				variant="primary"
+				size="sm"
+				onclick={openCreate}
+				disabled={unsupported || rules.length === 0}
+			>
+				<IconPlus class="size-[14px]" stroke-width="2.25" />
+				{m.actions_new_binding()}
+			</Button>
+		{/if}
 	</PageHeader>
 
 	{#if unsupported}
@@ -536,28 +541,32 @@
 								<div class="flex items-center gap-1.5 md:justify-end">
 									<Switch
 										checked={b.enabled}
-										disabled={busyBinding === b.id}
+										disabled={busyBinding === b.id || !conn.can('admin')}
 										onchange={(v) => setEnabled(b, v)}
 										label={m.actions_enabled_toggle()}
 										class="mr-1"
 									/>
-									<IconButton
-										label={m.actions_run_now()}
-										onclick={() => runNow(b)}
-										disabled={busyBinding === b.id}
-									>
-										<IconPlay class="size-[14px]" />
-									</IconButton>
-									<IconButton label={m.actions_edit()} onclick={() => openEdit(b)}>
-										<IconPencil class="size-[14px]" />
-									</IconButton>
-									<IconButton
-										tone="danger"
-										label={m.actions_delete()}
-										onclick={() => removeBinding(b)}
-									>
-										<IconTrash class="size-[14px]" />
-									</IconButton>
+									{#if conn.can('operator')}
+										<IconButton
+											label={m.actions_run_now()}
+											onclick={() => runNow(b)}
+											disabled={busyBinding === b.id}
+										>
+											<IconPlay class="size-[14px]" />
+										</IconButton>
+									{/if}
+									{#if conn.can('admin')}
+										<IconButton label={m.actions_edit()} onclick={() => openEdit(b)}>
+											<IconPencil class="size-[14px]" />
+										</IconButton>
+										<IconButton
+											tone="danger"
+											label={m.actions_delete()}
+											onclick={() => removeBinding(b)}
+										>
+											<IconTrash class="size-[14px]" />
+										</IconButton>
+									{/if}
 								</div>
 							</td>
 						</tr>

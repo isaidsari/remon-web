@@ -34,7 +34,8 @@
 	import { WEB_VERSION, WEB_BUILT_AT, WEB_BUILD_MODE } from '$lib/version';
 	import { fmtRelative } from '$lib/utils/format';
 	import { cn } from '$lib/utils/cn';
-	import type { SessionInfo } from '$lib/types/api';
+	import type { Role, SessionInfo } from '$lib/types/api';
+	import { ROLES, roleHint, roleLabel } from '$lib/access';
 	import {
 		isPushSupported,
 		notificationPermission,
@@ -158,6 +159,8 @@
 	let sessionsError = $state<string | null>(null);
 	let editingId = $state<string | null>(null);
 	let editingName = $state('');
+	// Bumped per fetch so a refused role change snaps its picker back.
+	let sessionsVersion = $state(0);
 
 	async function fetchSessions() {
 		if (!conn.isAuthenticated) return;
@@ -166,6 +169,7 @@
 		try {
 			const res = await conn.client.listSessions();
 			sessions = res.sessions;
+			sessionsVersion++;
 		} catch (e) {
 			sessionsError = e instanceof ApiError ? e.userMessage : String(e);
 		} finally {
@@ -173,8 +177,9 @@
 		}
 	}
 
+	// Only an admin may list devices.
 	$effect(() => {
-		if (conn.isAuthenticated) void fetchSessions();
+		if (conn.isAuthenticated && conn.can('admin')) void fetchSessions();
 	});
 
 	let pairCode = $state<string | null>(null);
@@ -182,14 +187,19 @@
 	let pairBusy = $state(false);
 	let pairError = $state<string | null>(null);
 	let pairSecondsLeft = $derived(Math.max(0, Math.ceil(pairExpiresAt - now / 1000)));
+	// No default: whoever opens the window picks what the new device may do.
+	let pairRole = $state<Role | ''>('');
+	let pairCodeRole = $state<Role | null>(null);
 
 	async function openPairing() {
+		if (!pairRole) return;
 		pairBusy = true;
 		pairError = null;
 		try {
-			const res = await conn.client.pairOpen();
+			const res = await conn.client.pairOpen(pairRole);
 			pairCode = res.pairing_code;
 			pairExpiresAt = res.expires_at;
+			pairCodeRole = res.role ?? null;
 		} catch (e) {
 			pairError = e instanceof ApiError ? e.userMessage : String(e);
 		} finally {
@@ -210,7 +220,7 @@
 			return;
 		}
 		try {
-			await conn.client.renameSession(id, next);
+			await conn.client.updateSession(id, { name: next });
 			editingId = null;
 			toast.success(m.settings_toast_renamed());
 			await fetchSessions();
@@ -220,6 +230,20 @@
 				description: e instanceof ApiError ? e.userMessage : String(e)
 			});
 		}
+	}
+
+	async function setRole(s: SessionInfo, role: Role) {
+		if (role === s.role) return;
+		try {
+			await conn.client.updateSession(s.id, { role });
+			toast.success(m.settings_toast_role_changed({ name: s.name, role: roleLabel(role) }));
+			if (s.is_current) await conn.loadRole();
+		} catch (e) {
+			toast.error(m.settings_toast_role_change_failed(), {
+				description: e instanceof ApiError ? e.userMessage : String(e)
+			});
+		}
+		await fetchSessions();
 	}
 
 	let pushSupported = $state(false);
@@ -486,154 +510,192 @@
 			<dd class="font-mono break-all text-[var(--color-fg)]">{profile.deviceId}</dd>
 			<dt class="text-[var(--color-fg-muted)]">{m.settings_pairing_paired_at()}</dt>
 			<dd class="text-[var(--color-fg)]">{new Date(profile.createdAt).toLocaleString()}</dd>
+			{#if conn.role}
+				<dt class="text-[var(--color-fg-muted)]">{m.settings_pairing_role()}</dt>
+				<dd class="text-[var(--color-fg)]">
+					{roleLabel(conn.role)}
+					<span class="text-[var(--color-fg-subtle)]">· {roleHint(conn.role)}</span>
+				</dd>
+			{/if}
 		</dl>
 	</Card>
 
-	<Card padding="md" class="mb-5">
-		<div class="mb-3 flex items-baseline justify-between gap-3">
-			<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">
-				{m.settings_devices_eyebrow()}
-			</p>
-			<button
-				type="button"
-				onclick={fetchSessions}
-				disabled={sessionsLoading}
-				class="text-2xs inline-flex items-center gap-1 text-[var(--color-fg-subtle)] transition hover:text-[var(--color-fg)] disabled:opacity-50"
-				title={m.settings_devices_refresh_title()}
-			>
-				<IconRefreshCw
-					class={cn('size-[11px]', sessionsLoading && 'animate-spin')}
-					stroke-width="2.25"
-				/>
-				{m.settings_devices_refresh()}
-			</button>
-		</div>
-		<p class="mb-3 max-w-md text-xs text-[var(--color-fg-muted)]">
-			{m.settings_devices_description()}
-		</p>
-
-		{#if sessionsError}
-			<p class="text-xs text-[var(--color-danger)]">{sessionsError}</p>
-		{:else if sessionsLoading && sessions.length === 0}
-			<p class="text-xs text-[var(--color-fg-subtle)]">{m.settings_devices_loading()}</p>
-		{:else if sessions.length === 0}
-			<p class="text-xs text-[var(--color-fg-subtle)]">{m.settings_devices_empty()}</p>
-		{:else}
-			<ul class="-mx-2 flex flex-col">
-				{#each sessions as s (s.id)}
-					<li
-						class={cn(
-							'group flex items-center gap-3 rounded-md px-2 py-2.5 transition-colors',
-							'hover:bg-[var(--color-surface-2)]/40',
-							s.is_current && 'bg-[var(--color-accent)]/5'
-						)}
-					>
-						<div class="min-w-0 flex-1">
-							<div class="flex items-center gap-2">
-								{#if editingId === s.id}
-									<Input
-										bind:value={editingName}
-										onblur={() => commitRename(s.id)}
-										onkeydown={(e: KeyboardEvent) => {
-											if (e.key === 'Enter') {
-												e.preventDefault();
-												void commitRename(s.id);
-											} else if (e.key === 'Escape') {
-												editingId = null;
-											}
-										}}
-										class="text-md h-7 w-48"
-									/>
-								{:else}
-									<button
-										type="button"
-										onclick={() => startRename(s)}
-										class="truncate text-sm font-medium text-[var(--color-fg)] transition hover:text-[var(--color-accent)]"
-										title={m.settings_devices_rename_title()}
-									>
-										{s.name}
-									</button>
-								{/if}
-								{#if s.is_current}
-									<span
-										class="text-3xs rounded bg-[var(--color-accent)]/15 px-1.5 py-0.5 font-mono tracking-wide text-[var(--color-accent)]"
-									>
-										{m.settings_devices_this_device()}
-									</span>
-								{/if}
-								{#if !s.is_active}
-									<span
-										class="text-3xs rounded bg-[var(--color-fg-subtle)]/15 px-1.5 py-0.5 font-mono tracking-wide text-[var(--color-fg-subtle)]"
-									>
-										{m.settings_devices_inactive()}
-									</span>
-								{/if}
-							</div>
-							<p
-								class="text-2xs mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[var(--color-fg-subtle)]"
-							>
-								<span>{m.settings_devices_last_seen({ time: fmtRelative(s.last_seen) })}</span>
-								{#if s.last_ip}
-									<span class="text-[var(--color-fg-faint)]" aria-hidden="true">·</span>
-									<span class="font-mono">{s.last_ip}</span>
-								{/if}
-								<span class="text-[var(--color-fg-faint)]" aria-hidden="true">·</span>
-								<span>
-									{s.active_sessions === 1
-										? m.settings_devices_live_sessions_one()
-										: m.settings_devices_live_sessions_other({ count: s.active_sessions })}
-								</span>
-							</p>
-						</div>
-						<button
-							type="button"
-							onclick={() => revokeSession(s)}
-							class="shrink-0 rounded-md px-2 py-1 text-xs text-[var(--color-fg-subtle)] opacity-60 transition group-hover:opacity-100 hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger)] hover:opacity-100"
-						>
-							{m.settings_devices_revoke()}
-						</button>
-					</li>
-				{/each}
-			</ul>
-		{/if}
-	</Card>
-
-	<Card padding="md" class="mb-5">
-		<p class="mb-3 text-xs tracking-wide text-[var(--color-fg-muted)]">
-			{m.settings_pair_eyebrow()}
-		</p>
-		<p class="mb-3 max-w-md text-xs text-[var(--color-fg-muted)]">
-			{m.settings_pair_description()}
-		</p>
-		{#if pairCode && pairSecondsLeft > 0}
-			<div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-				<span class="font-mono text-2xl font-semibold tracking-[0.3em] text-[var(--color-fg)]">
-					{pairCode}
-				</span>
-				<span class="text-2xs text-[var(--color-fg-subtle)] tabular-nums">
-					{m.settings_pair_expires({
-						time: `${Math.floor(pairSecondsLeft / 60)}:${String(pairSecondsLeft % 60).padStart(2, '0')}`
-					})}
-				</span>
+	{#if conn.can('admin')}
+		<Card padding="md" class="mb-5">
+			<div class="mb-3 flex items-baseline justify-between gap-3">
+				<p class="text-xs tracking-wide text-[var(--color-fg-muted)]">
+					{m.settings_devices_eyebrow()}
+				</p>
+				<button
+					type="button"
+					onclick={fetchSessions}
+					disabled={sessionsLoading}
+					class="text-2xs inline-flex items-center gap-1 text-[var(--color-fg-subtle)] transition hover:text-[var(--color-fg)] disabled:opacity-50"
+					title={m.settings_devices_refresh_title()}
+				>
+					<IconRefreshCw
+						class={cn('size-[11px]', sessionsLoading && 'animate-spin')}
+						stroke-width="2.25"
+					/>
+					{m.settings_devices_refresh()}
+				</button>
 			</div>
-		{:else if pairCode}
-			<p class="text-xs text-[var(--color-fg-subtle)]">{m.settings_pair_expired()}</p>
-		{/if}
-		{#if pairError}
-			<p class="mt-2 text-xs text-[var(--color-danger)]">{pairError}</p>
-		{/if}
-		<div class="mt-3">
-			<Button
-				size="sm"
-				variant="secondary"
-				onclick={openPairing}
-				loading={pairBusy}
-				disabled={pairBusy || !conn.isAuthenticated}
-			>
-				{pairCode ? m.settings_pair_new_code() : m.settings_pair_button()}
-			</Button>
-		</div>
-	</Card>
+			<p class="mb-3 max-w-md text-xs text-[var(--color-fg-muted)]">
+				{m.settings_devices_description()}
+			</p>
+
+			{#if sessionsError}
+				<p class="text-xs text-[var(--color-danger)]">{sessionsError}</p>
+			{:else if sessionsLoading && sessions.length === 0}
+				<p class="text-xs text-[var(--color-fg-subtle)]">{m.settings_devices_loading()}</p>
+			{:else if sessions.length === 0}
+				<p class="text-xs text-[var(--color-fg-subtle)]">{m.settings_devices_empty()}</p>
+			{:else}
+				<ul class="-mx-2 flex flex-col">
+					{#each sessions as s (s.id)}
+						<li
+							class={cn(
+								'group flex items-center gap-3 rounded-md px-2 py-2.5 transition-colors',
+								'hover:bg-[var(--color-surface-2)]/40',
+								s.is_current && 'bg-[var(--color-accent)]/5'
+							)}
+						>
+							<div class="min-w-0 flex-1">
+								<div class="flex items-center gap-2">
+									{#if editingId === s.id}
+										<Input
+											bind:value={editingName}
+											onblur={() => commitRename(s.id)}
+											onkeydown={(e: KeyboardEvent) => {
+												if (e.key === 'Enter') {
+													e.preventDefault();
+													void commitRename(s.id);
+												} else if (e.key === 'Escape') {
+													editingId = null;
+												}
+											}}
+											class="text-md h-7 w-48"
+										/>
+									{:else}
+										<button
+											type="button"
+											onclick={() => startRename(s)}
+											class="truncate text-sm font-medium text-[var(--color-fg)] transition hover:text-[var(--color-accent)]"
+											title={m.settings_devices_rename_title()}
+										>
+											{s.name}
+										</button>
+									{/if}
+									{#if s.is_current}
+										<span
+											class="text-3xs rounded bg-[var(--color-accent)]/15 px-1.5 py-0.5 font-mono tracking-wide text-[var(--color-accent)]"
+										>
+											{m.settings_devices_this_device()}
+										</span>
+									{/if}
+									{#if !s.is_active}
+										<span
+											class="text-3xs rounded bg-[var(--color-fg-subtle)]/15 px-1.5 py-0.5 font-mono tracking-wide text-[var(--color-fg-subtle)]"
+										>
+											{m.settings_devices_inactive()}
+										</span>
+									{/if}
+								</div>
+								<p
+									class="text-2xs mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[var(--color-fg-subtle)]"
+								>
+									<span>{m.settings_devices_last_seen({ time: fmtRelative(s.last_seen) })}</span>
+									{#if s.last_ip}
+										<span class="text-[var(--color-fg-faint)]" aria-hidden="true">·</span>
+										<span class="font-mono">{s.last_ip}</span>
+									{/if}
+									<span class="text-[var(--color-fg-faint)]" aria-hidden="true">·</span>
+									<span>
+										{s.active_sessions === 1
+											? m.settings_devices_live_sessions_one()
+											: m.settings_devices_live_sessions_other({ count: s.active_sessions })}
+									</span>
+								</p>
+							</div>
+							{#if s.role}
+								{#key sessionsVersion}
+									<Select
+										value={s.role}
+										onchange={(e: Event) =>
+											setRole(s, (e.currentTarget as HTMLSelectElement).value as Role)}
+										aria-label={m.settings_devices_role_label({ name: s.name })}
+										class="w-32 shrink-0"
+									>
+										{#each ROLES as r (r)}
+											<option value={r}>{roleLabel(r)}</option>
+										{/each}
+									</Select>
+								{/key}
+							{/if}
+							<button
+								type="button"
+								onclick={() => revokeSession(s)}
+								class="shrink-0 rounded-md px-2 py-1 text-xs text-[var(--color-fg-subtle)] opacity-60 transition group-hover:opacity-100 hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger)] hover:opacity-100"
+							>
+								{m.settings_devices_revoke()}
+							</button>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</Card>
+
+		<Card padding="md" class="mb-5">
+			<p class="mb-3 text-xs tracking-wide text-[var(--color-fg-muted)]">
+				{m.settings_pair_eyebrow()}
+			</p>
+			<p class="mb-3 max-w-md text-xs text-[var(--color-fg-muted)]">
+				{m.settings_pair_description()}
+			</p>
+			{#if pairCode && pairSecondsLeft > 0}
+				<div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+					<span class="font-mono text-2xl font-semibold tracking-[0.3em] text-[var(--color-fg)]">
+						{pairCode}
+					</span>
+					<span class="text-2xs text-[var(--color-fg-subtle)] tabular-nums">
+						{m.settings_pair_expires({
+							time: `${Math.floor(pairSecondsLeft / 60)}:${String(pairSecondsLeft % 60).padStart(2, '0')}`
+						})}
+					</span>
+				</div>
+			{:else if pairCode}
+				<p class="text-xs text-[var(--color-fg-subtle)]">{m.settings_pair_expired()}</p>
+			{/if}
+			{#if pairCode && pairSecondsLeft > 0 && pairCodeRole}
+				<p class="text-2xs mt-1 text-[var(--color-fg-subtle)]">
+					{m.settings_pair_code_role({ role: roleLabel(pairCodeRole) })}
+				</p>
+			{/if}
+			{#if pairError}
+				<p class="mt-2 text-xs text-[var(--color-danger)]">{pairError}</p>
+			{/if}
+			<div class="mt-3 flex flex-wrap items-center gap-2">
+				<Select bind:value={pairRole} aria-label={m.settings_pair_role_label()} class="w-44">
+					<option value="" disabled>{m.settings_pair_role_placeholder()}</option>
+					{#each ROLES as r (r)}
+						<option value={r}>{roleLabel(r)}</option>
+					{/each}
+				</Select>
+				<Button
+					size="sm"
+					variant="secondary"
+					onclick={openPairing}
+					loading={pairBusy}
+					disabled={pairBusy || !conn.isAuthenticated || !pairRole}
+				>
+					{pairCode ? m.settings_pair_new_code() : m.settings_pair_button()}
+				</Button>
+			</div>
+			{#if pairRole}
+				<p class="text-2xs mt-2 text-[var(--color-fg-subtle)]">{roleHint(pairRole)}</p>
+			{/if}
+		</Card>
+	{/if}
 
 	<Card padding="md" class="mb-5">
 		<div class="mb-3 flex items-baseline justify-between gap-3">
@@ -865,38 +927,40 @@
 		</dl>
 	</Card>
 
-	<Card padding="md" class="mb-5 border-[var(--color-danger)]/30">
-		<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-			<div class="min-w-0">
-				<p class="font-medium text-[var(--color-fg)]">{m.settings_lifecycle_eyebrow()}</p>
-				<p class="mt-1 text-sm text-[var(--color-fg-muted)]">
-					{m.settings_lifecycle_description()}
-				</p>
+	{#if conn.can('admin')}
+		<Card padding="md" class="mb-5 border-[var(--color-danger)]/30">
+			<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+				<div class="min-w-0">
+					<p class="font-medium text-[var(--color-fg)]">{m.settings_lifecycle_eyebrow()}</p>
+					<p class="mt-1 text-sm text-[var(--color-fg-muted)]">
+						{m.settings_lifecycle_description()}
+					</p>
+				</div>
+				<div class="flex shrink-0 flex-wrap gap-2">
+					<Button
+						variant="secondary"
+						size="sm"
+						onclick={() => runLifecycle('restart')}
+						disabled={!conn.isAuthenticated || lifecycleBusy !== null}
+						loading={lifecycleBusy === 'restart'}
+					>
+						<IconRefreshCw class="size-[13px]" stroke-width="2" />
+						{m.settings_lifecycle_restart()}
+					</Button>
+					<Button
+						variant="danger"
+						size="sm"
+						onclick={() => runLifecycle('shutdown')}
+						disabled={!conn.isAuthenticated || lifecycleBusy !== null}
+						loading={lifecycleBusy === 'shutdown'}
+					>
+						<IconPower class="size-[13px]" stroke-width="2" />
+						{m.settings_lifecycle_shutdown()}
+					</Button>
+				</div>
 			</div>
-			<div class="flex shrink-0 flex-wrap gap-2">
-				<Button
-					variant="secondary"
-					size="sm"
-					onclick={() => runLifecycle('restart')}
-					disabled={!conn.isAuthenticated || lifecycleBusy !== null}
-					loading={lifecycleBusy === 'restart'}
-				>
-					<IconRefreshCw class="size-[13px]" stroke-width="2" />
-					{m.settings_lifecycle_restart()}
-				</Button>
-				<Button
-					variant="danger"
-					size="sm"
-					onclick={() => runLifecycle('shutdown')}
-					disabled={!conn.isAuthenticated || lifecycleBusy !== null}
-					loading={lifecycleBusy === 'shutdown'}
-				>
-					<IconPower class="size-[13px]" stroke-width="2" />
-					{m.settings_lifecycle_shutdown()}
-				</Button>
-			</div>
-		</div>
-	</Card>
+		</Card>
+	{/if}
 
 	<Card padding="md" class="border-[var(--color-danger)]/30">
 		<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

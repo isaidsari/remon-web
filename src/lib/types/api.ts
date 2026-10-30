@@ -4,8 +4,13 @@ export interface ErrorResponseBody {
 	error: {
 		code: ApiErrorCode;
 		message: string;
+		/** Set on `ROLE_REQUIRED`. */
+		required_role?: Role;
 	};
 }
+
+/** What a paired device may do; each role includes the ones before it. */
+export type Role = 'viewer' | 'operator' | 'admin';
 
 /** Codes emitted by `remon-server/src/error.rs` (`AppError::into_response`). */
 export type ApiErrorCode =
@@ -21,6 +26,8 @@ export type ApiErrorCode =
 	| 'DOCKER_ERROR'
 	/** 403: caller lacks privilege (systemd needs root / PolicyKit). */
 	| 'FORBIDDEN'
+	/** 403: the device's role is below the route's. */
+	| 'ROLE_REQUIRED'
 	/** 501: operation not implementable on this OS / init backend. */
 	| 'NOT_SUPPORTED'
 	| 'DOCKER_UNAVAILABLE'
@@ -75,6 +82,7 @@ export interface PairingOpenResponse {
 	pairing_code: string;
 	/** Unix epoch (seconds) at which the pairing window expires. */
 	expires_at: number;
+	role?: Role;
 }
 
 export interface PairCompleteRequest {
@@ -85,6 +93,14 @@ export interface PairCompleteRequest {
 export interface PairCompleteResponse {
 	device_id: string;
 	device_token: string;
+	/** Absent on servers without roles. */
+	role?: Role;
+}
+
+export interface MeResponse {
+	device_id: string;
+	name: string;
+	role: Role;
 }
 
 export interface DeviceLoginRequest {
@@ -118,14 +134,17 @@ export interface SessionInfo {
 	is_current: boolean;
 	/** Non-expired JWT count for this device. 0 means paired but logged out. */
 	active_sessions: number;
+	/** Absent on servers without roles. */
+	role?: Role;
 }
 
 export interface ListSessionsResponse {
 	sessions: SessionInfo[];
 }
 
-export interface RenameSessionRequest {
-	name: string;
+export interface UpdateSessionRequest {
+	name?: string;
+	role?: Role;
 }
 
 export interface ConfigResponse {

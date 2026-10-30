@@ -8,6 +8,7 @@
 	import { toast } from '$lib/stores/toast.svelte';
 	import { provideServer } from '$lib/server-scope';
 	import { NAV_ITEMS, sectionLabel } from '$lib/nav';
+	import { atLeast, roleLabel } from '$lib/access';
 	import { APP_NAME, markValues, tab } from '$lib/brand/tab.svelte';
 	import type { SummaryResponse } from '$lib/types/api';
 	import { syncServerPush } from '$lib/utils/push';
@@ -203,6 +204,15 @@
 	let section = $derived(
 		currentPath.slice(basePath.length).split('/').filter(Boolean)[0] ?? 'overview'
 	);
+
+	// Pages this device's role cannot use leave the sidebar; until the role is known, nothing does.
+	let navItems = $derived(
+		NAV_ITEMS.filter((item) => !item.role || !conn?.role || atLeast(conn.role, item.role))
+	);
+	let sectionRole = $derived(
+		NAV_ITEMS.find((item) => item.path === (section === 'overview' ? '' : `/${section}`))?.role
+	);
+	let roleShort = $derived(!!sectionRole && !!conn?.role && !atLeast(conn.role, sectionRole));
 	let firing = $derived(summary?.alerts_firing ?? 0);
 
 	$effect(() => {
@@ -300,7 +310,7 @@
 			</div>
 
 			<nav class="flex flex-1 flex-col gap-0.5" aria-label={m.detail_aria_server_sections()}>
-				{#each NAV_ITEMS as item (item.path)}
+				{#each navItems as item (item.path)}
 					{@const active = isActive(item.path)}
 					{@const Icon = item.icon}
 					<a
@@ -331,8 +341,17 @@
 
 		<!-- clip, not hidden: hidden makes this a scroll container and breaks sticky. -->
 		<main class="min-w-0 overflow-x-clip" style:view-transition-name="page-content">
-			{#if !gated || conn?.isAuthenticated}
-				{@render children()}
+			{#if !gated || (conn?.isAuthenticated && conn.role)}
+				{#if roleShort && sectionRole}
+					<div class="px-4 py-6 md:px-8 md:py-8">
+						<EmptyState
+							title={m.role_page_title()}
+							description={m.role_page_description({ role: roleLabel(sectionRole) })}
+						/>
+					</div>
+				{:else}
+					{@render children()}
+				{/if}
 			{:else if conn?.status === 'error'}
 				<div class="px-4 py-6 md:px-8 md:py-8">
 					<Card padding="lg">

@@ -9,6 +9,7 @@
 	import BundleView from '$lib/components/incidents/BundleView.svelte';
 	import IconBotMessageSquare from '~icons/lucide/bot-message-square';
 	import { ApiError } from '$lib/api/error';
+	import { roleLabel } from '$lib/access';
 	import { cn } from '$lib/utils/cn';
 	import { fmtDuration, fmtNumber } from '$lib/utils/format';
 	import { m } from '$lib/paraglide/messages';
@@ -36,6 +37,12 @@
 			}
 		});
 		if (!c?.isAuthenticated || !Number.isFinite(target)) return;
+		// A capture embeds journal lines, an operator read; no point polling a 403.
+		if (!c.can('operator')) {
+			error = m.error_role_required({ role: roleLabel('operator') });
+			busy = false;
+			return;
+		}
 		let cancelled = false;
 		let timer: ReturnType<typeof setTimeout> | undefined;
 		async function refresh() {

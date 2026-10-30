@@ -164,10 +164,12 @@
 		<Button variant="secondary" size="sm" onclick={() => fetchList(true)} loading={busy}>
 			{m.alerts_action_refresh()}
 		</Button>
-		<Button variant="primary" size="sm" onclick={openCapture} disabled={!conn.isAuthenticated}>
-			<IconCamera class="size-4" stroke-width="2" />
-			{m.incidents_capture()}
-		</Button>
+		{#if conn.can('operator')}
+			<Button variant="primary" size="sm" onclick={openCapture} disabled={!conn.isAuthenticated}>
+				<IconCamera class="size-4" stroke-width="2" />
+				{m.incidents_capture()}
+			</Button>
+		{/if}
 	</PageHeader>
 
 	<div class="mb-4 flex flex-wrap items-center gap-2">
